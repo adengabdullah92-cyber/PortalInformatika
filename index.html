@@ -74,7 +74,7 @@
       background: #0d131f; border: 1px solid var(--bd); border-radius: 8px;
       padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
       color: #a5b4fc; overflow-y: auto; white-space: pre-wrap;
-      user-select: none; /* Cegah seleksi teks */
+      user-select: none;
     }
 
     .hidden { display: none !important; }
@@ -102,7 +102,7 @@
       <p style="color: var(--mu); font-size: 0.9rem; margin-bottom: 16px;">Gunakan username & password terdaftar</p>
       
       <label>Username</label>
-      <input type="text" id="loginUser" placeholder="misal: budi123">
+      <input type="text" id="loginUser" placeholder="Masukkan username">
       
       <label>Password</label>
       <input type="password" id="loginPass" placeholder="******">
@@ -172,8 +172,9 @@
   </xml>
 
   <script>
-    const SUPABASE_URL = 'https://XYZ.supabase.co';
-    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    // KREDENSIAL SUPABASE
+    const SUPABASE_URL = 'https://ngmisemjfnamklajtjeg.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_8fui-5-oUHxX5_yuDVF_Tg_IQJbK2pR';
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let activeUser = null;
@@ -190,18 +191,34 @@
       const p = document.getElementById('loginPass').value.trim();
       const err = document.getElementById('loginErr');
 
-      if (u === 'guru' && p === 'admin123') {
-        activeUser = { nama: 'Guru Informatika', role: 'guru' };
-        initDashboard();
+      if (!u || !p) {
+        err.textContent = 'Isi username dan password!';
         return;
       }
 
-      const { data, error } = await db.from('siswa').select('*').eq('username', u).eq('password', p).single();
-      if (error || !data) {
+      err.textContent = 'Memeriksa akun...';
+
+      try {
+        // 1. Cek di tabel guru
+        const { data: dataGuru } = await db.from('guru').select('*').eq('username', u).eq('password', p).maybeSingle();
+        if (dataGuru) {
+          activeUser = { ...dataGuru, role: 'guru' };
+          initDashboard();
+          return;
+        }
+
+        // 2. Cek di tabel siswa jika bukan guru
+        const { data: dataSiswa } = await db.from('siswa').select('*').eq('username', u).eq('password', p).maybeSingle();
+        if (dataSiswa) {
+          activeUser = { ...dataSiswa, role: 'siswa' };
+          initDashboard();
+          return;
+        }
+
         err.textContent = 'Username atau password salah!';
-      } else {
-        activeUser = { ...data, role: 'siswa' };
-        initDashboard();
+      } catch (error) {
+        err.textContent = 'Gagal terhubung ke database.';
+        console.error(error);
       }
     }
 
@@ -223,7 +240,6 @@
 
     function logout() { location.reload(); }
 
-    // ANTI-CONTEK 1: DISABLE COPY-PASTE
     function disablePasteInApp() {
       document.addEventListener('paste', (e) => {
         e.preventDefault();
@@ -239,7 +255,6 @@
       });
 
       workspace.addChangeListener((e) => {
-        // ANTI-CONTEK 2: HITUNG AKSI PENYUSUNAN BALOK
         if (e.type !== Blockly.Events.UI) actionCount++;
 
         const code = python.pythonGenerator.workspaceToCode(workspace);
@@ -256,7 +271,7 @@
       }
 
       container.innerHTML = data.map(t => `
-        <div style="border-bottom: 1px solid var(--bd); padding: 10px 0; display:flex; justify-between; align-items:center;">
+        <div style="border-bottom: 1px solid var(--bd); padding: 10px 0; display:flex; justify-content:space-between; align-items:center;">
           <div>
             <b>${t.judul}</b><br><span class="mu">${t.deskripsi || ''}</span>
           </div>
@@ -270,7 +285,6 @@
       document.getElementById('labSection').classList.remove('hidden');
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 
-      // TIMER START
       startTime = Date.now();
       actionCount = 0;
       clearInterval(timerInterval);
@@ -289,7 +303,6 @@
       const durasiDetik = Math.floor((Date.now() - startTime) / 1000);
       let statusIndikasi = 'Aman';
 
-      // DETEKSI LOGIKA SANGAT CEPTA / TANPA AKSI (MENCONTEK)
       if (durasiDetik < 15 || actionCount < 3) {
         statusIndikasi = '⚠️ Potensi Contek (Terlalu Cepat/Tanpa Proses)';
       }
@@ -318,7 +331,6 @@
       document.getElementById('tgJudul').value = '';
     }
 
-    // ANTI-CONTEK 3: ALGORITMA PERSENTASE KEMIRIPAN TEKS KODE
     function hitungKemiripan(str1, str2) {
       if (!str1 || !str2) return 0;
       const clean1 = str1.replace(/\s+/g, '');
@@ -342,7 +354,6 @@
         return;
       }
 
-      // CEK KEMIRIPAN DENGAN SISWA LAIN
       const HTMLHasil = data.map((item, idx) => {
         let deteksiMirip = '';
         
