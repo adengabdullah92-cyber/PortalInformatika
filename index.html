@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LMS Informatika SMA - Anti Contek</title>
+  <title>LMS Informatika SMA - AI & Anti Contek</title>
   
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -18,6 +18,7 @@
       --mu: #94a3b8;
       --ac: #00f2fe;
       --ac-grad: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+      --ai-grad: linear-gradient(135deg, #7f00ff 0%, #e100ff 100%);
       --ok: #10b981;
       --bad: #f43f5e;
       --warn: #f59e0b;
@@ -67,14 +68,14 @@
     }
     button:hover { opacity: 0.9; transform: translateY(-1px); }
     button.alt { background: transparent; color: var(--ac); border: 1px solid var(--ac); }
+    button.ai { background: var(--ai-grad); color: #fff; }
 
     .lab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: 400px; }
     #blocklyDiv { width: 100%; height: 100%; border-radius: 8px; overflow: hidden; }
     .code-preview {
       background: #0d131f; border: 1px solid var(--bd); border-radius: 8px;
       padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
-      color: #a5b4fc; overflow-y: auto; white-space: pre-wrap;
-      user-select: none;
+      color: #a5b4fc; overflow-y: auto; white-space: pre-wrap; user-select: none;
     }
 
     .hidden { display: none !important; }
@@ -82,12 +83,19 @@
     .badge.warn { background: rgba(245,158,11,0.15); color: var(--warn); }
     .badge.bad { background: rgba(244,63,94,0.15); color: var(--bad); }
     .badge.ok { background: rgba(16,185,129,0.15); color: var(--ok); }
+    
+    .quiz-option {
+      display: block; width: 100%; text-align: left; background: #0d131f;
+      border: 1px solid var(--bd); border-radius: 8px; padding: 10px 14px;
+      margin: 6px 0; color: var(--tx); cursor: pointer; font-size: 0.9rem;
+    }
+    .quiz-option:hover { border-color: var(--ac); background: #121a29; }
   </style>
 </head>
 <body>
 
   <header>
-    <div class="brand">⚡ LMS Informatika (Anti-Contek System)</div>
+    <div class="brand">⚡ LMS Informatika SMA (AI & Anti-Contek)</div>
     <div id="userInfo" class="hidden">
       <span id="userName" class="badge"></span>
       <button class="alt" onclick="logout()" style="margin-left: 10px;">Keluar</button>
@@ -114,10 +122,23 @@
     <!-- DASHBOARD SISWA -->
     <div id="viewSiswa" class="hidden">
       <h2>📌 Dashboard Siswa</h2>
-      <p class="mu" style="margin-bottom: 20px;">Selesaikan tugas praktik secara mandiri. Sistem memantau proses kodinganmu.</p>
+      <p class="mu" style="margin-bottom: 20px;">Akses materi, kerjakan kuis Pilihan Ganda (A–E), dan praktikum koding mandiri.</p>
 
+      <!-- TABEL MATERI SISWA -->
       <div class="card">
-        <h3>Daftar Tugas Praktik</h3>
+        <h3>📖 Materi Pembelajaran</h3>
+        <div id="listMateriSiswa" style="margin-top: 12px;">Memuat materi...</div>
+      </div>
+
+      <!-- TABEL KUIS SISWA -->
+      <div class="card">
+        <h3>📝 Kuis Pilihan Ganda (Opsi Acak A–E)</h3>
+        <div id="listKuisSiswa" style="margin-top: 12px;">Memuat kuis...</div>
+      </div>
+
+      <!-- TABEL TUGAS KODING SISWA -->
+      <div class="card">
+        <h3>💻 Tugas Praktik Lab Koding</h3>
         <div id="listTugasSiswa" style="margin-top: 12px;">Memuat tugas...</div>
       </div>
 
@@ -141,16 +162,37 @@
     <!-- DASHBOARD GURU -->
     <div id="viewGuru" class="hidden">
       <h2>👨‍🏫 Dashboard Guru</h2>
-      <p class="mu" style="margin-bottom: 20px;">Pantau kiriman tugas beserta analisis kecurangan otomatis.</p>
+      <p class="mu" style="margin-bottom: 20px;">Kelola materi, generate kuis dengan AI (A–E), dan analisis hasil kodingan siswa.</p>
 
+      <!-- POSTING MATERI -->
       <div class="card">
-        <h3>+ Buat Tugas Baru</h3>
+        <h3>+ Posting Materi Pembelajaran</h3>
+        <input type="text" id="matJudul" placeholder="Judul Materi (misal: Struktur Data Array)">
+        <input type="text" id="matKelas" placeholder="Target Kelas (misal: X-1)">
+        <textarea id="matKonten" placeholder="Ringkasan materi pembelajaran..."></textarea>
+        <button onclick="buatMateri()">Publish Materi</button>
+      </div>
+
+      <!-- GENERATOR KUIS AI -->
+      <div class="card">
+        <h3>🤖 AI Quiz Generator (Standar SMA A–E)</h3>
+        <p class="mu" style="margin-bottom: 12px;">Gunakan AI untuk membuat soal Pilihan Ganda A–E otomatis dari materi.</p>
+        <input type="text" id="aiTopik" placeholder="Topik Soal (misal: Algoritma Percabangan Python)">
+        <input type="text" id="aiKelas" placeholder="Target Kelas (misal: X-1)">
+        <button class="ai" id="btnGenAI" onclick="generateKuisAI()">⚡ Generate Soal Kuis dengan AI</button>
+        <p id="aiStatus" style="font-size: 0.85rem; margin-top: 8px; color: var(--ac);"></p>
+      </div>
+
+      <!-- BUAT TUGAS KODING -->
+      <div class="card">
+        <h3>+ Buat Tugas Lab Koding</h3>
         <input type="text" id="tgJudul" placeholder="Judul Tugas (misal: Praktik Loop)">
         <input type="text" id="tgKelas" placeholder="Target Kelas (misal: X-1)">
         <textarea id="tgDesk" placeholder="Instruksi singkat..."></textarea>
         <button onclick="buatTugas()">Publish Tugas</button>
       </div>
 
+      <!-- REKAP HASIL TUGAS & ANTI CONTEK -->
       <div class="card">
         <h3>📥 Hasil Pengumpulan & Indikator Kejujuran</h3>
         <div id="listPengumpulan" style="margin-top: 12px;">Memuat data...</div>
@@ -177,11 +219,13 @@
     const SUPABASE_KEY = 'sb_publishable_8fui-5-oUHxX5_yuDVF_Tg_IQJbK2pR';
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // GOOGLE GEMINI API KEY
+    const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY_HERE';
+
     let activeUser = null;
     let workspace = null;
     let selectedTugasId = null;
 
-    // ANTI-CONTEK TRACKER VARIABLES
     let startTime = null;
     let actionCount = 0;
     let timerInterval = null;
@@ -199,7 +243,6 @@
       err.textContent = 'Memeriksa akun...';
 
       try {
-        // 1. Cek di tabel guru
         const { data: dataGuru } = await db.from('guru').select('*').eq('username', u).eq('password', p).maybeSingle();
         if (dataGuru) {
           activeUser = { ...dataGuru, role: 'guru' };
@@ -207,7 +250,6 @@
           return;
         }
 
-        // 2. Cek di tabel siswa jika bukan guru
         const { data: dataSiswa } = await db.from('siswa').select('*').eq('username', u).eq('password', p).maybeSingle();
         if (dataSiswa) {
           activeUser = { ...dataSiswa, role: 'siswa' };
@@ -229,6 +271,8 @@
 
       if (activeUser.role === 'siswa') {
         document.getElementById('viewSiswa').classList.remove('hidden');
+        loadMateriSiswa();
+        loadKuisSiswa();
         loadTugasSiswa();
         initBlockly();
         disablePasteInApp();
@@ -243,11 +287,163 @@
     function disablePasteInApp() {
       document.addEventListener('paste', (e) => {
         e.preventDefault();
-        alert('⚠️ Fitur Paste dimatikan demi menjaga kejujuran pengerjaan tugas!');
+        alert('⚠️ Fitur Paste dimatikan demi menjaga kejujuran pengerjaan!');
       });
       document.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
+    // FUNGSI UTILITAS: SHUFFLE (PENGACAK ARRAY)
+    function shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // === GENERATOR KUIS AI ===
+    async function generateKuisAI() {
+      const topik = document.getElementById('aiTopik').value.trim();
+      const kelas = document.getElementById('aiKelas').value.trim();
+      const status = document.getElementById('aiStatus');
+      const btn = document.getElementById('btnGenAI');
+
+      if (!topik || !kelas) return alert('Isi topik dan kelas!');
+      
+      btn.disabled = true;
+      status.textContent = '🤖 AI sedang membuatkan soal Pilihan Ganda A–E...';
+
+      const prompt = `Buatkan 1 soal pilihan ganda Informatika tingkat SMA tentang "${topik}". Pilihan jawaban harus A, B, C, D, dan E. Berikan output HANYA berupa format JSON valid tanpa tanda markdown dengan struktur persis seperti ini:
+{
+  "pertanyaan": "teks pertanyaan",
+  "pilihan_a": "opsi a",
+  "pilihan_b": "opsi b",
+  "pilihan_c": "opsi c",
+  "pilihan_d": "opsi d",
+  "pilihan_e": "opsi e",
+  "kunci_jawaban": "A"
+}`;
+
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        });
+
+        const data = await response.json();
+        let rawText = data.candidates[0].content.parts[0].text;
+        rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const soalJson = JSON.parse(rawText);
+
+        await db.from('kuis').insert({
+          judul: `Kuis AI: ${topik}`,
+          pertanyaan: soalJson.pertanyaan,
+          pilihan_a: soalJson.pilihan_a,
+          pilihan_b: soalJson.pilihan_b,
+          pilihan_c: soalJson.pilihan_c,
+          pilihan_d: soalJson.pilihan_d,
+          pilihan_e: soalJson.pilihan_e,
+          kunci_jawaban: soalJson.kunci_jawaban.toUpperCase(),
+          kelas: kelas
+        });
+
+        status.textContent = '✅ Soal kuis A–E berhasil di-generate dan tersimpan ke Supabase!';
+        document.getElementById('aiTopik').value = '';
+      } catch (err) {
+        console.error(err);
+        status.textContent = '❌ Gagal membuat soal AI. Cek kembali API Key milikmu.';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function buatMateri() {
+      const judul = document.getElementById('matJudul').value;
+      const kelas = document.getElementById('matKelas').value;
+      const konten = document.getElementById('matKonten').value;
+
+      await db.from('materi').insert({ judul, kelas, konten });
+      alert('Materi berhasil dipublish!');
+      document.getElementById('matJudul').value = '';
+    }
+
+    async function loadMateriSiswa() {
+      const { data } = await db.from('materi').select('*').eq('kelas', activeUser.kelas);
+      const container = document.getElementById('listMateriSiswa');
+      if (!data || data.length === 0) {
+        container.innerHTML = '<p class="mu">Belum ada materi untuk kelasmu.</p>';
+        return;
+      }
+
+      container.innerHTML = data.map(m => `
+        <div style="border-bottom: 1px solid var(--bd); padding: 10px 0;">
+          <b>${m.judul}</b>
+          <p class="mu" style="margin-top:4px;">${m.konten || ''}</p>
+        </div>
+      `).join('');
+    }
+
+    // === TAMPILAN KUIS DENGAN PENGACAKAN SOAL & OPSI (A-E) ===
+    async function loadKuisSiswa() {
+      const { data } = await db.from('kuis').select('*').eq('kelas', activeUser.kelas);
+      const container = document.getElementById('listKuisSiswa');
+      if (!data || data.length === 0) {
+        container.innerHTML = '<p class="mu">Belum ada kuis untuk kelasmu.</p>';
+        return;
+      }
+
+      // 1. ACAK URUTAN SOAL UNTUK SISWA INI
+      const soalAcak = shuffleArray(data);
+
+      container.innerHTML = soalAcak.map((q, idx) => {
+        // 2. KUMPULKAN KUNCI & OPSI ASLI
+        const opsiAsli = [
+          { labelOrig: 'A', text: q.pilihan_a },
+          { labelOrig: 'B', text: q.pilihan_b },
+          { labelOrig: 'C', text: q.pilihan_c },
+          { labelOrig: 'D', text: q.pilihan_d },
+          { labelOrig: 'E', text: q.pilihan_e }
+        ];
+
+        // 3. ACAK URUTAN OPSI JAWABAN
+        const opsiAcak = shuffleArray(opsiAsli);
+        const labelsNew = ['A', 'B', 'C', 'D', 'E'];
+
+        // 4. GENERATE TOMBOL JAWABAN
+        const tombolOpsiHTML = opsiAcak.map((opt, i) => {
+          const isCorrect = (opt.labelOrig === q.kunci_jawaban);
+          return `<button class="quiz-option" onclick="jawabKuis('${q.id}', '${labelsNew[i]}', ${isCorrect})">${labelsNew[i]}. ${opt.text}</button>`;
+        }).join('');
+
+        return `
+          <div style="border: 1px solid var(--bd); border-radius: 8px; padding: 12px; margin-bottom: 12px; background: #0d131f;">
+            <div class="badge" style="margin-bottom:6px;">Soal #${idx + 1}</div>
+            <b style="display:block; margin-bottom:4px;">${q.judul}</b>
+            <p style="margin: 8px 0 12px; color: #fff;">${q.pertanyaan}</p>
+            ${tombolOpsiHTML}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function jawabKuis(kuisId, labelDipilih, isCorrect) {
+      const skor = isCorrect ? 100 : 0;
+
+      await db.from('nilai_kuis').insert({
+        kuis_id: kuisId,
+        siswa_id: activeUser.id,
+        jawaban_siswa: labelDipilih,
+        skor: skor
+      });
+
+      alert(`Kuis Selesai!\nJawaban Kamu: Opsi ${labelDipilih}\nStatus: ${isCorrect ? '✅ BENAR (Skor: 100)' : '❌ SALAH (Skor: 0)'}`);
+    }
+
+    // === LAB KODING & ANTI CONTEK ===
     function initBlockly() {
       workspace = Blockly.inject('blocklyDiv', {
         toolbox: document.getElementById('toolbox'),
@@ -256,7 +452,6 @@
 
       workspace.addChangeListener((e) => {
         if (e.type !== Blockly.Events.UI) actionCount++;
-
         const code = python.pythonGenerator.workspaceToCode(workspace);
         document.getElementById('pythonCode').textContent = code || '# Susun balok di sebelah kiri...';
       });
@@ -266,7 +461,7 @@
       const { data } = await db.from('tugas').select('*').eq('kelas', activeUser.kelas);
       const container = document.getElementById('listTugasSiswa');
       if (!data || data.length === 0) {
-        container.innerHTML = '<p class="mu">Belum ada tugas untuk kelasmu.</p>';
+        container.innerHTML = '<p class="mu">Belum ada tugas lab koding untuk kelasmu.</p>';
         return;
       }
 
