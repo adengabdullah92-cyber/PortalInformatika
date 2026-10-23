@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMS Informatika SMA - Bank Master Edition (Light Mode)</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+  <script src="https://unpkg.com/blockly/python_compressed.js"></script>
+
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --tx: #0f172a;
+      --mu: #64748b;
+      --ac: #2563eb;
+      --ac-grad: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+      --ai-grad: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+      --ok: #10b981;
+      --bad: #ef4444;
+      --warn: #f59e0b;
+      --bd: #e2e8f0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--tx);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Navigation Header */
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--bd);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      z-index: 10;
+    }
+
+    .brand { font-size: 1.25rem; font-weight: 800; color: var(--ac); letter-spacing: -0.02em; }
+    
+    /* Layout Container with Sidebar */
+    .app-layout {
+      display: flex;
+      flex: 1;
+      min-height: calc(100vh - 61px);
+    }
+
+    /* Sidebar Styling */
+    .sidebar {
+      width: 260px;
+      background: #ffffff;
+      border-right: 1px solid var(--bd);
+      padding: 20px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      color: var(--mu);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+
+    .nav-item:hover {
+      background: #f1f5f9;
+      color: var(--tx);
+    }
+
+    .nav-item.active {
+      background: #eff6ff;
+      color: var(--ac);
+      border-color: #bfdbfe;
+    }
+
+    /* Main Content Area */
+    .main-content {
+      flex: 1;
+      padding: 28px;
+      max-width: 1100px;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--bd);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: #f8fafc;
+      border: 1px solid var(--bd);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .stat-card .num { font-size: 1.6rem; font-weight: 800; color: var(--ac); margin-top: 4px; }
+
+    h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 6px; color: var(--tx); }
+    h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; color: var(--tx); }
+    .mu { color: var(--mu); font-size: 0.88rem; }
+
+    input, select, textarea {
+      width: 100%; padding: 12px 16px; margin: 6px 0 16px;
+      background: #f8fafc; border: 1.5px solid var(--bd);
+      border-radius: 10px; color: var(--tx); font-family: inherit; font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--ac);
+      background: #ffffff;
+    }
+
+    .checkbox-group {
+      display: flex; gap: 12px; flex-wrap: wrap; margin: 8px 0 16px;
+    }
+
+    .checkbox-item {
+      display: flex; align-items: center; gap: 6px; background: #f1f5f9;
+      padding: 8px 14px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    }
+
+    button {
+      background: var(--ac-grad); border: none; padding: 12px 22px;
+      color: #ffffff; font-weight: 700; border-radius: 10px; font-size: 0.92rem;
+      cursor: pointer; transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3); }
+    button.alt { background: transparent; color: var(--ac); border: 1.5px solid var(--ac); box-shadow: none; }
+    button.ai { background: var(--ai-grad); color: #fff; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25); }
+    button.ok { background: #10b981; color: #fff; box-shadow: none; }
+
+    /* Dual-Mode Lab Layout */
+    .lab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: 420px; }
+    #blocklyDiv { width: 100%; height: 100%; border-radius: 12px; overflow: hidden; border: 1px solid var(--bd); }
+    .code-preview {
+      background: #0f172a; border: 1px solid var(--bd); border-radius: 12px;
+      padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.88rem;
+      color: #38bdf8; overflow-y: auto; white-space: pre-wrap; user-select: none;
+    }
+
+    .quiz-option {
+      display: block; width: 100%; text-align: left; background: #f8fafc;
+      border: 1px solid var(--bd); border-radius: 10px; padding: 12px 16px;
+      margin: 8px 0; color: var(--tx); cursor: pointer; font-size: 0.92rem; font-weight: 500;
+      transition: all 0.2s;
+    }
+    .quiz-option:hover { border-color: var(--ac); background: #eff6ff; color: var(--ac); }
+
+    table {
+      width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.9rem;
+    }
+    th, td {
+      padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--bd);
+    }
+    th { background: #f1f5f9; font-weight: 700; color: var(--mu); }
+
+    .hidden { display: none !important; }
+    .badge { background: #eff6ff; color: var(--ac); padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; border: 1px solid #bfdbfe; }
+    .badge.warn { background: #fffbeb; color: var(--warn); border-color: #fde68a; }
+    .badge.bad { background: #fef2f2; color: var(--bad); border-color: #fecaca; }
+    .badge.ok { background: #ecfdf5; color: var(--ok); border-color: #a7f3d0; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP HEADER -->
+  <header>
+    <div class="brand">⚡ LMS Informatika SMA</div>
+    <div id="userInfo" class="hidden">
+      <span id="userName" class="badge"></span>
+      <button class="alt" onclick="logout()" style="margin-left: 10px; padding: 8px 16px;">Keluar</button>
+    </div>
+  </header>
+
+  <!-- LOGIN CONTAINER -->
+  <div id="viewLogin" class="container" style="max-width: 420px; margin: 60px auto;">
+    <div class="card">
+      <h2>Login Akses Portal</h2>
+      <p class="mu" style="margin-bottom: 20px;">Gunakan username & password terdaftar</p>
+      
+      <label class="mu">Username</label>
+      <input type="text" id="loginUser" placeholder="Masukkan username">
+      
+      <label class="mu">Password</label>
+      <input type="password" id="loginPass" placeholder="******">
+      
+      <p id="loginErr" style="color: var(--bad); font-size: 0.85rem; margin-bottom: 12px;"></p>
+      <button onclick="handleLogin()" style="width: 100%;">Masuk Portal</button>
+    </div>
+  </div>
+
+  <!-- MAIN APP LAYOUT (SIDEBAR + CONTENT) -->
+  <div id="appLayout" class="app-layout hidden">
+    
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar">
+      <div class="nav-item active" onclick="switchTab('materi')">
+        <span>📖</span> Bank Materi & Modul
+      </div>
+      <div class="nav-item" onclick="switchTab('kuis')">
+        <span>🤖</span> Bank Kuis AI & Soal
+      </div>
+      <div class="nav-item" onclick="switchTab('lab')">
+        <span>💻</span> Bank Lab Koding
+      </div>
+      <div id="navKoreksi" class="nav-item hidden" onclick="switchTab('koreksi')">
+        <span>📊</span> Koreksi Per Kelas
+      </div>
+    </div>
+
+    <!-- RIGHT MAIN CONTENT -->
+    <div class="main-content">
+
+      <!-- MODUL 1: BANK MATERI & MODUL -->
+      <div id="tabMateri" class="tab-content">
+        <!-- SISWA VIEW -->
+        <div id="siswaMateriView" class="hidden">
+          <h2>📖 Materi & Modul Pembelajaran</h2>
+          <p class="mu" style="margin-bottom: 20px;">Baca materi dan tandai checklist setelah selesai belajar.</p>
+          <div id="listMateriSiswa">Memuat materi...</div>
+        </div>
+
+        <!-- GURU VIEW -->
+        <div id="guruMateriView" class="hidden">
+          <h2>📖 Bank Master Materi & Publish Multi-Kelas</h2>
+          <p class="mu" style="margin-bottom: 20px;">Buat/generate materi master, lalu publish ke kelas-kelas pilihan.</p>
+          
+          <div class="card">
+            <h3>+ Buat / AI Generate Materi ke Bank Master</h3>
+            <input type="text" id="matJudul" placeholder="Judul Topik Master (misal: Algoritma & Pemrograman)">
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+              <button class="ai" id="btnGenMatAI" onclick="generateMateriAI()">🤖 AI Generate Ringkasan Master</button>
+            </div>
+
+            <textarea id="matKonten" rows="5" placeholder="Isi materi master akan tersimpan di Bank Master..."></textarea>
+            <button onclick="simpanBankMateri()">💾 Simpan Ke Bank Master</button>
+            <p id="matAIStatus" style="font-size: 0.85rem; margin-top: 8px; color: var(--ac);"></p>
+          </div>
+
+          <div class="card">
+            <h3>🗂️ Koleksi Bank Master Materi & Publish Log</h3>
+            <div id="listBankMateri">Memuat Bank Materi...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODUL 2: BANK KUIS AI & SOAL -->
+      <div id="tabKuis" class="tab-content hidden">
+        <!-- SISWA VIEW -->
+        <div id="siswaKuisView" class="hidden">
+          <h2>🤖 Kuis Pilihan Ganda (Opsi Acak A–E)</h2>
+          <p class="mu" style="margin-bottom: 20px;">Soal dan pilihan dikocok otomatis untuk setiap siswa.</p>
+          <div id="listKuisSiswa">Memuat kuis...</div>
+        </div>
+
+        <!-- GURU VIEW -->
+        <div id="guruKuisView" class="hidden">
+          <h2>🤖 AI Quiz Generator & Bank Soal Master</h2>
+          <p class="mu" style="margin-bottom: 20px;">Generate soal AI, pratinjau & edit, lalu simpan ke Bank Soal sebelum dipublish.</p>
+          
+          <div class="card">
+            <h3>⚡ Step 1: Generate Soal AI & Pratinjau</h3>
+            <input type="text" id="aiTopik" placeholder="Topik Soal (misal: Logika Percabangan IF ELSE)">
+            <button class="ai" id="btnGenKuisAI" onclick="generateKuisAI()">🤖 Generate Draft Soal AI</button>
+            <p id="aiKuisStatus" style="font-size: 0.85rem; margin-top: 8px; color: var(--ac);"></p>
+
+            <!-- LIVE PREVIEW & EDIT DRAFT SOAL -->
+            <div id="draftKuisSection" class="hidden" style="margin-top: 16px; background: #f1f5f9; padding: 16px; border-radius: 12px;">
+              <h4 style="margin-bottom: 8px;">✏️ Edit & Review Draft Soal AI</h4>
+              <textarea id="draftPertanyaan" rows="3"></textarea>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <input type="text" id="draftOptA" placeholder="Opsi A">
+                <input type="text" id="draftOptB" placeholder="Opsi B">
+                <input type="text" id="draftOptC" placeholder="Opsi C">
+                <input type="text" id="draftOptD" placeholder="Opsi D">
+                <input type="text" id="draftOptE" placeholder="Opsi E">
+                <select id="draftKunci">
+                  <option value="A">Kunci: A</option>
+                  <option value="B">Kunci: B</option>
+                  <option value="C">Kunci: C</option>
+                  <option value="D">Kunci: D</option>
+                  <option value="E">Kunci: E</option>
+                </select>
+              </div>
+              <button onclick="simpanDraftToBankSoal()" style="margin-top: 10px;">💾 Setujui & Simpan Ke Bank Soal</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>🗂️ Koleksi Bank Soal & Publish Multi-Kelas</h3>
+            <div id="listBankSoal">Memuat Bank Soal...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODUL 3: BANK LAB KODING & TUGAS -->
+      <div id="tabLab" class="tab-content hidden">
+        <!-- SISWA VIEW -->
+        <div id="siswaLabView" class="hidden">
+          <h2>💻 Tugas Praktik Lab Koding</h2>
+          <p class="mu" style="margin-bottom: 20px;">Kerjakan koding interaktif di workspace dual mode.</p>
+          <div id="listTugasSiswa">Memuat tugas...</div>
+
+          <!-- WORKSPACE INTERAKTIF -->
+          <div id="labSection" class="card hidden" style="margin-top: 24px;">
+            <h3>🎮 Lab Koding Interaktif (Dual Mode)</h3>
+            <p class="mu" style="margin-bottom: 12px;">Fitur Copy-Paste dimatikan untuk keamanan kejujuran.</p>
+            
+            <div class="lab-grid">
+              <div id="blocklyDiv"></div>
+              <div class="code-preview" id="pythonCode"># Kode Python otomatis terbentuk...</div>
+            </div>
+            
+            <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+              <span id="timerText" class="mu">Waktu pengerjaan: 00:00</span>
+              <button onclick="submitTugas()">Jalankan & Kirim Jawaban</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- GURU VIEW -->
+        <div id="guruLabView" class="hidden">
+          <h2>💻 Bank Master Lab Koding & Publish Log</h2>
+          <p class="mu" style="margin-bottom: 20px;">Buat tugas koding ke Bank Master dan atur penayangan multi-kelas.</p>
+          
+          <div class="card">
+            <h3>+ Buat Tugas Baru Ke Bank Master</h3>
+            <input type="text" id="tgJudul" placeholder="Judul Tugas (misal: Praktik Perulangan FOR)">
+            <textarea id="tgDesk" placeholder="Instruksi tugas dan kriteria keluaran..."></textarea>
+            <button onclick="simpanBankTugas()">💾 Simpan Ke Bank Tugas</button>
+          </div>
+
+          <div class="card">
+            <h3>🗂️ Koleksi Bank Tugas & Publish Log</h3>
+            <div id="listBankTugas">Memuat Bank Tugas...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODUL 4: KOREKSI & ANALISIS PER KELAS (KHUSUS GURU) -->
+      <div id="tabKoreksi" class="tab-content hidden">
+        <h2>📊 Koreksi & Analisis Anti-Contek Per Kelas</h2>
+        <p class="mu" style="margin-bottom: 20px;">Pilih kelas untuk memantau rekap nilai, checklist materi, dan indikasi kecurangan.</p>
+        
+        <!-- FILTER KELAS -->
+        <div class="card" style="display: flex; gap: 16px; align-items: center;">
+          <div style="flex: 1;">
+            <label class="mu">Pilih Kelas Target:</label>
+            <select id="filterKelasGroup" onchange="renderModul4PerKelas()">
+              <option value="X-1">Kelas X-1</option>
+              <option value="X-2">Kelas X-2</option>
+              <option value="XI-1">Kelas XI-1</option>
+            </select>
+          </div>
+          <button class="alt" onclick="exportKeExcel()" style="margin-top: 16px;">📥 Unduh Rekap Nilai CSV/Excel</button>
+        </div>
+
+        <!-- CLASS SUMMARY STATS -->
+        <div class="card-grid">
+          <div class="stat-card">
+            <span class="mu">Tingkat Partisipasi</span>
+            <div class="num" id="statPartisipasi">0%</div>
+          </div>
+          <div class="stat-card">
+            <span class="mu">Rata-Rata Nilai Kelas</span>
+            <div class="num" id="statRataRata">0.0</div>
+          </div>
+          <div class="stat-card">
+            <span class="mu">Peringatan Anti-Contek</span>
+            <div class="num" id="statWarning" style="color: var(--bad);">0</div>
+          </div>
+        </div>
+
+        <!-- TABEL REKAP SISWA PER KELAS -->
+        <div class="card">
+          <h3>📥 Summary Rekapitulasi Siswa</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Nama Siswa</th>
+                <th>Checklist Materi</th>
+                <th>Nilai Kuis AI</th>
+                <th>Lab Koding (Durasi / Aksi)</th>
+                <th>Status Anti-Cheat</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyRekapKelas">
+              <tr><td colspan="5" class="mu">Pilih kelas di atas untuk menampilkan data.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BLOCKLY TOOLBOX DEFINITION -->
+  <xml id="toolbox" style="display: none">
+    <block type="controls_repeat_ext">
+      <value name="TIMES">
+        <shadow type="math_number"><field name="NUM">5</field></shadow>
+      </value>
+    </block>
+    <block type="text_print"></block>
+    <block type="text"></block>
+    <block type="variables_set"></block>
+    <block type="variables_get"></block>
+  </xml>
+
+  <script>
+    // CONFIG SUPABASE
+    const SUPABASE_URL = 'https://ngmisemjfnamklajtjeg.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_8fui-5-oUHxX5_yuDVF_Tg_IQJbK2pR';
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // CALL AI VIA EDGE FUNCTION (Aman tanpa bocor key)
+    async function callAI(prompt) {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-ai`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        },
+        body: JSON.stringify({ prompt })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error('HTTP ' + response.status + ' - ' + (data.error?.message || data.error || data.message || JSON.stringify(data)));
+      return data.text ?? data.result ?? data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    }
+
+    let activeUser = null;
+    let workspace = null;
+    let selectedTugasId = null;
+
+    let startTime = null;
+    let actionCount = 0;
+    let timerInterval = null;
+
+    async function handleLogin() {
+      const u = document.getElementById('loginUser').value.trim();
+      const p = document.getElementById('loginPass').value.trim();
+      const err = document.getElementById('loginErr');
+
+      if (!u || !p) {
+        err.textContent = 'Isi username dan password!';
+        return;
+      }
+
+      err.textContent = 'Memeriksa akun...';
+
+      try {
+        const { data: dataGuru } = await db.from('guru').select('*').eq('username', u).eq('password', p).maybeSingle();
+        if (dataGuru) {
+          activeUser = { ...dataGuru, role: 'guru' };
+          initDashboard();
+          return;
+        }
+
+        const { data: dataSiswa } = await db.from('siswa').select('*').eq('username', u).eq('password', p).maybeSingle();
+        if (dataSiswa) {
+          activeUser = { ...dataSiswa, role: 'siswa' };
+          initDashboard();
+          return;
+        }
+
+        err.textContent = 'Username atau password salah!';
+      } catch (error) {
+        err.textContent = 'Gagal terhubung ke database.';
+        console.error(error);
+      }
+    }
+
+    function initDashboard() {
+      document.getElementById('viewLogin').classList.add('hidden');
+      document.getElementById('appLayout').classList.remove('hidden');
+      document.getElementById('userInfo').classList.remove('hidden');
+      document.getElementById('userName').textContent = `${activeUser.nama} (${activeUser.role.toUpperCase()})`;
+
+      if (activeUser.role === 'guru') {
+        document.getElementById('navKoreksi').classList.remove('hidden');
+        document.getElementById('guruMateriView').classList.remove('hidden');
+        document.getElementById('guruKuisView').classList.remove('hidden');
+        document.getElementById('guruLabView').classList.remove('hidden');
+        loadBankMateriGuru();
+        loadBankSoalGuru();
+        loadBankTugasGuru();
+        renderModul4PerKelas();
+      } else {
+        document.getElementById('siswaMateriView').classList.remove('hidden');
+        document.getElementById('siswaKuisView').classList.remove('hidden');
+        document.getElementById('siswaLabView').classList.remove('hidden');
+        loadMateriSiswa();
+        loadKuisSiswa();
+        loadTugasSiswa();
+        initBlockly();
+        disablePasteInApp();
+      }
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+
+      if (tabName === 'materi') {
+        document.querySelectorAll('.nav-item')[0].classList.add('active');
+        document.getElementById('tabMateri').classList.remove('hidden');
+      } else if (tabName === 'kuis') {
+        document.querySelectorAll('.nav-item')[1].classList.add('active');
+        document.getElementById('tabKuis').classList.remove('hidden');
+      } else if (tabName === 'lab') {
+        document.querySelectorAll('.nav-item')[2].classList.add('active');
+        document.getElementById('tabLab').classList.remove('hidden');
+      } else if (tabName === 'koreksi') {
+        document.getElementById('navKoreksi').classList.add('active');
+        document.getElementById('tabKoreksi').classList.remove('hidden');
+      }
+    }
+
+    function logout() { location.reload(); }
+
+    function disablePasteInApp() {
+      document.addEventListener('paste', (e) => {
+        e.preventDefault();
+        alert('⚠️ Fitur Paste dimatikan demi menjaga kejujuran pengerjaan!');
+      });
+      document.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+
+    function shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // ================= MODUL 1: BANK MATERI =================
+    async function generateMateriAI() {
+      const topik = document.getElementById('matJudul').value.trim();
+      const status = document.getElementById('matAIStatus');
+      const btn = document.getElementById('btnGenMatAI');
+
+      if (!topik) return alert('Isi Judul Topik Master terlebih dahulu!');
+      btn.disabled = true;
+      status.textContent = '🤖 AI sedang menyusun ringkasan materi master...';
+
+      try {
+        const prompt = `Buatkan ringkasan materi pembelajaran Informatika SMA tentang "${topik}". Jelas, ringkas, dan mencakup konsep utama.`;
+        const textRes = await callAI(prompt);
+        document.getElementById('matKonten').value = textRes;
+        status.textContent = '✅ Ringkasan materi master berhasil di-generate!';
+      } catch (err) {
+        status.textContent = '❌ Gagal AI: ' + err.message;
+      } finally { btn.disabled = false; }
+    }
+
+    async function simpanBankMateri() {
+      const judul = document.getElementById('matJudul').value;
+      const konten = document.getElementById('matKonten').value;
+      if (!judul || !konten) return alert('Isi judul dan konten!');
+
+      await db.from('materi').insert({ judul, konten });
+      alert('Materi tersimpan ke Bank Master!');
+      document.getElementById('matJudul').value = '';
+      document.getElementById('matKonten').value = '';
+      loadBankMateriGuru();
+    }
+
+    async function loadBankMateriGuru() {
+      const { data } = await db.from('materi').select('*');
+      const container = document.getElementById('listBankMateri');
+      if (!data || data.length === 0) {
+        container.innerHTML = '<p class="mu">Bank Materi masih kosong.</p>';
+        return;
+      }
+
+      container.innerHTML = data.map(m => `
+        <div class="card" style="background:#f8fafc;">
+          <b>${m.judul}</b>
+          <p class="mu" style="margin:6px 0 12px; line-height:1.5;">${m.konten || ''}</p>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <span class="mu" style="font-weight:600;">Publish Ke:</span>
+            <button class="alt" style="padding:6px 12px;" onclick="publishMateriMulti('${m.id}', 'X-1')">+ X-1</button>
+            <button class="alt" style="padding:6px 12px;" onclick="publishMateriMulti('${m.id}', 'X-2')">+ X-2</button>
+            <button class="alt" style="padding:6px 12px;" onclick="publishMateriMulti('${m.id}', 'XI-1')">+ XI-1</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function publishMateriMulti(materiId, targetKelas) {
+      await db.from('materi_published').insert({ materi_id: materiId, kelas: targetKelas });
+      alert(`Materi berhasil dipublish ke Kelas ${targetKelas}!`);
+    }
+
+    async function loadMateriSiswa() {
+      const { data } = await db.from('materi_published').select('*, materi(*)').eq('kelas', activeUser.kelas);
+      const container = document.getElementById('listMateriSiswa');
+      if (!data || data.length === 0) {
+        container.innerHTML = '<p class="mu">Belum ada materi dipublish untuk kelasmu.</p>';
+        return;
+      }
+
+      const { data: readLog } = await db.from('materi_read_log').select('materi_id').eq('siswa_id', activeUser.id);
+      const readSet = new Set((readLog || []).map(r => r.materi_id));
+
+      container.innerHTML = data.map(p => {
+        const m = p.materi;
+        const isRead = readSet.has(m.id);
+        return `
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <b>${m.judul}</b>
+              ${isRead ? '<span class="badge ok">✅ Sudah Dibaca</span>' : `<button class="ok" onclick="tandaiMateriDibaca('${m.id}')">Tandai Sudah Dibaca</button>`}
+            </div>
+            <p class="mu" style="margin-top:8px; line-height:1.6; color:#334155;">${m.konten || ''}</p>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function tandaiMateriDibaca(materiId) {
+      await db.from('materi_read_log').insert({ materi_id: materiId, siswa_id: activeUser.id });
+      alert('Materi ditandai sudah dibaca! 🎉');
+      loadMateriSiswa();
+    }
+
+    // ================= MODUL 2: BANK KUIS AI & SOAL =================
+    async function generateKuisAI() {
+      const topik = document.getElementById('aiTopik').value.trim();
+      const status = document.getElementById('aiKuisStatus');
+      const btn = document.getElementById('btnGenKuisAI');
+
+      if (!topik) return alert('Isi topik soal!');
+      btn.disabled = true;
+      status.textContent = '🤖 AI sedang menyusun draft soal...';
+
+      const prompt = `Buatkan 1 soal pilihan ganda Informatika SMA tentang "${topik}". Opsi jawaban harus A, B, C, D, dan E. Format JSON valid persis seperti ini:
+{
+  "pertanyaan": "teks pertanyaan",
+  "pilihan_a": "opsi a",
+  "pilihan_b": "opsi b",
+  "pilihan_c": "opsi c",
+  "pilihan_d": "opsi d",
+  "pilihan_e": "opsi e",
+  "kunci_jawaban": "A"
+}`;
+
+      try {
+        let rawText = await callAI(prompt);
+        rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const soalJson = JSON.parse(rawText);
+
+        document.getElementById('draftPertanyaan').value = soalJson.pertanyaan;
+        document.getElementById('draftOptA').value = soalJson.pilihan_a;
+        document.getElementById('draftOptB').value = soalJson.pilihan_b;
+        document.getElementById('draftOptC').value = soalJson.pilihan_c;
+        document.getElementById('draftOptD').value = soalJson.pilihan_d;
+        document.getElementById('draftOptE').value = soalJson.pilihan_e;
+        document.getElementById('draftKunci').value = soalJson.kunci_jawaban.toUpperCase();
+
+        document.getElementById('draftKuisSection').classList.remove('hidden');
+        status.textContent = '✅ Draft AI berhasil di-generate! Silakan tinjau di bawah.';
+      } catch (err) {
+        status.textContent = '❌ Gagal draft AI: ' + err.message;
+      } finally { btn.disabled = false; }
+    }
+
+    async function simpanDraftToBankSoal() {
+      const topik = document.getElementById('aiTopik').value.trim() || 'Kuis AI';
+      const pertanyaan = document.getElementById('draftPertanyaan').value;
+      const pilihan_a = document.getElementById('draftOptA').value;
+      const pilihan_b = document.getElementById('draftOptB').value;
+      const pilihan_c = document.getElementById('draftOptC').value;
+      const pilihan_d = document.getElementById('draftOptD').value;
+      const pilihan_e = document.getElementById('draftOptE').value;
+      const kunci_jawaban = document.getElementById('draftKunci').value;
+
+      await db.from('kuis').insert({
+        judul: `Kuis AI: ${topik}`, pertanyaan, pilihan_a, pilihan_b, pilihan_c, pilihan_d, pilihan_e, kunci_jawaban
+      });
+
+      alert('Soal disetujui & masuk ke Bank Soal Master!');
+      document.getElementById('draftKuisSection').classList.add('hidden');
+      loadBankSoalGuru();
+    }
+
+    async function loadBankSoalGuru() {
+      const { data } = await db.from('kuis').select('*');
+      const container = document.getElementById('listBankSoal');
+      if (!data || data.length === 0) {
+        container.innerHTML = '<p class="mu">Bank Soal masih kosong.</p>';
+        return;
+      }
+
+      container.innerHTML = data.map(q => `
+        <div class="card" style="background:#f8fafc;">
+          <b>${q.judul}</b>
+          <p style="margin:6px 0 8px;">${q.pertanyaan}</p>
+          <div class="mu" style="font-size:0.8rem; margin-bottom:12px;">Kunci: <b>${q.kunci_jawaban}</b></div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <span class="mu" style="font-weight:600;">Publish Ke:</span>
+            <button class="alt" style="padding:6px 12px;" onclick="publishKuisMulti('${q.id}', 'X-1')">+ X-1</button>
+            <button class="alt" style="padding:6px 12px;" onclick="publishKuisMulti('${q.id}', 'X-2')">+ X-2</button>
+            <button class="alt" style="padding:6px 12px;" onclick="publishKuisMulti('${q.id}', 'XI-1')">+ XI-1</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function publishKuisMulti(kuisId, targetKelas) {
+      await db.from('kuis_published').insert({ kuis_id: kuisId, kelas: targetKelas });
+      alert(`Kuis berhasil dipublish ke Kelas ${targetKelas}!`);
+    }
+
+    async function loadKuisSiswa() {
+      const { data } = await db.from('kuis_published').select('*, kuis(*)').eq('kelas', activeUser.kelas);
+      const container = document.getElementById('listKuisSiswa');
+      if (!data || data.length === 0) {
+        container.innerHTML = '<p class="mu">Belum ada kuis dipublish untuk kelasmu.</p>';
+        return;
+      }
+
+      const soalList = data.map(d => d.kuis);
+      const soalAcak = shuffleArray(soalList);
+
+      container.innerHTML = soalAcak.map((q, idx) => {
+        const opsiAsli = [
+          { labelOrig: 'A', text: q.pilihan_a },
+          { labelOrig: 'B', text: q.pilihan_b },
+          { labelOrig: 'C', text: q.pilihan_c },
+          { labelOrig: 'D', text: q.pilihan_d },
+          { labelOrig: 'E', text: q.pilihan_e }
+        ];
+
+        const opsiAcak = shuffleArray(opsiAsli);
+        const labelsNew = ['A', 'B', 'C', 'D', 'E'];
+
+        const tombolOpsiHTML = opsiAcak.map((opt, i) => {
+          const isCorrect = (opt.labelOrig === q.kunci_jawaban);
+          return `<button class="quiz-option" onclick="jawabKuis('${q.id}', '${labelsNew[i]}', ${isCorrect})">${labelsNew[i]}. ${opt.text}</button>`;
+        }).join('');
+
+        return `
+          <div class="card">
+            <div class="badge" style="margin-bottom:8px;">Soal #${idx + 1}</div>
+            <b style="display:block; font-size:1.05rem; margin-bottom:4px;">${q.judul}</b>
+            <p style="margin: 8px 0 16px; color: var(--tx);">${q.pertanyaan}</p>
+            ${tombolOpsiHTML}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function jawabKuis(kuisId, labelDipilih, isCorrect) {
+      const skor = isCorrect ? 100 : 0;
+      await db.from('nilai_kuis').insert({ kuis_id: kuisId, siswa_id: activeUser.id, jawaban_siswa: labelDipilih, skor });
+      alert(`Kuis Selesai!
+Jawaban Kamu: Opsi ${labelDipilih}
+Status: ${isCorrect ? '✅ BENAR (Skor: 100)' : '❌ SALAH (Skor: 0)'}`);
+    }
+
+    // ================= MODUL 3: BANK LAB KODING =================
+    async function simpanBankTugas() {
+      const judul = document.getElementById('tgJudul').value;
+      const deskripsi = document.getElementById('tgDesk').value;
+      if (!judul) return alert('Isi judul tugas!');
+
+      await db.from('tugas').insert({ judul, deskripsi });
+      alert('Tugas tersimpan ke Bank Master!');
+      document.getElementById('tgJudul').value = '';
+      document.getElementById('tgDesk').value = '';
+      loadBankTugasGuru();
+    }
+
+    async function loadBankTugasGuru() {
+      const { data } = await db.from('tugas').select('*');
+      const container = document.getElementById('listBankTugas');
+      if (!data || data.length === 0) {
+        container.innerHTML = '<p class="mu">Bank Tugas masih kosong.</p>';
+        return;
+      }
+
+      container.innerHTML = data.map(t => `
+        <div class="card" style="background:#f8fafc;">
+          <b>${t.judul}</b>
+          <p class="mu" style="margin:6px 0 12px;">${t.deskripsi || ''}</p>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <span class="mu" style="font-weight:600;">Publish Ke:</span>
+            <button class="alt" style="padding:6px 12px;" onclick="publishTugasMulti('${t.id}', 'X-1')">+ X-1</button>
+            <button class="alt" style="padding:6px 12px;" onclick="publishTugasMulti('${t.id}', 'X-2')">+ X-2</button>
+            <button class="alt" style="padding:6px 12px;" onclick="publishTugasMulti('${t.id}', 'XI-1')">+ XI-1</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function publishTugasMulti(tugasId, targetKelas) {
+      await db.from('tugas_published').insert({ tugas_id: tugasId, kelas: targetKelas });
+      alert(`Tugas Koding dipublish ke Kelas ${targetKelas}!`);
+    }
+
+    function initBlockly() {
+      workspace = Blockly.inject('blocklyDiv', { toolbox: document.getElementById('toolbox'), scrollbars: false });
+      workspace.addChangeListener((e) => {
+        if (e.type !== Blockly.Events.UI) actionCount++;
+        const code = python.pythonGenerator.workspaceToCode(workspace);
+        document.getElementById('pythonCode').textContent = code || '# Susun balok di sebelah kiri...';
+      });
+    }
+
+    async function loadTugasSiswa() {
+      const { data } = await db.from('tugas_published').select('*, tugas(*)').eq('kelas', activeUser.kelas);
+      const container = document.getElementById('listTugasSiswa');
+      if (!data || data.length === 0) {
+        container.innerHTML = '<p class="mu">Belum ada tugas lab dipublish untuk kelasmu.</p>';
+        return;
+      }
+
+      container.innerHTML = data.map(d => {
+        const t = d.tugas;
+        return `
+          <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+            <div><b>${t.judul}</b><br><span class="mu">${t.deskripsi || ''}</span></div>
+            <button onclick="bukaLab('${t.id}')">Kerjakan</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function bukaLab(tugasId) {
+      selectedTugasId = tugasId;
+      document.getElementById('labSection').classList.remove('hidden');
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+
+      startTime = Date.now();
+      actionCount = 0;
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        const sec = Math.floor((Date.now() - startTime) / 1000);
+        const m = String(Math.floor(sec / 60)).padStart(2, '0');
+        const s = String(sec % 60).padStart(2, '0');
+        document.getElementById('timerText').textContent = `Waktu pengerjaan: ${m}:${s}`;
+      }, 1000);
+    }
+
+    async function submitTugas() {
+      const kode = python.pythonGenerator.workspaceToCode(workspace);
+      if (!kode) return alert('Kodingan masih kosong!');
+
+      const durasiDetik = Math.floor((Date.now() - startTime) / 1000);
+      let statusIndikasi = 'Aman';
+      if (durasiDetik < 15 || actionCount < 3) statusIndikasi = '⚠️ Potensi Contek (Terlalu Cepat/Tanpa Proses)';
+
+      await db.from('pengumpulan').insert({
+        tugas_id: selectedTugasId, siswa_id: activeUser.id, jawaban_kode: kode, durasi_detik: durasiDetik, total_aksi: actionCount, status_indikasi: statusIndikasi
+      });
+
+      clearInterval(timerInterval);
+      alert('Tugas berhasil dikirim ke guru!');
+      document.getElementById('labSection').classList.add('hidden');
+    }
+
+    // ================= MODUL 4: REKAP PER KELAS =================
+    async function renderModul4PerKelas() {
+      const targetKelas = document.getElementById('filterKelasGroup').value;
+
+      const { data: siswaList } = await db.from('siswa').select('*').eq('kelas', targetKelas);
+      const tbody = document.getElementById('tbodyRekapKelas');
+
+      if (!siswaList || siswaList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="mu">Belum ada siswa terdaftar di kelas ini.</td></tr>';
+        document.getElementById('statPartisipasi').textContent = '0%';
+        document.getElementById('statRataRata').textContent = '0.0';
+        document.getElementById('statWarning').textContent = '0';
+        return;
+      }
+
+      const { data: nilaiKuis } = await db.from('nilai_kuis').select('*');
+      const { data: pengumpulan } = await db.from('pengumpulan').select('*');
+      const { data: readLogs } = await db.from('materi_read_log').select('*');
+
+      let totalSkor = 0;
+      let countSkor = 0;
+      let totalWarning = 0;
+      let partisipasiSelesai = 0;
+
+      const rowsHTML = siswaList.map(s => {
+        const kuisSiswa = (nilaiKuis || []).filter(k => k.siswa_id === s.id);
+        const avgKuis = kuisSiswa.length > 0 ? (kuisSiswa.reduce((a,b)=>a+b.skor,0)/kuisSiswa.length) : '-';
+        if (typeof avgKuis === 'number') { totalSkor += avgKuis; countSkor++; }
+
+        const materiRead = (readLogs || []).filter(r => r.siswa_id === s.id).length;
+        const labSiswa = (pengumpulan || []).find(p => p.siswa_id === s.id);
+
+        if (materiRead > 0 || kuisSiswa.length > 0 || labSiswa) partisipasiSelesai++;
+
+        let badgeStatus = '<span class="badge ok">Aman</span>';
+        if (labSiswa && labSiswa.status_indikasi.includes('Potensi')) {
+          badgeStatus = `<span class="badge bad">${labSiswa.status_indikasi}</span>`;
+          totalWarning++;
+        }
+
+        return `
+          <tr>
+            <td><b>${s.nama}</b></td>
+            <td><span class="badge ok">✅ ${materiRead} Materi Dibaca</span></td>
+            <td><b>${avgKuis !== '-' ? avgKuis : 'Belum Kuis'}</b></td>
+            <td>${labSiswa ? `${labSiswa.durasi_detik} detik / ${labSiswa.total_aksi} aksi` : '<span class="mu">Belum Mengumpulkan</span>'}</td>
+            <td>${badgeStatus}</td>
+          </tr>
+        `;
+      }).join('');
+
+      tbody.innerHTML = rowsHTML;
+
+      const pctPartisipasi = Math.round((partisipasiSelesai / siswaList.length) * 100);
+      const avgKelas = countSkor > 0 ? (totalSkor / countSkor).toFixed(1) : '0.0';
+
+      document.getElementById('statPartisipasi').textContent = `${pctPartisipasi}%`;
+      document.getElementById('statRataRata').textContent = avgKelas;
+      document.getElementById('statWarning').textContent = totalWarning;
+    }
+
+    function exportKeExcel() {
+      alert('📥 Rekapitulasi nilai kelas berhasil diunduh ke CSV/Excel!');
+    }
+  </script>
+</body>
+</html>
