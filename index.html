@@ -310,6 +310,12 @@
 
     .draft-soal-card { background: #ffffff; border: 1px solid var(--bd); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
     .draft-soal-card.has-warning { border-color: var(--warn); background: #fffbeb; }
+
+    /* UI Pengerjaan Kuis Siswa Tahap 2 */
+    .exam-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .exam-num-btn { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--bd); background: #fff; font-weight: 700; cursor: pointer; }
+    .exam-num-btn.answered { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .exam-num-btn.active { border: 2px solid #0f172a; }
   </style>
 </head>
 <body>
@@ -348,7 +354,7 @@
         <span>📖</span> Bank Materi & Modul
       </div>
       <div class="nav-item" onclick="switchTab('kuis')">
-        <span>🤖</span> Bank Kuis AI & Soal
+        <span>🤖</span> Paket Kuis & Soal
       </div>
       <div class="nav-item" onclick="switchTab('lab')">
         <span>💻</span> Bank Lab Koding
@@ -415,17 +421,71 @@
         </div>
       </div>
 
-      <!-- MODUL 2: BANK KUIS & GENERATOR DRAFT -->
+      <!-- MODUL 2: BANK KUIS & GENERATOR DRAFT & PAKET KUIS TAHAP 2 -->
       <div id="tabKuis" class="tab-content hidden">
+        
+        <!-- SISWA: LIST PAKET KUIS & SESI PENGERJAAN -->
         <div id="siswaKuisView" class="hidden">
-          <h2>🤖 Kuis Pilihan Ganda</h2>
-          <p class="mu" style="margin-bottom: 20px;">Soal dan pilihan dikocok otomatis.</p>
-          <div id="listKuisSiswa">Memuat kuis...</div>
+          <h2>📝 Evaluasi & Paket Kuis</h2>
+          <div id="listPaketKuisSiswa">Memuat paket kuis...</div>
+
+          <!-- SESI PENGERJAAN SOAL (TIMER + SAFE GRADING) -->
+          <div id="examSessionArea" class="card hidden" style="margin-top: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <b id="examTitle" style="font-size:1.2rem;">Sesi Kuis</b>
+              <span id="examTimer" class="badge bad" style="font-size:1rem; padding:8px 14px;">⏱️ 00:00</span>
+            </div>
+
+            <div id="examNavBox" class="exam-nav"></div>
+
+            <div id="examQuestionContainer" style="margin: 20px 0;"></div>
+
+            <div style="display:flex; justify-content:space-between; margin-top:20px;">
+              <button class="alt" onclick="navExamSoal(-1)">‹ Sebelumnya</button>
+              <button class="ok" onclick="submitExamSiswa()">✉️ Kirim Jawaban Saya</button>
+              <button class="alt" onclick="navExamSoal(1)">Berikutnya ›</button>
+            </div>
+          </div>
+
+          <!-- HASIL & PEMBAHASAN SISWA -->
+          <div id="examResultArea" class="card hidden" style="margin-top:20px;">
+            <h3>📊 Hasil Kuis & Pembahasan</h3>
+            <div style="font-size:2rem; font-weight:800; color:var(--ac); margin:12px 0;" id="examFinalScore">0.0</div>
+            <div id="examReviewContainer"></div>
+          </div>
         </div>
 
+        <!-- GURU: GENERATOR SOAL & MANAJEMEN PAKET KUIS -->
         <div id="guruKuisView" class="hidden">
           <h2>🤖 AI Quiz Generator & Bank Soal Master</h2>
           <p class="mu" style="margin-bottom: 20px;">Generate soal dari materi bank ATAU impor otomatis dari file Word/PDF mentah.</p>
+
+          <!-- FORM BUAT PAKET KUIS TAHAP 2 -->
+          <div class="card">
+            <h3>📦 Buat Paket Kuis Baru dari Bank Soal</h3>
+            <input type="text" id="pktJudul" placeholder="Judul Paket Kuis (misal: Ulangan Harian Bab 1)">
+            <textarea id="pktDesk" placeholder="Petunjuk pengerjaan kuis..."></textarea>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+              <div>
+                <label class="mu">Durasi (Menit):</label>
+                <input type="number" id="pktDurasi" value="30">
+              </div>
+              <div>
+                <label class="mu">Acak Soal:</label>
+                <select id="pktAcakSoal"><option value="true">Ya</option><option value="false">Tidak</option></select>
+              </div>
+              <div>
+                <label class="mu">Tampilkan Pembahasan:</label>
+                <select id="pktPembahasan"><option value="true">Ya (Setelah Selesai)</option><option value="false">Tidak</option></select>
+              </div>
+            </div>
+
+            <label class="mu" style="margin-top:10px; display:block;">Pilih Soal dari Bank Master untuk Paket Ini:</label>
+            <div id="pktSoalSelector" style="max-height:200px; overflow-y:auto; background:#f1f5f9; padding:12px; border-radius:10px; margin-bottom:16px;"></div>
+
+            <button onclick="simpanPaketKuis()">💾 Simpan & Terbitkan Paket Kuis</button>
+          </div>
           
           <div class="card">
             <h3>⚡ Step 1: Pilihan Metode Input Soal</h3>
@@ -761,6 +821,7 @@
         updateMateriDropdownRef();
       }
       renderBank(key);
+      if (key === 'kuis') loadBankSoalSelector();
     }
 
     function statusPublishHTML(kelas) {
@@ -935,6 +996,13 @@
     let actionCount = 0;
     let timerInterval = null;
 
+    // VARIABLE SESI EXAM SISWA TAHAP 2
+    let activeExam = null;
+    let examSoalList = [];
+    let studentAnswers = {};
+    let currentExamIdx = 0;
+    let examTimerInterval = null;
+
     async function handleLogin() {
       const u = document.getElementById('loginUser').value.trim();
       const p = document.getElementById('loginPass').value.trim();
@@ -990,7 +1058,7 @@
         document.getElementById('siswaKuisView').classList.remove('hidden');
         document.getElementById('siswaLabView').classList.remove('hidden');
         loadMateriSiswa();
-        loadKuisSiswa();
+        loadPaketKuisSiswa();
         loadTugasSiswa();
         initBlockly();
         disablePasteInApp();
@@ -1024,15 +1092,6 @@
         alert('⚠️ Fitur Paste dimatikan demi menjaga kejujuran pengerjaan!');
       });
       document.addEventListener('contextmenu', (e) => e.preventDefault());
-    }
-
-    function shuffleArray(array) {
-      const arr = [...array];
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
     }
 
     function setMateriMode(mode) {
@@ -1253,7 +1312,7 @@
       await loadMateriSiswa();
     }
 
-    // ================= MODUL 2: GENERATOR & IMPOR SOAL =================
+    // ================= MODUL 2: GENERATOR & PAKET KUIS TAHAP 2 =================
     let currentDraftSoal = [];
 
     function setKuisInputMode(mode) {
@@ -1303,7 +1362,6 @@
       }
     }
 
-    // --- SKENARIO B: BACA FILE DOCX / PDF / TXT DI BROWSER ---
     async function prosesImporFileSoal() {
       const fileInput = document.getElementById('fileSoalInput');
       const file = fileInput.files[0];
@@ -1478,55 +1536,187 @@
 
     async function loadBankSoalGuru() { return loadBank('kuis'); }
 
-    async function loadKuisSiswa() {
-      const { data } = await db.from('kuis_published').select('*, kuis(*)').eq('kelas', activeUser.kelas);
-      const container = document.getElementById('listKuisSiswa');
-      if (!data || data.length === 0) {
-        container.innerHTML = '<p class="mu">Belum ada kuis dipublish untuk kelasmu.</p>';
-        return;
-      }
+    // --- TAHAP 2: BANTUAN BUAT PAKET KUIS DARI BANK SOAL ---
+    async function loadBankSoalSelector() {
+      const { data } = await db.from('kuis').select('*').eq('diarsipkan', false);
+      const container = document.getElementById('pktSoalSelector');
+      if (!data || !data.length) { container.innerHTML = '<p class="mu">Belum ada soal di Bank Master.</p>'; return; }
 
-      const soalList = data.map(d => d.kuis).filter(q => q && !q.diarsipkan);
-      if (soalList.length === 0) {
-        container.innerHTML = '<p class="mu">Belum ada kuis dipublish untuk kelasmu.</p>';
-        return;
-      }
-
-      const soalAcak = shuffleArray(soalList);
-
-      container.innerHTML = soalAcak.map((q, idx) => {
-        const ops = Array.isArray(q.opsi) ? q.opsi : [q.pilihan_a, q.pilihan_b, q.pilihan_c, q.pilihan_d, q.pilihan_e];
-        const opsiAsli = [
-          { labelOrig: 'A', text: ops[0] },
-          { labelOrig: 'B', text: ops[1] },
-          { labelOrig: 'C', text: ops[2] },
-          { labelOrig: 'D', text: ops[3] },
-          { labelOrig: 'E', text: ops[4] }
-        ].filter(o => !!o.text);
-
-        const opsiAcak = shuffleArray(opsiAsli);
-        const labelsNew = ['A', 'B', 'C', 'D', 'E'];
-
-        const tombolOpsiHTML = opsiAcak.map((opt, i) => {
-          const isCorrect = (opt.labelOrig === (q.kunci || q.kunci_jawaban));
-          return `<button class="quiz-option" onclick="jawabKuis('${q.id}', '${labelsNew[i]}', ${isCorrect})">${labelsNew[i]}. ${escHtml(opt.text)}</button>`;
-        }).join('');
-
-        return `
-          <div class="card">
-            <div class="badge" style="margin-bottom:8px;">Soal #${idx + 1}</div>
-            <b style="display:block; font-size:1.05rem; margin-bottom:4px;">${escHtml(q.judul || q.topik)}</b>
-            <p style="margin: 8px 0 16px; color: var(--tx);">${escHtml(q.pertanyaan)}</p>
-            ${tombolOpsiHTML}
-          </div>
-        `;
-      }).join('');
+      container.innerHTML = data.map(q => `
+        <label style="display:block; margin-bottom:6px; font-size:0.88rem;">
+          <input type="checkbox" value="${q.id}" class="pkt-soal-cb"> <b>[${(q.tipe||'pg').toUpperCase()}]</b> ${escHtml(q.pertanyaan.slice(0, 80))}...
+        </label>
+      `).join('');
     }
 
-    async function jawabKuis(kuisId, labelDipilih, isCorrect) {
-      const skor = isCorrect ? 100 : 0;
-      await db.from('nilai_kuis').insert({ kuis_id: kuisId, siswa_id: activeUser.id, jawaban_siswa: labelDipilih, skor });
-      alert(`Kuis Selesai!\nJawaban Kamu: Opsi ${labelDipilih}\nStatus: ${isCorrect ? '✅ BENAR (Skor: 100)' : '❌ SALAH (Skor: 0)'}`);
+    async function simpanPaketKuis() {
+      const judul = document.getElementById('pktJudul').value.trim();
+      const deskripsi = document.getElementById('pktDesk').value.trim();
+      const durasi_menit = parseInt(document.getElementById('pktDurasi').value) || 30;
+      const acak_soal = document.getElementById('pktAcakSoal').value === 'true';
+      const tampil_pembahasan = document.getElementById('pktPembahasan').value === 'true';
+
+      const selectedSoal = [...document.querySelectorAll('.pkt-soal-cb:checked')].map(c => c.value);
+      if (!judul || !selectedSoal.length) return alert('Isi judul dan pilih minimal satu soal!');
+
+      const { error } = await db.from('paket_kuis').insert({
+        judul, deskripsi, daftar_soal_id: selectedSoal, durasi_menit, acak_soal, tampil_pembahasan
+      });
+
+      if (error) return alert('Gagal menyimpan paket: ' + error.message);
+      alert('Paket Kuis Master berhasil dibuat!');
+      document.getElementById('pktJudul').value = '';
+      document.getElementById('pktDesk').value = '';
+    }
+
+    // --- TAHAP 2: SISWA EXAM SESSION (SERVER-SIDE GRADING & TIMER) ---
+    async function loadPaketKuisSiswa() {
+      const { data } = await db.from('paket_kuis').select('*').eq('diarsipkan', false);
+      const container = document.getElementById('listPaketKuisSiswa');
+      if (!data || !data.length) { container.innerHTML = '<p class="mu">Belum ada paket kuis untuk kelasmu.</p>'; return; }
+
+      container.innerHTML = data.map(p => `
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <b>${escHtml(p.judul)}</b><br>
+            <span class="mu">⏱️ Durasi: ${p.durasi_menit} Menit • ${p.daftar_soal_id.length} Soal</span>
+          </div>
+          <button onclick="mulaiKuisSiswa('${p.id}')">Kerjakan Kuis</button>
+        </div>
+      `).join('');
+    }
+
+    async function mulaiKuisSiswa(paketId) {
+      const { data: paket } = await db.from('paket_kuis').select('*').eq('id', paketId).single();
+      const { data: soalData } = await db.from('kuis').select('id, judul, pertanyaan, tipe, opsi').in('id', paket.daftar_soal_id);
+
+      activeExam = paket;
+      examSoalList = soalData;
+      studentAnswers = {};
+      currentExamIdx = 0;
+
+      document.getElementById('examTitle').textContent = paket.judul;
+      document.getElementById('examSessionArea').classList.remove('hidden');
+      document.getElementById('examResultArea').classList.add('hidden');
+
+      renderExamNav();
+      renderCurrentExamSoal();
+      startExamTimer(paket.durasi_menit * 60);
+    }
+
+    function renderExamNav() {
+      const container = document.getElementById('examNavBox');
+      container.innerHTML = examSoalList.map((_, idx) => `
+        <button class="exam-num-btn ${studentAnswers[examSoalList[idx].id] ? 'answered' : ''} ${idx === currentExamIdx ? 'active' : ''}" onclick="jumpExamSoal(${idx})">${idx + 1}</button>
+      `).join('');
+    }
+
+    function renderCurrentExamSoal() {
+      const q = examSoalList[currentExamIdx];
+      const container = document.getElementById('examQuestionContainer');
+      const savedAns = studentAnswers[q.id];
+
+      let opsiHTML = '';
+      if (q.tipe === 'bs') {
+        opsiHTML = (q.opsi || []).map((o, i) => `
+          <div style="margin-bottom:8px;">
+            <span>${i + 1}. ${escHtml(o)}</span><br>
+            <label><input type="radio" name="ans_bs_${i}" value="true" ${savedAns && savedAns[i] === true ? 'checked' : ''} onchange="saveAnswerBS(${i}, true)"> Benar</label>
+            <label style="margin-left:12px;"><input type="radio" name="ans_bs_${i}" value="false" ${savedAns && savedAns[i] === false ? 'checked' : ''} onchange="saveAnswerBS(${i}, false)"> Salah</label>
+          </div>
+        `).join('');
+      } else {
+        const labels = ['A', 'B', 'C', 'D', 'E'];
+        opsiHTML = (q.opsi || []).map((o, i) => {
+          const L = labels[i];
+          const isChecked = Array.isArray(savedAns) ? savedAns.includes(L) : savedAns === L;
+          return `
+            <label class="quiz-option">
+              <input type="${q.tipe === 'pg_kompleks' ? 'checkbox' : 'radio'}" name="ans_opt" ${isChecked ? 'checked' : ''} onchange="saveAnswerPG('${L}', ${q.tipe === 'pg_kompleks'})"> ${L}. ${escHtml(o)}
+            </label>
+          `;
+        }).join('');
+      }
+
+      container.innerHTML = `
+        <div class="badge ok" style="margin-bottom:8px;">Soal #${currentExamIdx + 1} (${(q.tipe||'pg').toUpperCase()})</div>
+        <p style="font-weight:700; margin-bottom:12px;">${escHtml(q.pertanyaan)}</p>
+        ${opsiHTML}
+      `;
+      renderExamNav();
+    }
+
+    function saveAnswerPG(label, isKompleks) {
+      const qId = examSoalList[currentExamIdx].id;
+      if (isKompleks) {
+        if (!Array.isArray(studentAnswers[qId])) studentAnswers[qId] = [];
+        if (studentAnswers[qId].includes(label)) {
+          studentAnswers[qId] = studentAnswers[qId].filter(x => x !== label);
+        } else {
+          studentAnswers[qId].push(label);
+        }
+      } else {
+        studentAnswers[qId] = label;
+      }
+      renderExamNav();
+    }
+
+    function saveAnswerBS(oIdx, val) {
+      const qId = examSoalList[currentExamIdx].id;
+      if (!Array.isArray(studentAnswers[qId])) studentAnswers[qId] = [];
+      studentAnswers[qId][oIdx] = val;
+      renderExamNav();
+    }
+
+    function jumpExamSoal(idx) { currentExamIdx = idx; renderCurrentExamSoal(); }
+    function navExamSoal(dir) {
+      const newIdx = currentExamIdx + dir;
+      if (newIdx >= 0 && newIdx < examSoalList.length) { currentExamIdx = newIdx; renderCurrentExamSoal(); }
+    }
+
+    function startExamTimer(detik) {
+      clearInterval(examTimerInterval);
+      let remaining = detik;
+      examTimerInterval = setInterval(() => {
+        remaining--;
+        const m = String(Math.floor(remaining / 60)).padStart(2, '0');
+        const s = String(remaining % 60).padStart(2, '0');
+        document.getElementById('examTimer').textContent = `⏱️ ${m}:${s}`;
+        if (remaining <= 0) { clearInterval(examTimerInterval); submitExamSiswa(); }
+      }, 1000);
+    }
+
+    async function submitExamSiswa() {
+      if (!confirm('Apakah kamu yakin ingin mengirimkan jawaban kuis ini?')) return;
+      clearInterval(examTimerInterval);
+
+      const payload = {
+        mode: 'submit_kuis',
+        paket_id: activeExam.id,
+        siswa_id: activeUser.id,
+        jawaban_siswa: studentAnswers,
+        durasi_detik: 0
+      };
+
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/generate-ai`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        body: JSON.stringify(payload)
+      }).then(r => r.json());
+
+      document.getElementById('examSessionArea').classList.add('hidden');
+      document.getElementById('examResultArea').classList.remove('hidden');
+      document.getElementById('examFinalScore').textContent = `Skor Akhir: ${res.nilai}`;
+
+      if (res.tampil_pembahasan) {
+        document.getElementById('examReviewContainer').innerHTML = res.detail_hasil.map((d, i) => `
+          <div style="padding:12px; border:1px solid var(--bd); border-radius:10px; margin-bottom:10px; background:${d.is_benar ? '#f0fdf4' : '#fef2f2'};">
+            <b>Soal #${i + 1}: ${escHtml(d.pertanyaan)}</b><br>
+            <span class="mu">Status: ${d.is_benar ? '✅ BENAR' : '❌ SALAH'} (Skor Soal: ${d.skor_soal})</span><br>
+            <div style="margin-top:6px; font-size:0.85rem;">💡 <b>Pembahasan:</b> ${escHtml(d.pembahasan || 'Tidak ada pembahasan.')}</div>
+          </div>
+        `).join('');
+      }
     }
 
     // ================= MODUL 3: BANK LAB KODING =================
@@ -1625,7 +1815,7 @@
         return;
       }
 
-      const { data: nilaiKuis } = await db.from('nilai_kuis').select('*');
+      const { data: hasilPaket } = await db.from('hasil_paket_kuis').select('*');
       const { data: pengumpulan } = await db.from('pengumpulan').select('*');
       const { data: readLogs } = await db.from('materi_read_log').select('*');
 
@@ -1635,14 +1825,14 @@
       let partisipasiSelesai = 0;
 
       const rowsHTML = siswaList.map(s => {
-        const kuisSiswa = (nilaiKuis || []).filter(k => k.siswa_id === s.id);
-        const avgKuis = kuisSiswa.length > 0 ? (kuisSiswa.reduce((a,b)=>a+b.skor,0)/kuisSiswa.length) : '-';
-        if (typeof avgKuis === 'number') { totalSkor += avgKuis; countSkor++; }
+        const hasilSiswa = (hasilPaket || []).filter(k => k.siswa_id === s.id);
+        const avgKuis = hasilSiswa.length > 0 ? (hasilSiswa.reduce((a,b) => a + Number(b.nilai), 0) / hasilSiswa.length).toFixed(1) : '-';
+        if (avgKuis !== '-') { totalSkor += parseFloat(avgKuis); countSkor++; }
 
         const materiRead = (readLogs || []).filter(r => r.siswa_id === s.id).length;
         const labSiswa = (pengumpulan || []).find(p => p.siswa_id === s.id);
 
-        if (materiRead > 0 || kuisSiswa.length > 0 || labSiswa) partisipasiSelesai++;
+        if (materiRead > 0 || hasilSiswa.length > 0 || labSiswa) partisipasiSelesai++;
 
         let badgeStatus = '<span class="badge ok">Aman</span>';
         if (labSiswa && labSiswa.status_indikasi.includes('Potensi')) {
