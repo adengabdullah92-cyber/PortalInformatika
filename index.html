@@ -245,6 +245,53 @@
     .media-preview-box {
       margin-top: 12px; padding: 12px; background: #f1f5f9; border-radius: 10px; border: 1px dashed var(--bd);
     }
+
+    /* ===== Modul A4: perbaikan tampilan ===== */
+    .a4-page { line-height: 1.55; color: #0f172a; }
+    .a4-header h1 { line-height: 1.25; }
+    .a4-card h3 { margin-bottom: 8px; font-size: 1.02rem; }
+    .a4-card p { line-height: 1.65; }
+    .a4-card ul, .a4-card ol { padding-left: 22px; }
+    .a4-card li { margin-bottom: 6px; line-height: 1.55; }
+    .a4-card.dark h3 { color: #e2e8f0; }
+    .a4-card pre { white-space: pre-wrap; word-break: break-word; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.6; }
+    .a4-card.green { background: #f0fdf4; border-left: 4px solid #16a34a; }
+    .a4-card.amber { background: #fffbeb; border-left: 4px solid #f59e0b; }
+    .a4-card.rose  { background: #fff1f2; border-left: 4px solid #e11d48; }
+    .a4-terms { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .a4-term { background: #ffffff; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 12px; font-size: 0.88rem; }
+    .a4-term b { display: block; color: #b45309; margin-bottom: 2px; }
+    .a4-text { white-space: pre-wrap; line-height: 1.7; }
+
+    @media (max-width: 640px) {
+      .a4-page { padding: 20px 16px; min-height: auto; border-radius: 10px; }
+      .a4-grid, .a4-terms { grid-template-columns: 1fr; }
+    }
+
+    /* Pratinjau guru */
+    .preview-box { background: #e2e8f0; padding: 12px; border-radius: 12px; max-height: 560px; overflow: auto; }
+    .preview-box .a4-page { min-height: auto; margin: 0 auto; box-shadow: none; }
+
+    /* Modal baca modul */
+    .modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .modal-box { background: #f1f5f9; border-radius: 16px; width: 100%; max-width: 900px; max-height: 94vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+    .modal-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 16px; background: #ffffff; border-bottom: 1px solid var(--bd); }
+    .modal-bar button { padding: 8px 14px; font-size: 0.85rem; }
+    .modal-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .modal-body { overflow-y: auto; padding: 12px; }
+    .modal-body .a4-page { min-height: auto; margin: 0 auto; }
+
+    /* Area cetak (Simpan PDF lewat dialog cetak browser) */
+    #printArea { display: none; }
+    @media print {
+      @page { size: A4; margin: 12mm; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body.printing { background: #ffffff; display: block; }
+      body.printing > *:not(#printArea) { display: none !important; }
+      body.printing #printArea { display: block !important; }
+      body.printing .a4-page { box-shadow: none; border: none; border-radius: 0; margin: 0; padding: 0; max-width: none; min-height: auto; }
+      body.printing .a4-card, body.printing .a4-term, body.printing .a4-footer { break-inside: avoid; }
+    }
   </style>
 </head>
 <body>
@@ -339,7 +386,12 @@
               <input type="text" id="matUrlMedia" placeholder="Tempel URL Tautan / Link di sini (e.g. https://youtube.com/watch?v=...)">
             </div>
 
-            <textarea id="matKonten" rows="5" placeholder="Isi penjelasan materi / deskripsi ringkas..."></textarea>
+            <textarea id="matKonten" rows="5" oninput="updateMatPreview()" placeholder="Isi penjelasan materi / deskripsi ringkas (hasil AI berupa kode HTML modul, boleh diedit)..."></textarea>
+
+            <div id="matPreviewWrap" class="hidden" style="margin: 0 0 16px;">
+              <label class="mu">👁️ Pratinjau (seperti yang dilihat siswa)</label>
+              <div id="matPreview" class="preview-box" style="margin-top: 6px;"></div>
+            </div>
 
             <button onclick="simpanBankMateri()">💾 Simpan Ke Bank Master</button>
             <p id="matAIStatus" style="font-size: 0.85rem; margin-top: 8px; color: var(--ac);"></p>
@@ -501,6 +553,24 @@
 
     </div>
   </div>
+
+  <!-- MODAL BACA MODUL -->
+  <div id="modalModul" class="modal hidden" onclick="if (event.target === this) tutupModul()">
+    <div class="modal-box">
+      <div class="modal-bar">
+        <b id="modalJudul"></b>
+        <div class="modal-actions">
+          <button id="btnModalRead" class="ok hidden">✅ Tandai Sudah Dibaca</button>
+          <button class="alt" onclick="cetakModul()">🖨️ Simpan PDF</button>
+          <button class="alt" onclick="tutupModul()">✕ Tutup</button>
+        </div>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- AREA CETAK PDF -->
+  <div id="printArea"></div>
 
   <!-- BLOCKLY TOOLBOX DEFINITION -->
   <xml id="toolbox" style="display: none">
@@ -665,39 +735,122 @@
       }
     }
 
-  async function generateMateriAI() {
-  const topik = document.getElementById('matJudul').value.trim();
-  const status = document.getElementById('matAIStatus');
-  const btn = document.getElementById('btnGenMatAI');
+    // ---------- Helper tampilan modul ----------
+    const materiCache = {};
+    let modulAktifId = null;
+    let materiReadSet = new Set();
 
-  if (!topik) return alert('Isi Judul Topik Master terlebih dahulu!');
-  btn.disabled = true;
-  status.textContent = '🤖 AI sedang mendesain Modul A4 Full Color...';
-
-  try {
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-ai`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      },
-      body: JSON.stringify({ prompt: topik })
-    });
-    
-    const data = await response.json();
-    if (data.htmlA4) {
-      document.getElementById('matKonten').value = data.htmlA4;
-      status.textContent = '✅ Modul A4 Full Color berhasil di-generate!';
-    } else {
-      throw new Error(data.error || 'Gagal merender modul');
+    function escHtml(s) {
+      return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
-  } catch (err) {
-    status.textContent = '❌ Gagal AI: ' + err.message;
-  } finally { 
-    btn.disabled = false; 
-  }
-}
+
+    function isHtmlKonten(k) { return /<\/?[a-z][\s\S]*?>/i.test(k || ''); }
+    function isModulA4(k) { return /class="a4-page"/.test(k || ''); }
+
+    function renderKonten(k) {
+      if (!k) return '<p class="mu">(Belum ada isi materi)</p>';
+      if (isHtmlKonten(k)) return k;
+      return `<div class="a4-page"><div class="a4-text">${escHtml(k)}</div></div>`;
+    }
+
+    function ringkasKonten(k, n = 150) {
+      if (!k) return '';
+      if (isModulA4(k)) return 'Modul lengkap format A4 — tekan tombol di bawah untuk membaca.';
+      let t = k;
+      if (isHtmlKonten(k)) {
+        const doc = new DOMParser().parseFromString(k, 'text/html');
+        doc.querySelectorAll('style,script').forEach(e => e.remove());
+        t = doc.body.textContent || '';
+      }
+      t = t.replace(/\s+/g, ' ').trim();
+      return t.length > n ? t.slice(0, n) + '…' : t;
+    }
+
+    function updateMatPreview() {
+      const v = document.getElementById('matKonten').value.trim();
+      const wrap = document.getElementById('matPreviewWrap');
+      const box = document.getElementById('matPreview');
+      if (!v) { wrap.classList.add('hidden'); box.innerHTML = ''; return; }
+      wrap.classList.remove('hidden');
+      box.innerHTML = renderKonten(v);
+    }
+
+    function bukaModul(id) {
+      const m = materiCache[id];
+      if (!m) return;
+      modulAktifId = id;
+      document.getElementById('modalJudul').textContent = m.judul || 'Materi';
+      document.getElementById('modalBody').innerHTML = renderKonten(m.konten);
+      const btn = document.getElementById('btnModalRead');
+      if (activeUser && activeUser.role === 'siswa' && !materiReadSet.has(m.id)) {
+        btn.classList.remove('hidden');
+        btn.onclick = async () => { await tandaiMateriDibaca(id); btn.classList.add('hidden'); };
+      } else {
+        btn.classList.add('hidden');
+      }
+      document.getElementById('modalModul').classList.remove('hidden');
+      document.getElementById('modalBody').scrollTop = 0;
+      document.body.style.overflow = 'hidden';
+    }
+
+    function tutupModul() {
+      document.getElementById('modalModul').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    // Simpan PDF: memakai dialog cetak browser (pilih "Simpan sebagai PDF")
+    function cetakModul(id) {
+      const m = materiCache[id || modulAktifId];
+      if (!m) return;
+      const area = document.getElementById('printArea');
+      const oldTitle = document.title;
+      area.innerHTML = renderKonten(m.konten);
+      document.title = m.judul || 'Modul';
+      document.body.classList.add('printing');
+      const selesai = () => {
+        document.body.classList.remove('printing');
+        area.innerHTML = '';
+        document.title = oldTitle;
+        window.removeEventListener('afterprint', selesai);
+      };
+      window.addEventListener('afterprint', selesai);
+      window.print();
+    }
+
+    async function generateMateriAI() {
+      const topik = document.getElementById('matJudul').value.trim();
+      const status = document.getElementById('matAIStatus');
+      const btn = document.getElementById('btnGenMatAI');
+
+      if (!topik) return alert('Isi Judul Topik Master terlebih dahulu!');
+      btn.disabled = true;
+      status.textContent = '🤖 AI sedang menyusun modul A4...';
+
+      try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-ai`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          },
+          body: JSON.stringify({ prompt: topik, mode: 'materi' })
+        });
+
+        const data = await response.json();
+        if (data.htmlA4) {
+          document.getElementById('matKonten').value = data.htmlA4;
+          updateMatPreview();
+          status.textContent = '✅ Modul berhasil dibuat! Cek pratinjau di bawah, edit bila perlu, lalu simpan.';
+        } else {
+          throw new Error(data.error || ('Respons tidak berisi htmlA4: ' + JSON.stringify(data).slice(0, 150)));
+        }
+      } catch (err) {
+        status.textContent = '❌ Gagal AI: ' + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
 
 
     async function simpanBankMateri() {
@@ -708,14 +861,17 @@
 
       if (!judul) return alert('Isi judul materi!');
 
-      await db.from('materi').insert({
+      const { error } = await db.from('materi').insert({
         judul, konten, tipe_media, url_media
       });
+      if (error) return alert('Gagal menyimpan materi: ' + error.message);
 
       alert('Materi tersimpan ke Bank Master!');
       document.getElementById('matJudul').value = '';
       document.getElementById('matKonten').value = '';
       document.getElementById('matUrlMedia').value = '';
+      document.getElementById('matAIStatus').textContent = '';
+      updateMatPreview();
       loadBankMateriGuru();
     }
 
@@ -728,8 +884,11 @@
       }
 
       container.innerHTML = data.map(m => {
+        materiCache[m.id] = m;
         let mediaTag = '';
-        if (m.tipe_media === 'youtube' && m.url_media) {
+        if (isModulA4(m.konten)) {
+          mediaTag = `<div class="badge">📄 Modul A4</div>`;
+        } else if (m.tipe_media === 'youtube' && m.url_media) {
           mediaTag = `<div class="badge ok">🎥 Youtube Link</div>`;
         } else if (m.tipe_media === 'pdf' && m.url_media) {
           mediaTag = `<div class="badge warn">📄 PDF / Modul File</div>`;
@@ -739,12 +898,16 @@
 
         return `
           <div class="card" style="background:#f8fafc;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <b>${m.judul}</b>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+              <b>${escHtml(m.judul)}</b>
               ${mediaTag}
             </div>
-            <p class="mu" style="margin:6px 0 12px; line-height:1.5;">${m.konten || ''}</p>
-            <div style="display:flex; gap:10px; align-items:center;">
+            <p class="mu" style="margin:6px 0 12px; line-height:1.5;">${escHtml(ringkasKonten(m.konten))}</p>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+              <button class="alt" style="padding:6px 12px;" onclick="bukaModul('${m.id}')">👁️ Lihat</button>
+              <button class="alt" style="padding:6px 12px;" onclick="cetakModul('${m.id}')">🖨️ Simpan PDF</button>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
               <span class="mu" style="font-weight:600;">Publish Ke:</span>
               <button class="alt" style="padding:6px 12px;" onclick="publishMateriMulti('${m.id}', 'X-1')">+ X-1</button>
               <button class="alt" style="padding:6px 12px;" onclick="publishMateriMulti('${m.id}', 'X-2')">+ X-2</button>
@@ -770,40 +933,45 @@
     async function loadMateriSiswa() {
       const { data } = await db.from('materi_published').select('*, materi(*)').eq('kelas', activeUser.kelas);
       const container = document.getElementById('listMateriSiswa');
-      if (!data || data.length === 0) {
+      const rows = (data || []).filter(p => p.materi);
+      if (rows.length === 0) {
         container.innerHTML = '<p class="mu">Belum ada materi dipublish untuk kelasmu.</p>';
         return;
       }
 
       const { data: readLog } = await db.from('materi_read_log').select('materi_id').eq('siswa_id', activeUser.id);
-      const readSet = new Set((readLog || []).map(r => r.materi_id));
+      materiReadSet = new Set((readLog || []).map(r => r.materi_id));
 
-      container.innerHTML = data.map(p => {
+      container.innerHTML = rows.map(p => {
         const m = p.materi;
-        const isRead = readSet.has(m.id);
+        materiCache[m.id] = m;
+        const isRead = materiReadSet.has(m.id);
 
         let mediaRenderHTML = '';
         if (m.tipe_media === 'youtube' && m.url_media) {
           const embedUrl = getYouTubeEmbedUrl(m.url_media);
           mediaRenderHTML = `
             <div class="media-preview-box">
-              <iframe width="100%" height="315" src="${embedUrl}" frameborder="0" allowfullscreen style="border-radius:8px;"></iframe>
+              <iframe width="100%" height="315" src="${escHtml(embedUrl)}" frameborder="0" allowfullscreen style="border-radius:8px;"></iframe>
             </div>`;
         } else if ((m.tipe_media === 'pdf' || m.tipe_media === 'gdrive') && m.url_media) {
           mediaRenderHTML = `
             <div class="media-preview-box" style="display:flex; justify-content:space-between; align-items:center;">
               <span class="mu">📎 Lampiran Dokumen Modul / Media</span>
-              <a href="${m.url_media}" target="_blank" style="color:var(--ac); font-weight:700; text-decoration:none;">🔗 Buka / Download Media ↗</a>
+              <a href="${escHtml(m.url_media)}" target="_blank" style="color:var(--ac); font-weight:700; text-decoration:none;">🔗 Buka / Download Media ↗</a>
             </div>`;
         }
 
+        const ringkas = ringkasKonten(m.konten);
+
         return `
           <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <b>${m.judul}</b>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+              <b>${escHtml(m.judul)}</b>
               ${isRead ? '<span class="badge ok">✅ Sudah Dibaca</span>' : `<button class="ok" onclick="tandaiMateriDibaca('${m.id}')">Tandai Sudah Dibaca</button>`}
             </div>
-            <p class="mu" style="margin-top:8px; line-height:1.6; color:#334155;">${m.konten || ''}</p>
+            ${ringkas ? `<p class="mu" style="margin-top:8px; line-height:1.6; color:#334155;">${escHtml(ringkas)}</p>` : ''}
+            ${m.konten ? `<div style="margin-top:12px;"><button onclick="bukaModul('${m.id}')">📖 Baca Modul</button></div>` : ''}
             ${mediaRenderHTML}
           </div>
         `;
@@ -811,9 +979,10 @@
     }
 
     async function tandaiMateriDibaca(materiId) {
-      await db.from('materi_read_log').insert({ materi_id: materiId, siswa_id: activeUser.id });
+      const { error } = await db.from('materi_read_log').insert({ materi_id: materiId, siswa_id: activeUser.id });
+      if (error) return alert('Gagal menyimpan: ' + error.message);
       alert('Materi ditandai sudah dibaca! 🎉');
-      loadMateriSiswa();
+      await loadMateriSiswa();
     }
 
     // ================= MODUL 2: BANK KUIS AI & SOAL =================
