@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LMS Informatika SMA - Bank Master Edition (Light Mode)</title>
+  <title>LMS Informatika SMA - Master Multi-Media Edition</title>
   
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -142,13 +142,18 @@
       background: #ffffff;
     }
 
-    .checkbox-group {
-      display: flex; gap: 12px; flex-wrap: wrap; margin: 8px 0 16px;
+    /* Tab Mode Selection */
+    .mode-selector {
+      display: flex; gap: 8px; margin-bottom: 16px; background: #f1f5f9; padding: 4px; border-radius: 10px;
     }
 
-    .checkbox-item {
-      display: flex; align-items: center; gap: 6px; background: #f1f5f9;
-      padding: 8px 14px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    .mode-btn {
+      flex: 1; padding: 10px; text-align: center; border-radius: 8px; font-weight: 700; font-size: 0.85rem;
+      cursor: pointer; background: transparent; color: var(--mu); border: none; box-shadow: none;
+    }
+
+    .mode-btn.active {
+      background: #ffffff; color: var(--ac); box-shadow: 0 2px 6px rgba(0,0,0,0.06);
     }
 
     button {
@@ -192,6 +197,10 @@
     .badge.warn { background: #fffbeb; color: var(--warn); border-color: #fde68a; }
     .badge.bad { background: #fef2f2; color: var(--bad); border-color: #fecaca; }
     .badge.ok { background: #ecfdf5; color: var(--ok); border-color: #a7f3d0; }
+
+    .media-preview-box {
+      margin-top: 12px; padding: 12px; background: #f1f5f9; border-radius: 10px; border: 1px dashed var(--bd);
+    }
   </style>
 </head>
 <body>
@@ -249,30 +258,51 @@
         <!-- SISWA VIEW -->
         <div id="siswaMateriView" class="hidden">
           <h2>📖 Materi & Modul Pembelajaran</h2>
-          <p class="mu" style="margin-bottom: 20px;">Baca materi dan tandai checklist setelah selesai belajar.</p>
+          <p class="mu" style="margin-bottom: 20px;">Pelajari materi (teks, video, atau modul PDF) lalu tandai checklist pengerjaan.</p>
           <div id="listMateriSiswa">Memuat materi...</div>
         </div>
 
         <!-- GURU VIEW -->
         <div id="guruMateriView" class="hidden">
-          <h2>📖 Bank Master Materi & Publish Multi-Kelas</h2>
-          <p class="mu" style="margin-bottom: 20px;">Buat/generate materi master, lalu publish ke kelas-kelas pilihan.</p>
+          <h2>📖 Bank Master Materi & Multi-Media Input</h2>
+          <p class="mu" style="margin-bottom: 20px;">Buat materi dengan AI, manual, atau unggah link PDF/Video YouTube/GDrive ke Bank Master.</p>
           
           <div class="card">
-            <h3>+ Buat / AI Generate Materi ke Bank Master</h3>
-            <input type="text" id="matJudul" placeholder="Judul Topik Master (misal: Algoritma & Pemrograman)">
-            
-            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-              <button class="ai" id="btnGenMatAI" onclick="generateMateriAI()">🤖 AI Generate Ringkasan Master</button>
+            <h3>+ Buat Materi Ke Bank Master</h3>
+            <input type="text" id="matJudul" placeholder="Judul Topik Master (misal: Konsep Pemrograman Web)">
+
+            <!-- TAB PILIHAN INPUT MODE -->
+            <div class="mode-selector">
+              <button type="button" class="mode-btn active" onclick="setMateriMode('ai')">🤖 AI Generate</button>
+              <button type="button" class="mode-btn" onclick="setMateriMode('manual')">📝 Manual / Text</button>
+              <button type="button" class="mode-btn" onclick="setMateriMode('media')">📎 Link Video / PDF / GDrive</button>
             </div>
 
-            <textarea id="matKonten" rows="5" placeholder="Isi materi master akan tersimpan di Bank Master..."></textarea>
+            <!-- MODE 1: AI GENERATE -->
+            <div id="materiSectionAI">
+              <button class="ai" id="btnGenMatAI" onclick="generateMateriAI()" style="margin-bottom: 12px;">🤖 AI Generate Ringkasan Master</button>
+            </div>
+
+            <!-- MODE 2 & 3 INPUT TEXT / MEDIA -->
+            <div id="materiSectionMedia" class="hidden">
+              <label class="mu">Tipe Media Tautan (Opsional):</label>
+              <select id="matTipeMedia">
+                <option value="none">Tanpa Media (Teks Sahaja)</option>
+                <option value="youtube">🎥 Video YouTube (URL)</option>
+                <option value="pdf">📄 File PDF / Storage URL</option>
+                <option value="gdrive">📁 Google Drive Link</option>
+              </select>
+              <input type="text" id="matUrlMedia" placeholder="Tempel URL Tautan / Link di sini (e.g. https://youtube.com/watch?v=...)">
+            </div>
+
+            <textarea id="matKonten" rows="5" placeholder="Isi penjelasan materi / deskripsi ringkas..."></textarea>
+
             <button onclick="simpanBankMateri()">💾 Simpan Ke Bank Master</button>
             <p id="matAIStatus" style="font-size: 0.85rem; margin-top: 8px; color: var(--ac);"></p>
           </div>
 
           <div class="card">
-            <h3>🗂️ Koleksi Bank Master Materi & Publish Log</h3>
+            <h3>🗂️ Koleksi Bank Master Materi & Multi-Kelas Publish</h3>
             <div id="listBankMateri">Memuat Bank Materi...</div>
           </div>
         </div>
@@ -447,7 +477,7 @@
     const SUPABASE_KEY = 'sb_publishable_8fui-5-oUHxX5_yuDVF_Tg_IQJbK2pR';
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // CALL AI VIA EDGE FUNCTION (Aman tanpa bocor key)
+    // CALL AI VIA EDGE FUNCTION
     async function callAI(prompt) {
       const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-ai`, {
         method: 'POST',
@@ -466,6 +496,7 @@
     let activeUser = null;
     let workspace = null;
     let selectedTugasId = null;
+    let activeMateriMode = 'ai';
 
     let startTime = null;
     let actionCount = 0;
@@ -570,7 +601,26 @@
       return arr;
     }
 
-    // ================= MODUL 1: BANK MATERI =================
+    // ================= MODUL 1: BANK MATERI & MULTI MEDIA =================
+    function setMateriMode(mode) {
+      activeMateriMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+
+      if (mode === 'ai') {
+        document.querySelectorAll('.mode-btn')[0].classList.add('active');
+        document.getElementById('materiSectionAI').classList.remove('hidden');
+        document.getElementById('materiSectionMedia').classList.add('hidden');
+      } else if (mode === 'manual') {
+        document.querySelectorAll('.mode-btn')[1].classList.add('active');
+        document.getElementById('materiSectionAI').classList.add('hidden');
+        document.getElementById('materiSectionMedia').classList.add('hidden');
+      } else if (mode === 'media') {
+        document.querySelectorAll('.mode-btn')[2].classList.add('active');
+        document.getElementById('materiSectionAI').classList.add('hidden');
+        document.getElementById('materiSectionMedia').classList.remove('hidden');
+      }
+    }
+
     async function generateMateriAI() {
       const topik = document.getElementById('matJudul').value.trim();
       const status = document.getElementById('matAIStatus');
@@ -591,14 +641,21 @@
     }
 
     async function simpanBankMateri() {
-      const judul = document.getElementById('matJudul').value;
-      const konten = document.getElementById('matKonten').value;
-      if (!judul || !konten) return alert('Isi judul dan konten!');
+      const judul = document.getElementById('matJudul').value.trim();
+      const konten = document.getElementById('matKonten').value.trim();
+      const tipe_media = document.getElementById('matTipeMedia').value;
+      const url_media = document.getElementById('matUrlMedia').value.trim();
 
-      await db.from('materi').insert({ judul, konten });
+      if (!judul) return alert('Isi judul materi!');
+
+      await db.from('materi').insert({
+        judul, konten, tipe_media, url_media
+      });
+
       alert('Materi tersimpan ke Bank Master!');
       document.getElementById('matJudul').value = '';
       document.getElementById('matKonten').value = '';
+      document.getElementById('matUrlMedia').value = '';
       loadBankMateriGuru();
     }
 
@@ -610,23 +667,44 @@
         return;
       }
 
-      container.innerHTML = data.map(m => `
-        <div class="card" style="background:#f8fafc;">
-          <b>${m.judul}</b>
-          <p class="mu" style="margin:6px 0 12px; line-height:1.5;">${m.konten || ''}</p>
-          <div style="display:flex; gap:10px; align-items:center;">
-            <span class="mu" style="font-weight:600;">Publish Ke:</span>
-            <button class="alt" style="padding:6px 12px;" onclick="publishMateriMulti('${m.id}', 'X-1')">+ X-1</button>
-            <button class="alt" style="padding:6px 12px;" onclick="publishMateriMulti('${m.id}', 'X-2')">+ X-2</button>
-            <button class="alt" style="padding:6px 12px;" onclick="publishMateriMulti('${m.id}', 'XI-1')">+ XI-1</button>
+      container.innerHTML = data.map(m => {
+        let mediaTag = '';
+        if (m.tipe_media === 'youtube' && m.url_media) {
+          mediaTag = `<div class="badge ok">🎥 Youtube Link</div>`;
+        } else if (m.tipe_media === 'pdf' && m.url_media) {
+          mediaTag = `<div class="badge warn">📄 PDF / Modul File</div>`;
+        } else if (m.tipe_media === 'gdrive' && m.url_media) {
+          mediaTag = `<div class="badge">📁 GDrive Folder</div>`;
+        }
+
+        return `
+          <div class="card" style="background:#f8fafc;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <b>${m.judul}</b>
+              ${mediaTag}
+            </div>
+            <p class="mu" style="margin:6px 0 12px; line-height:1.5;">${m.konten || ''}</p>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <span class="mu" style="font-weight:600;">Publish Ke:</span>
+              <button class="alt" style="padding:6px 12px;" onclick="publishMateriMulti('${m.id}', 'X-1')">+ X-1</button>
+              <button class="alt" style="padding:6px 12px;" onclick="publishMateriMulti('${m.id}', 'X-2')">+ X-2</button>
+              <button class="alt" style="padding:6px 12px;" onclick="publishMateriMulti('${m.id}', 'XI-1')">+ XI-1</button>
+            </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     async function publishMateriMulti(materiId, targetKelas) {
       await db.from('materi_published').insert({ materi_id: materiId, kelas: targetKelas });
       alert(`Materi berhasil dipublish ke Kelas ${targetKelas}!`);
+    }
+
+    function getYouTubeEmbedUrl(url) {
+      if (!url) return '';
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : url;
     }
 
     async function loadMateriSiswa() {
@@ -643,6 +721,22 @@
       container.innerHTML = data.map(p => {
         const m = p.materi;
         const isRead = readSet.has(m.id);
+
+        let mediaRenderHTML = '';
+        if (m.tipe_media === 'youtube' && m.url_media) {
+          const embedUrl = getYouTubeEmbedUrl(m.url_media);
+          mediaRenderHTML = `
+            <div class="media-preview-box">
+              <iframe width="100%" height="315" src="${embedUrl}" frameborder="0" allowfullscreen style="border-radius:8px;"></iframe>
+            </div>`;
+        } else if ((m.tipe_media === 'pdf' || m.tipe_media === 'gdrive') && m.url_media) {
+          mediaRenderHTML = `
+            <div class="media-preview-box" style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="mu">📎 Lampiran Dokumen Modul / Media</span>
+              <a href="${m.url_media}" target="_blank" style="color:var(--ac); font-weight:700; text-decoration:none;">🔗 Buka / Download Media ↗</a>
+            </div>`;
+        }
+
         return `
           <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -650,6 +744,7 @@
               ${isRead ? '<span class="badge ok">✅ Sudah Dibaca</span>' : `<button class="ok" onclick="tandaiMateriDibaca('${m.id}')">Tandai Sudah Dibaca</button>`}
             </div>
             <p class="mu" style="margin-top:8px; line-height:1.6; color:#334155;">${m.konten || ''}</p>
+            ${mediaRenderHTML}
           </div>
         `;
       }).join('');
@@ -791,9 +886,7 @@
     async function jawabKuis(kuisId, labelDipilih, isCorrect) {
       const skor = isCorrect ? 100 : 0;
       await db.from('nilai_kuis').insert({ kuis_id: kuisId, siswa_id: activeUser.id, jawaban_siswa: labelDipilih, skor });
-      alert(`Kuis Selesai!
-Jawaban Kamu: Opsi ${labelDipilih}
-Status: ${isCorrect ? '✅ BENAR (Skor: 100)' : '❌ SALAH (Skor: 0)'}`);
+      alert(`Kuis Selesai!\nJawaban Kamu: Opsi ${labelDipilih}\nStatus: ${isCorrect ? '✅ BENAR (Skor: 100)' : '❌ SALAH (Skor: 0)'}`);
     }
 
     // ================= MODUL 3: BANK LAB KODING =================
