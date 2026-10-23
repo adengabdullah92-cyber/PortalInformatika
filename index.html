@@ -10,54 +10,50 @@
   <script src="https://unpkg.com/blockly/blockly.min.js"></script>
   <script src="https://unpkg.com/blockly/python_compressed.js"></script>
 
-  <!-- Library ekstraksi Word (.docx) & PDF di Browser -->
-  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-
   <style>
     /* Styling Modul Kertas A4 Full Color */
-    .a4-page {
-      width: 100%;
-      max-width: 210mm;
-      min-height: 297mm;
-      background: #ffffff;
-      padding: 24mm 20mm;
-      margin: 16px auto;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-      border: 1px solid #e2e8f0;
-      box-sizing: border-box;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-    }
+.a4-page {
+  width: 100%;
+  max-width: 210mm;
+  min-height: 297mm;
+  background: #ffffff;
+  padding: 24mm 20mm;
+  margin: 16px auto;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  border: 1px solid #e2e8f0;
+  box-sizing: border-box;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
 
-    .a4-header {
-      border-bottom: 3px solid #2563eb;
-      padding-bottom: 12px;
-      margin-bottom: 20px;
-    }
+.a4-header {
+  border-bottom: 3px solid #2563eb;
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
 
-    .a4-badge {
-      background: #eff6ff; color: #2563eb; padding: 4px 10px;
-      border-radius: 6px; font-weight: 800; font-size: 0.75rem;
-    }
+.a4-badge {
+  background: #eff6ff; color: #2563eb; padding: 4px 10px;
+  border-radius: 6px; font-weight: 800; font-size: 0.75rem;
+}
 
-    .a4-header h1 {
-      font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-top: 8px;
-    }
+.a4-header h1 {
+  font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-top: 8px;
+}
 
-    .a4-card {
-      padding: 16px; border-radius: 10px; margin-bottom: 16px;
-    }
-    .a4-card.blue { background: #f0f7ff; border-left: 4px solid #2563eb; }
-    .a4-card.purple { background: #fbf5ff; border-left: 4px solid #7c3aed; }
-    .a4-card.dark { background: #0f172a; color: #38bdf8; font-family: 'JetBrains Mono', monospace; }
+.a4-card {
+  padding: 16px; border-radius: 10px; margin-bottom: 16px;
+}
+.a4-card.blue { background: #f0f7ff; border-left: 4px solid #2563eb; }
+.a4-card.purple { background: #fbf5ff; border-left: 4px solid #7c3aed; }
+.a4-card.dark { background: #0f172a; color: #38bdf8; font-family: 'JetBrains Mono', monospace; }
 
-    .a4-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.a4-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 
-    .a4-footer {
-      background: #ecfdf5; border: 1px solid #a7f3d0; padding: 14px;
-      border-radius: 10px; color: #065f46; font-size: 0.9rem;
-    }
+.a4-footer {
+  background: #ecfdf5; border: 1px solid #a7f3d0; padding: 14px;
+  border-radius: 10px; color: #065f46; font-size: 0.9rem;
+}
 
     :root {
       --bg: #f8fafc;
@@ -83,6 +79,7 @@
       flex-direction: column;
     }
 
+    /* Top Navigation Header */
     header {
       background: var(--card);
       border-bottom: 1px solid var(--bd);
@@ -96,12 +93,14 @@
 
     .brand { font-size: 1.25rem; font-weight: 800; color: var(--ac); letter-spacing: -0.02em; }
     
+    /* Layout Container with Sidebar */
     .app-layout {
       display: flex;
       flex: 1;
       min-height: calc(100vh - 61px);
     }
 
+    /* Sidebar Styling */
     .sidebar {
       width: 260px;
       background: #ffffff;
@@ -137,6 +136,7 @@
       border-color: #bfdbfe;
     }
 
+    /* Main Content Area */
     .main-content {
       flex: 1;
       padding: 28px;
@@ -186,6 +186,7 @@
       background: #ffffff;
     }
 
+    /* Tab Mode Selection */
     .mode-selector {
       display: flex; gap: 8px; margin-bottom: 16px; background: #f1f5f9; padding: 4px; border-radius: 10px;
     }
@@ -210,6 +211,7 @@
     button.ai { background: var(--ai-grad); color: #fff; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25); }
     button.ok { background: #10b981; color: #fff; box-shadow: none; }
 
+    /* Dual-Mode Lab Layout */
     .lab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: 420px; }
     #blocklyDiv { width: 100%; height: 100%; border-radius: 12px; overflow: hidden; border: 1px solid var(--bd); }
     .code-preview {
@@ -226,8 +228,12 @@
     }
     .quiz-option:hover { border-color: var(--ac); background: #eff6ff; color: var(--ac); }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.9rem; }
-    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--bd); }
+    table {
+      width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.9rem;
+    }
+    th, td {
+      padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--bd);
+    }
     th { background: #f1f5f9; font-weight: 700; color: var(--mu); }
 
     .hidden { display: none !important; }
@@ -236,8 +242,11 @@
     .badge.bad { background: #fef2f2; color: var(--bad); border-color: #fecaca; }
     .badge.ok { background: #ecfdf5; color: var(--ok); border-color: #a7f3d0; }
 
-    .media-preview-box { margin-top: 12px; padding: 12px; background: #f1f5f9; border-radius: 10px; border: 1px dashed var(--bd); }
+    .media-preview-box {
+      margin-top: 12px; padding: 12px; background: #f1f5f9; border-radius: 10px; border: 1px dashed var(--bd);
+    }
 
+    /* ===== Modul A4: perbaikan tampilan ===== */
     .a4-page { line-height: 1.55; color: #0f172a; }
     .a4-header h1 { line-height: 1.25; }
     .a4-card h3 { margin-bottom: 8px; font-size: 1.02rem; }
@@ -259,9 +268,11 @@
       .a4-grid, .a4-terms { grid-template-columns: 1fr; }
     }
 
+    /* Pratinjau guru */
     .preview-box { background: #e2e8f0; padding: 12px; border-radius: 12px; max-height: 560px; overflow: auto; }
     .preview-box .a4-page { min-height: auto; margin: 0 auto; box-shadow: none; }
 
+    /* Modal baca modul */
     .modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
     .modal-box { background: #f1f5f9; border-radius: 16px; width: 100%; max-width: 900px; max-height: 94vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
     .modal-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 16px; background: #ffffff; border-bottom: 1px solid var(--bd); }
@@ -270,6 +281,7 @@
     .modal-body { overflow-y: auto; padding: 12px; }
     .modal-body .a4-page { min-height: auto; margin: 0 auto; }
 
+    /* Area cetak (Simpan PDF lewat dialog cetak browser) */
     #printArea { display: none; }
     @media print {
       @page { size: A4; margin: 12mm; }
@@ -281,12 +293,14 @@
       body.printing .a4-card, body.printing .a4-term, body.printing .a4-footer { break-inside: avoid; }
     }
 
+    /* Panel publish multi-kelas */
     .chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #fff; border: 1.5px solid var(--bd); border-radius: 999px; font-size: 0.85rem; font-weight: 600; cursor: pointer; user-select: none; }
     .chip input { width: auto; margin: 0; padding: 0; }
     .chip:has(input:checked) { background: #eff6ff; border-color: var(--ac); color: var(--ac); }
     .publish-panel { background: #fff; border: 1px solid var(--bd); border-radius: 12px; padding: 12px; }
 
+    /* Bank master: daftar ringkas */
     .bank-toolbar { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
     .bank-toolbar input { flex: 1; min-width: 180px; margin: 0; }
     .bank-toolbar select { width: auto; margin: 0; }
@@ -308,14 +322,61 @@
     .chip.on { background: #ecfdf5; border-color: #6ee7b7; color: #047857; }
     .chip:has(input:checked) { background: #eff6ff; border-color: var(--ac); color: var(--ac); }
 
-    .draft-soal-card { background: #ffffff; border: 1px solid var(--bd); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-    .draft-soal-card.has-warning { border-color: var(--warn); background: #fffbeb; }
+    /* ===== Generator soal & draft ===== */
+    .gen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 14px; margin-bottom: 8px; }
+    .gen-grid label { display: block; }
+    .draft-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 16px 0 10px; padding: 10px 12px; background: #f1f5f9; border-radius: 12px; position: sticky; top: 0; z-index: 5; }
+    .draft-bar button { padding: 8px 14px; font-size: 0.85rem; }
+    .draft-card { background: #fff; border: 1.5px solid var(--bd); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+    .draft-card.unchecked { opacity: 0.6; }
+    .draft-card.warn { border-color: #fcd34d; background: #fffdf5; }
+    .draft-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .draft-head input[type=checkbox] { width: 20px; height: 20px; margin: 0; padding: 0; }
+    .draft-head select { width: auto; margin: 0; padding: 6px 10px; font-size: 0.82rem; }
+    .draft-head input[type=text] { flex: 1; min-width: 140px; margin: 0; padding: 6px 10px; font-size: 0.82rem; }
+    .draft-warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; margin-bottom: 10px; }
+    .draft-card textarea { margin: 4px 0 10px; }
+    .opt-line { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .opt-line b { width: 22px; flex-shrink: 0; }
+    .opt-line input[type=radio], .opt-line input[type=checkbox] { width: auto; margin: 0; padding: 0; flex-shrink: 0; }
+    .opt-line input[type=text] { flex: 1; margin: 0; padding: 8px 12px; }
+    .opt-line select { width: auto; margin: 0; padding: 8px 10px; flex-shrink: 0; }
+    .draft-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .draft-actions button { padding: 6px 12px; font-size: 0.82rem; }
+    .soal-teks { white-space: pre-wrap; word-break: break-word; line-height: 1.6; }
+    .pembahasan { margin-top: 12px; padding: 12px 14px; background: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 8px; font-size: 0.9rem; }
+    .detail-opsi { padding: 4px 8px; border-radius: 6px; margin-bottom: 2px; }
+    .detail-opsi.kunci { background: #ecfdf5; font-weight: 700; }
 
-    /* UI Pengerjaan Kuis Siswa Tahap 2 */
-    .exam-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-    .exam-num-btn { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--bd); background: #fff; font-weight: 700; cursor: pointer; }
-    .exam-num-btn.answered { background: #2563eb; color: #fff; border-color: #2563eb; }
-    .exam-num-btn.active { border: 2px solid #0f172a; }
+    /* Soal di sisi siswa */
+    .quiz-option.cek { display: flex; align-items: flex-start; gap: 10px; }
+    .quiz-option.cek input { width: auto; margin: 4px 0 0; padding: 0; flex-shrink: 0; }
+    .quiz-option.benar { background: #ecfdf5; border-color: #10b981; color: #065f46; }
+    .quiz-option.salah { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
+    .quiz-option:disabled { opacity: 1; cursor: default; }
+    .bs-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--bd); border-radius: 10px; margin: 8px 0; background: #f8fafc; }
+    .bs-row.benar { background: #ecfdf5; border-color: #10b981; }
+    .bs-row.salah { background: #fef2f2; border-color: #ef4444; }
+    .bs-teks { flex: 1; min-width: 200px; white-space: pre-wrap; }
+    .bs-pil { display: flex; gap: 14px; }
+    .bs-pil label { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.9rem; cursor: pointer; }
+    .bs-pil input { width: auto; margin: 0; padding: 0; }
+
+    /* ===== Responsif HP & tablet kecil ===== */
+    .main-content { min-width: 0; }
+    @media (max-width: 768px) {
+      header { padding: 10px 14px; }
+      .brand { font-size: 1.05rem; }
+      .app-layout { flex-direction: column; min-height: 0; }
+      .sidebar { width: 100%; flex-direction: row; overflow-x: auto; padding: 8px 10px; gap: 6px; border-right: none; border-bottom: 1px solid var(--bd); }
+      .nav-item { white-space: nowrap; flex-shrink: 0; padding: 10px 14px; }
+      .main-content { padding: 16px 12px; max-width: 100%; }
+      .card { padding: 16px; }
+      .lab-grid { grid-template-columns: 1fr; height: auto; }
+      #blocklyDiv { height: 360px; }
+      .code-preview { min-height: 140px; }
+      #tabKoreksi .card { overflow-x: auto; }
+    }
   </style>
 </head>
 <body>
@@ -346,15 +407,16 @@
     </div>
   </div>
 
-  <!-- MAIN APP LAYOUT -->
+  <!-- MAIN APP LAYOUT (SIDEBAR + CONTENT) -->
   <div id="appLayout" class="app-layout hidden">
     
+    <!-- LEFT SIDEBAR -->
     <div class="sidebar">
       <div class="nav-item active" onclick="switchTab('materi')">
         <span>📖</span> Bank Materi & Modul
       </div>
       <div class="nav-item" onclick="switchTab('kuis')">
-        <span>🤖</span> Paket Kuis & Soal
+        <span>🤖</span> Bank Kuis AI & Soal
       </div>
       <div class="nav-item" onclick="switchTab('lab')">
         <span>💻</span> Bank Lab Koding
@@ -364,16 +426,19 @@
       </div>
     </div>
 
+    <!-- RIGHT MAIN CONTENT -->
     <div class="main-content">
 
-      <!-- MODUL 1: BANK MATERI -->
+      <!-- MODUL 1: BANK MATERI & MODUL -->
       <div id="tabMateri" class="tab-content">
+        <!-- SISWA VIEW -->
         <div id="siswaMateriView" class="hidden">
           <h2>📖 Materi & Modul Pembelajaran</h2>
-          <p class="mu" style="margin-bottom: 20px;">Pelajari materi lalu tandai checklist pengerjaan.</p>
+          <p class="mu" style="margin-bottom: 20px;">Pelajari materi (teks, video, atau modul PDF) lalu tandai checklist pengerjaan.</p>
           <div id="listMateriSiswa">Memuat materi...</div>
         </div>
 
+        <!-- GURU VIEW -->
         <div id="guruMateriView" class="hidden">
           <h2>📖 Bank Master Materi & Multi-Media Input</h2>
           <p class="mu" style="margin-bottom: 20px;">Buat materi dengan AI, manual, atau unggah link PDF/Video YouTube/GDrive ke Bank Master.</p>
@@ -382,16 +447,19 @@
             <h3>+ Buat Materi Ke Bank Master</h3>
             <input type="text" id="matJudul" placeholder="Judul Topik Master (misal: Konsep Pemrograman Web)">
 
+            <!-- TAB PILIHAN INPUT MODE -->
             <div class="mode-selector">
               <button type="button" class="mode-btn active" onclick="setMateriMode('ai')">🤖 AI Generate</button>
               <button type="button" class="mode-btn" onclick="setMateriMode('manual')">📝 Manual / Text</button>
               <button type="button" class="mode-btn" onclick="setMateriMode('media')">📎 Link Video / PDF / GDrive</button>
             </div>
 
+            <!-- MODE 1: AI GENERATE -->
             <div id="materiSectionAI">
               <button class="ai" id="btnGenMatAI" onclick="generateMateriAI()" style="margin-bottom: 12px;">🤖 AI Generate Ringkasan Master</button>
             </div>
 
+            <!-- MODE 2 & 3 INPUT TEXT / MEDIA -->
             <div id="materiSectionMedia" class="hidden">
               <label class="mu">Tipe Media Tautan (Opsional):</label>
               <select id="matTipeMedia">
@@ -400,13 +468,13 @@
                 <option value="pdf">📄 File PDF / Storage URL</option>
                 <option value="gdrive">📁 Google Drive Link</option>
               </select>
-              <input type="text" id="matUrlMedia" placeholder="Tempel URL Tautan / Link di sini...">
+              <input type="text" id="matUrlMedia" placeholder="Tempel URL Tautan / Link di sini (e.g. https://youtube.com/watch?v=...)">
             </div>
 
-            <textarea id="matKonten" rows="5" oninput="updateMatPreview()" placeholder="Isi penjelasan materi..."></textarea>
+            <textarea id="matKonten" rows="5" oninput="updateMatPreview()" placeholder="Isi penjelasan materi / deskripsi ringkas (hasil AI berupa kode HTML modul, boleh diedit)..."></textarea>
 
             <div id="matPreviewWrap" class="hidden" style="margin: 0 0 16px;">
-              <label class="mu">👁️ Pratinjau</label>
+              <label class="mu">👁️ Pratinjau (seperti yang dilihat siswa)</label>
               <div id="matPreview" class="preview-box" style="margin-top: 6px;"></div>
             </div>
 
@@ -421,153 +489,77 @@
         </div>
       </div>
 
-      <!-- MODUL 2: BANK KUIS & GENERATOR DRAFT & PAKET KUIS TAHAP 2 -->
+      <!-- MODUL 2: BANK KUIS AI & SOAL -->
       <div id="tabKuis" class="tab-content hidden">
-        
-        <!-- SISWA: LIST PAKET KUIS & SESI PENGERJAAN -->
+        <!-- SISWA VIEW -->
         <div id="siswaKuisView" class="hidden">
-          <h2>📝 Evaluasi & Paket Kuis</h2>
-          <div id="listPaketKuisSiswa">Memuat paket kuis...</div>
-
-          <!-- SESI PENGERJAAN SOAL (TIMER + SAFE GRADING) -->
-          <div id="examSessionArea" class="card hidden" style="margin-top: 20px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-              <b id="examTitle" style="font-size:1.2rem;">Sesi Kuis</b>
-              <span id="examTimer" class="badge bad" style="font-size:1rem; padding:8px 14px;">⏱️ 00:00</span>
-            </div>
-
-            <div id="examNavBox" class="exam-nav"></div>
-
-            <div id="examQuestionContainer" style="margin: 20px 0;"></div>
-
-            <div style="display:flex; justify-content:space-between; margin-top:20px;">
-              <button class="alt" onclick="navExamSoal(-1)">‹ Sebelumnya</button>
-              <button class="ok" onclick="submitExamSiswa()">✉️ Kirim Jawaban Saya</button>
-              <button class="alt" onclick="navExamSoal(1)">Berikutnya ›</button>
-            </div>
-          </div>
-
-          <!-- HASIL & PEMBAHASAN SISWA -->
-          <div id="examResultArea" class="card hidden" style="margin-top:20px;">
-            <h3>📊 Hasil Kuis & Pembahasan</h3>
-            <div style="font-size:2rem; font-weight:800; color:var(--ac); margin:12px 0;" id="examFinalScore">0.0</div>
-            <div id="examReviewContainer"></div>
-          </div>
+          <h2>🤖 Latihan Soal</h2>
+          <p class="mu" style="margin-bottom: 20px;">Soal dan pilihan dikocok otomatis untuk setiap siswa.</p>
+          <div id="listKuisSiswa">Memuat kuis...</div>
         </div>
 
-        <!-- GURU: GENERATOR SOAL & MANAJEMEN PAKET KUIS -->
+        <!-- GURU VIEW -->
         <div id="guruKuisView" class="hidden">
           <h2>🤖 AI Quiz Generator & Bank Soal Master</h2>
-          <p class="mu" style="margin-bottom: 20px;">Generate soal dari materi bank ATAU impor otomatis dari file Word/PDF mentah.</p>
-
-          <!-- FORM BUAT PAKET KUIS TAHAP 2 -->
-          <div class="card">
-            <h3>📦 Buat Paket Kuis Baru dari Bank Soal</h3>
-            <input type="text" id="pktJudul" placeholder="Judul Paket Kuis (misal: Ulangan Harian Bab 1)">
-            <textarea id="pktDesk" placeholder="Petunjuk pengerjaan kuis..."></textarea>
-            
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
-              <div>
-                <label class="mu">Durasi (Menit):</label>
-                <input type="number" id="pktDurasi" value="30">
-              </div>
-              <div>
-                <label class="mu">Acak Soal:</label>
-                <select id="pktAcakSoal"><option value="true">Ya</option><option value="false">Tidak</option></select>
-              </div>
-              <div>
-                <label class="mu">Tampilkan Pembahasan:</label>
-                <select id="pktPembahasan"><option value="true">Ya (Setelah Selesai)</option><option value="false">Tidak</option></select>
-              </div>
-            </div>
-
-            <label class="mu" style="margin-top:10px; display:block;">Pilih Soal dari Bank Master untuk Paket Ini:</label>
-            <div id="pktSoalSelector" style="max-height:200px; overflow-y:auto; background:#f1f5f9; padding:12px; border-radius:10px; margin-bottom:16px;"></div>
-
-            <button onclick="simpanPaketKuis()">💾 Simpan & Terbitkan Paket Kuis</button>
-          </div>
+          <p class="mu" style="margin-bottom: 20px;">Generate soal AI, pratinjau & edit, lalu simpan ke Bank Soal sebelum dipublish.</p>
           
           <div class="card">
-            <h3>⚡ Step 1: Pilihan Metode Input Soal</h3>
-            
-            <!-- MODE SWITCHER KUIS: GENERATE VS IMPOR FILE -->
-            <div class="mode-selector">
-              <button type="button" class="mode-btn active" id="btnKuisModeGen" onclick="setKuisInputMode('gen')">🤖 Generate dari Materi/Topik</button>
-              <button type="button" class="mode-btn" id="btnKuisModeFile" onclick="setKuisInputMode('file')">📄 Impor dari File Dokumen (Word/PDF/TXT)</button>
-            </div>
+            <h3>⚡ Step 1: Generate Soal dengan AI</h3>
+            <p class="mu" style="margin-bottom: 14px;">Pilih materi dari Bank Materi (soal dibuat sesuai isinya) atau ketik topik bebas. Hasilnya berupa draf yang bisa kamu periksa dulu sebelum masuk Bank Soal.</p>
 
-            <!-- SKENARIO A: GENERATE DARI MATERI BANK / TOPIK -->
-            <div id="sectionKuisGen">
-              <label class="mu">Pilih Rujukan Materi dari Bank (Atau kosongkan jika ingin pakai Topik):</label>
-              <select id="genMateriRef">
-                <option value="">-- Tanpa Rujukan Materi (Gunakan Topik) --</option>
-              </select>
-
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 6px;">
-                <div>
-                  <label class="mu">Topik Utama:</label>
-                  <input type="text" id="genTopik" placeholder="Misal: Algoritma & Flowchart">
-                </div>
-                <div>
-                  <label class="mu">Fokus Subtopik (Opsional):</label>
-                  <input type="text" id="genFokus" placeholder="Misal: Perulangan WHILE">
-                </div>
+            <div class="gen-grid">
+              <div>
+                <label class="mu">Sumber soal</label>
+                <select id="aiSumber" onchange="aiSumberChange()">
+                  <option value="materi">📖 Dari materi di Bank Materi</option>
+                  <option value="topik">✏️ Dari topik bebas</option>
+                </select>
               </div>
-
-              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
-                <div>
-                  <label class="mu">Jumlah Soal:</label>
-                  <input type="number" id="genJumlah" value="10" min="1" max="20">
-                </div>
-                <div>
-                  <label class="mu">Tingkat Kesulitan:</label>
-                  <select id="genTingkat">
-                    <option value="campuran">Campuran (C1-C4)</option>
-                    <option value="mudah">Mudah (C1-C2)</option>
-                    <option value="sedang">Sedang (C3)</option>
-                    <option value="sulit">Sulit (C4)</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="mu">Tipe Soal:</label>
-                  <select id="genJenis">
-                    <option value="pg">Pilihan Ganda biasa (PG)</option>
-                    <option value="pg_kompleks">PG Kompleks (Multi jawaban)</option>
-                    <option value="bs">Benar / Salah (B/S)</option>
-                    <option value="campuran">Campuran Jenis</option>
-                  </select>
-                </div>
+              <div id="aiBoxMateri">
+                <label class="mu">Pilih materi</label>
+                <select id="aiMateri"><option value="">Memuat materi...</option></select>
               </div>
-
-              <button class="ai" id="btnGenSoalAI" onclick="generateSoalAI()">🤖 Generate & Audit Soal dengan AI</button>
-            </div>
-
-            <!-- SKENARIO B: IMPOR DARI FILE WORD / PDF / TXT -->
-            <div id="sectionKuisFile" class="hidden">
-              <label class="mu">Unggah File Bank Soal / Modul (.docx, .pdf, atau .txt):</label>
-              <input type="file" id="fileSoalInput" accept=".docx,.pdf,.txt" style="background:#fff;">
-              <p class="mu" style="font-size:0.8rem; margin-top:-10px; margin-bottom:12px;">
-                💡 AI akan membaca seluruh file, mengekstrak pertanyaan & opsi, mendeteksi kunci/pembahasan, dan melengkapi kunci otomatis jika belum ada.
-              </p>
-              <button class="ai" id="btnImporFile" onclick="prosesImporFileSoal()">📂 Impor & Parsel Soal Otomatis</button>
-            </div>
-
-            <p id="genStatus" style="font-size: 0.85rem; margin-top: 10px; color: var(--ac);"></p>
-
-            <!-- LIVE PREVIEW & EDIT DRAFT SOAL LIST -->
-            <div id="draftContainer" class="hidden" style="margin-top: 20px; background: #f1f5f9; padding: 16px; border-radius: 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h4 style="margin:0;">✏️ Review & Edit Draft Soal (<span id="draftCount">0</span> Soal)</h4>
-                <div style="display:flex; gap:8px;">
-                  <button class="alt" onclick="pilihSemuaDraft(true)">Centang Semua</button>
-                  <button class="alt" onclick="pilihSemuaDraft(false)">Batal Semua</button>
-                </div>
+              <div id="aiBoxTopik" class="hidden">
+                <label class="mu">Topik</label>
+                <input type="text" id="aiTopik" placeholder="mis. Logika Percabangan IF ELSE">
               </div>
-
-              <div id="draftList"></div>
-
-              <button onclick="simpanDraftToBankSoal()" style="margin-top: 14px; width: 100%;">💾 Simpan Soal Terpilih Ke Bank Soal Master</button>
+              <div>
+                <label class="mu">Fokus subtopik (opsional)</label>
+                <input type="text" id="aiFokus" placeholder="mis. operator perbandingan">
+              </div>
+              <div>
+                <label class="mu">Jumlah soal</label>
+                <select id="aiJumlah">
+                  <option value="5">5 soal</option>
+                  <option value="10" selected>10 soal</option>
+                  <option value="15">15 soal</option>
+                  <option value="20">20 soal</option>
+                </select>
+              </div>
+              <div>
+                <label class="mu">Tingkat kesulitan</label>
+                <select id="aiTingkat">
+                  <option value="campuran">Campuran (mudah–sulit)</option>
+                  <option value="mudah">Mudah (C1–C2)</option>
+                  <option value="sedang">Sedang (C3)</option>
+                  <option value="sulit">Sulit (C4)</option>
+                </select>
+              </div>
+              <div>
+                <label class="mu">Jenis soal</label>
+                <select id="aiJenis">
+                  <option value="pg">Pilihan ganda (1 jawaban)</option>
+                  <option value="pg_kompleks">Pilihan ganda kompleks</option>
+                  <option value="bs">Benar / Salah</option>
+                  <option value="campuran">Campuran</option>
+                </select>
+              </div>
             </div>
+
+            <button class="ai" id="btnGenSoalAI" onclick="generateSoalAI()">🤖 Generate Soal</button>
+            <p id="aiKuisStatus" style="font-size: 0.85rem; margin-top: 8px; color: var(--ac);"></p>
+
+            <div id="draftArea" class="hidden"></div>
           </div>
 
           <div class="card">
@@ -577,16 +569,18 @@
         </div>
       </div>
 
-      <!-- MODUL 3: BANK LAB KODING -->
+      <!-- MODUL 3: BANK LAB KODING & TUGAS -->
       <div id="tabLab" class="tab-content hidden">
+        <!-- SISWA VIEW -->
         <div id="siswaLabView" class="hidden">
           <h2>💻 Tugas Praktik Lab Koding</h2>
           <p class="mu" style="margin-bottom: 20px;">Kerjakan koding interaktif di workspace dual mode.</p>
           <div id="listTugasSiswa">Memuat tugas...</div>
 
+          <!-- WORKSPACE INTERAKTIF -->
           <div id="labSection" class="card hidden" style="margin-top: 24px;">
-            <h3>🎮 Lab Koding Interaktif</h3>
-            <p class="mu" style="margin-bottom: 12px;">Fitur Copy-Paste dimatikan untuk menjaga kejujuran.</p>
+            <h3>🎮 Lab Koding Interaktif (Dual Mode)</h3>
+            <p class="mu" style="margin-bottom: 12px;">Fitur Copy-Paste dimatikan untuk keamanan kejujuran.</p>
             
             <div class="lab-grid">
               <div id="blocklyDiv"></div>
@@ -600,44 +594,48 @@
           </div>
         </div>
 
+        <!-- GURU VIEW -->
         <div id="guruLabView" class="hidden">
-          <h2>💻 Bank Master Lab Koding</h2>
+          <h2>💻 Bank Master Lab Koding & Publish Log</h2>
           <p class="mu" style="margin-bottom: 20px;">Buat tugas koding ke Bank Master dan atur penayangan multi-kelas.</p>
           
           <div class="card">
             <h3>+ Buat Tugas Baru Ke Bank Master</h3>
-            <input type="text" id="tgJudul" placeholder="Judul Tugas">
-            <textarea id="tgDesk" placeholder="Instruksi tugas..."></textarea>
+            <input type="text" id="tgJudul" placeholder="Judul Tugas (misal: Praktik Perulangan FOR)">
+            <textarea id="tgDesk" placeholder="Instruksi tugas dan kriteria keluaran..."></textarea>
             <button onclick="simpanBankTugas()">💾 Simpan Ke Bank Tugas</button>
           </div>
 
           <div class="card">
-            <h3>🗂️ Koleksi Bank Tugas</h3>
+            <h3>🗂️ Koleksi Bank Tugas & Publish Log</h3>
             <div id="listBankTugas">Memuat Bank Tugas...</div>
           </div>
         </div>
       </div>
 
-      <!-- MODUL 4: REKAP KELAS -->
+      <!-- MODUL 4: KOREKSI & ANALISIS PER KELAS (KHUSUS GURU) -->
       <div id="tabKoreksi" class="tab-content hidden">
-        <h2>📊 Koreksi & Analisis Per Kelas</h2>
-        <p class="mu" style="margin-bottom: 20px;">Pilih kelas untuk memantau rekap nilai & partisipasi.</p>
+        <h2>📊 Koreksi & Analisis Anti-Contek Per Kelas</h2>
+        <p class="mu" style="margin-bottom: 20px;">Pilih kelas untuk memantau rekap nilai, checklist materi, dan indikasi kecurangan.</p>
         
+        <!-- FILTER KELAS -->
         <div class="card" style="display: flex; gap: 16px; align-items: center;">
           <div style="flex: 1;">
             <label class="mu">Pilih Kelas Target:</label>
-            <select id="filterKelasGroup" onchange="renderModul4PerKelas()"></select>
+            <select id="filterKelasGroup" onchange="renderModul4PerKelas()">
+              </select>
           </div>
-          <button class="alt" onclick="exportKeExcel()" style="margin-top: 16px;">📥 Unduh Rekap Nilai CSV</button>
+          <button class="alt" onclick="exportKeExcel()" style="margin-top: 16px;">📥 Unduh Rekap Nilai CSV/Excel</button>
         </div>
 
+        <!-- CLASS SUMMARY STATS -->
         <div class="card-grid">
           <div class="stat-card">
             <span class="mu">Tingkat Partisipasi</span>
             <div class="num" id="statPartisipasi">0%</div>
           </div>
           <div class="stat-card">
-            <span class="mu">Rata-Rata Nilai</span>
+            <span class="mu">Rata-Rata Nilai Kelas</span>
             <div class="num" id="statRataRata">0.0</div>
           </div>
           <div class="stat-card">
@@ -646,20 +644,21 @@
           </div>
         </div>
 
+        <!-- TABEL REKAP SISWA PER KELAS -->
         <div class="card">
-          <h3>📥 Rekapitulasi Siswa</h3>
+          <h3>📥 Summary Rekapitulasi Siswa</h3>
           <table>
             <thead>
               <tr>
                 <th>Nama Siswa</th>
                 <th>Checklist Materi</th>
                 <th>Nilai Kuis AI</th>
-                <th>Lab Koding</th>
+                <th>Lab Koding (Durasi / Aksi)</th>
                 <th>Status Anti-Cheat</th>
               </tr>
             </thead>
             <tbody id="tbodyRekapKelas">
-              <tr><td colspan="5" class="mu">Pilih kelas di atas.</td></tr>
+              <tr><td colspan="5" class="mu">Pilih kelas di atas untuk menampilkan data.</td></tr>
             </tbody>
           </table>
         </div>
@@ -683,10 +682,16 @@
     </div>
   </div>
 
+  <!-- AREA CETAK PDF -->
   <div id="printArea"></div>
 
+  <!-- BLOCKLY TOOLBOX DEFINITION -->
   <xml id="toolbox" style="display: none">
-    <block type="controls_repeat_ext"><value name="TIMES"><shadow type="math_number"><field name="NUM">5</field></shadow></value></block>
+    <block type="controls_repeat_ext">
+      <value name="TIMES">
+        <shadow type="math_number"><field name="NUM">5</field></shadow>
+      </value>
+    </block>
     <block type="text_print"></block>
     <block type="text"></block>
     <block type="variables_set"></block>
@@ -694,16 +699,13 @@
   </xml>
 
   <script>
+    // CONFIG SUPABASE
     const SUPABASE_URL = 'https://ngmisemjfnamklajtjeg.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_8fui-5-oUHxX5_yuDVF_Tg_IQJbK2pR';
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Set PDF.js worker
-    if (window.pdfjsLib) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-    }
-
-    async function callAI(payload) {
+    // CALL AI VIA EDGE FUNCTION
+    async function callAI(prompt) {
       const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-ai`, {
         method: 'POST',
         headers: {
@@ -711,14 +713,46 @@
           'apikey': SUPABASE_KEY,
           'Authorization': `Bearer ${SUPABASE_KEY}`
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ prompt })
       });
       const data = await response.json();
       if (!response.ok) throw new Error('HTTP ' + response.status + ' - ' + (data.error?.message || data.error || data.message || JSON.stringify(data)));
-      return data;
+      return data.text ?? data.result ?? data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     }
 
+    // Daftar kelas untuk publish & rekap. Tambah/ubah di sini bila perlu (mis. 'XI-1').
     const DAFTAR_KELAS = Array.from({ length: 10 }, (_, i) => `X-${i + 1}`);
+
+    const HURUF = ['A', 'B', 'C', 'D', 'E'];
+    const TIPE_LABEL = { pg: 'Pilihan Ganda', pg_kompleks: 'PG Kompleks', bs: 'Benar/Salah' };
+
+    // Soal lama memakai pilihan_a..e & kunci_jawaban; soal baru memakai opsi & kunci (JSON)
+    function soalOpsi(q) {
+      if (Array.isArray(q.opsi) && q.opsi.length) return q.opsi.map(x => String(x ?? ''));
+      return [q.pilihan_a, q.pilihan_b, q.pilihan_c, q.pilihan_d, q.pilihan_e]
+        .filter(x => x !== null && x !== undefined).map(String);
+    }
+    function soalKunci(q) { return (q.kunci !== null && q.kunci !== undefined) ? q.kunci : q.kunci_jawaban; }
+
+    function soalDetailHTML(q) {
+      const tipe = q.tipe || 'pg', opsi = soalOpsi(q), kunci = soalKunci(q);
+      let h = `<div class="soal-teks" style="margin-bottom:8px;">${escHtml(q.pertanyaan)}</div>`;
+      if (tipe === 'bs') {
+        h += opsi.map((o, k) => {
+          const b = Array.isArray(kunci) ? kunci[k] : null;
+          return `<div class="detail-opsi">${k + 1}. ${escHtml(o)} <span class="badge ${b ? 'ok' : 'bad'}">${b ? 'Benar' : 'Salah'}</span></div>`;
+        }).join('');
+      } else {
+        const ks = new Set(Array.isArray(kunci) ? kunci : [kunci]);
+        h += opsi.map((o, k) => {
+          const ok = ks.has(HURUF[k]);
+          return `<div class="detail-opsi ${ok ? 'kunci' : ''}">${HURUF[k]}. ${escHtml(o)}${ok ? ' ✓' : ''}</div>`;
+        }).join('');
+      }
+      if (q.pembahasan) h += `<div class="pembahasan">💡 <b>Pembahasan</b><div class="soal-teks">${escHtml(q.pembahasan)}</div></div>`;
+      return h;
+    }
+
     const PER_HALAMAN = 10;
 
     const BANK = {
@@ -734,34 +768,13 @@
       kuis: {
         tabel: 'kuis', pubTabel: 'kuis_published', fk: 'kuis_id', el: 'listBankSoal', nama: 'soal',
         anak: [['nilai_kuis', 'kuis_id']], dampak: ' dan nilai siswa untuk soal ini',
-        judul: q => q.judul || q.topik || '(tanpa judul)',
-        cari: q => `${q.judul || ''} ${q.pertanyaan || ''} ${q.topik || ''}`,
-        sub: q => {
-          const tBadge = q.tipe === 'pg_kompleks' ? 'PG Kompleks' : q.tipe === 'bs' ? 'Benar/Salah' : 'PG';
-          const tkBadge = q.tingkat ? ` • ${q.tingkat}` : '';
-          return `<span class="badge ok">${tBadge}</span>${tkBadge}`;
+        judul: q => {
+          const s = String(q.pertanyaan || q.judul || '(tanpa soal)').replace(/\s+/g, ' ').trim();
+          return s.length > 110 ? s.slice(0, 110) + '…' : s;
         },
-        detail: q => {
-          let html = `<p style="margin:0 0 8px; font-weight:600;">${escHtml(q.pertanyaan)}</p>`;
-          if (q.tipe === 'bs') {
-            const ops = Array.isArray(q.opsi) ? q.opsi : [];
-            const knc = Array.isArray(q.kunci) ? q.kunci : [];
-            html += ops.map((o, idx) => `<div style="padding:3px 8px;">• ${escHtml(o)} <b>[${knc[idx] ? 'BENAR' : 'SALAH'}]</b></div>`).join('');
-          } else {
-            const ops = Array.isArray(q.opsi) ? q.opsi : [q.pilihan_a, q.pilihan_b, q.pilihan_c, q.pilihan_d, q.pilihan_e];
-            const knc = q.kunci || q.kunci_jawaban;
-            const isMatch = (L) => Array.isArray(knc) ? knc.includes(L) : knc === L;
-            html += ['A', 'B', 'C', 'D', 'E'].map((L, i) => {
-              if (!ops[i]) return '';
-              const ok = isMatch(L);
-              return `<div style="padding:3px 8px; border-radius:6px; ${ok ? 'background:#ecfdf5; font-weight:700;' : ''}">${L}. ${escHtml(ops[i])}${ok ? ' ✓' : ''}</div>`;
-            }).join('');
-          }
-          if (q.pembahasan) {
-            html += `<div style="margin-top:8px; padding:8px; background:#f1f5f9; border-radius:6px; font-size:0.85rem;">💡 <b>Pembahasan:</b> ${escHtml(q.pembahasan)}</div>`;
-          }
-          return html;
-        },
+        cari: q => `${q.judul || ''} ${q.pertanyaan || ''} ${q.topik || ''} ${q.tingkat || ''}`,
+        sub: q => escHtml([TIPE_LABEL[q.tipe || 'pg'] || 'Pilihan Ganda', q.topik, q.tingkat, q.level_kognitif, q.judul].filter(Boolean).join(' • ')),
+        detail: q => soalDetailHTML(q),
         aksi: () => ''
       },
       tugas: {
@@ -818,10 +831,9 @@
       });
       if (key === 'materi') {
         st.items.forEach(m => { materiCache[m.id] = m; });
-        updateMateriDropdownRef();
+        isiPilihanMateriAI();
       }
       renderBank(key);
-      if (key === 'kuis') loadBankSoalSelector();
     }
 
     function statusPublishHTML(kelas) {
@@ -878,7 +890,7 @@
           <div class="bank-body">
             <div class="bank-detail">${cfg.detail(i)}</div>
             ${aksi ? `<div class="bank-actions">${aksi}</div>` : ''}
-            ${arsip ? '<p class="mu">Item diarsipkan: tidak terlihat siswa. Pulihkan dulu untuk mengatur publish.</p>' : publishPanelHTML(key, id)}
+            ${arsip ? '<p class="mu">Materi diarsipkan: tidak terlihat siswa. Pulihkan dulu untuk mengatur publish.</p>' : publishPanelHTML(key, id)}
             <div class="bank-actions" style="margin-top:12px; border-top:1px dashed var(--bd); padding-top:12px;">
               ${arsip
                 ? `<button class="alt" onclick="bankArsip('${key}', '${id}', false)">♻️ Pulihkan</button>
@@ -914,9 +926,11 @@
     async function bankArsip(key, id, flag) {
       const cfg = BANK[key];
       const item = bankState[key].items.find(x => String(x.id) === String(id));
-      if (flag && !confirm(`Arsipkan "${item ? cfg.judul(item) : ''}"?`)) return;
+      if (flag && !confirm(`Arsipkan "${item ? cfg.judul(item) : ''}"?\n\nTidak lagi terlihat siswa. Data & status publish tetap tersimpan dan bisa dipulihkan.`)) return;
       const { error } = await db.from(cfg.tabel).update({ diarsipkan: flag }).eq('id', id);
-      if (error) return alert('Gagal: ' + error.message);
+      if (error) {
+        return alert('Gagal: ' + error.message + (/diarsipkan/.test(error.message) ? '\n\nKolom "diarsipkan" belum ada. Jalankan SQL penambahan kolom di Supabase dulu.' : ''));
+      }
       bankState[key].open.delete(String(id));
       await loadBank(key);
     }
@@ -925,9 +939,10 @@
       const cfg = BANK[key];
       const item = bankState[key].items.find(x => String(x.id) === String(id));
       if (!item) return;
-      if (!confirm(`Hapus PERMANEN "${cfg.judul(item)}"?`)) return;
+      if (!confirm(`Hapus PERMANEN "${cfg.judul(item)}"?\n\nIkut terhapus: status publish${cfg.dampak}.\nTidak bisa dibatalkan.`)) return;
       for (const [tbl, col] of [[cfg.pubTabel, cfg.fk], ...cfg.anak]) {
-        await db.from(tbl).delete().eq(col, id);
+        const { error } = await db.from(tbl).delete().eq(col, id);
+        if (error) return alert(`Gagal menghapus (${tbl}): ${error.message}`);
       }
       const { error } = await db.from(cfg.tabel).delete().eq('id', id);
       if (error) return alert('Gagal menghapus: ' + error.message);
@@ -935,6 +950,7 @@
       await loadBank(key);
     }
 
+    // ---------- Panel publish: status per kelas, publish & tarik ----------
     function publishPanelHTML(key, id) {
       const tayang = new Set(bankState[key].pub[String(id)] || []);
       const chips = DAFTAR_KELAS.map(k =>
@@ -943,6 +959,7 @@
       return `
         <div class="publish-panel" data-key="${key}" data-id="${id}">
           <div class="mu" style="font-weight:600; margin-bottom:4px;">Status & atur publish per kelas</div>
+          <div class="mu" style="font-size:0.78rem; margin-bottom:8px;">Hijau ✓ = sudah tayang di kelas itu. Centang kelas, lalu pilih Publish atau Tarik.</div>
           <div class="chips">${chips}</div>
           <div class="bank-actions" style="margin-top:10px;">
             <button class="alt" onclick="pilihSemuaKelas(this)">Pilih semua</button>
@@ -979,8 +996,8 @@
       const dipilih = [...panel.querySelectorAll('input:checked')].map(c => c.value);
       const sudah = new Set(bankState[key].pub[String(id)] || []);
       const tarik = dipilih.filter(k => sudah.has(k));
-      if (tarik.length === 0) return alert('Centang kelas yang sudah tayang untuk ditarik.');
-      if (!confirm(`Tarik dari kelas: ${tarik.join(', ')}?`)) return;
+      if (tarik.length === 0) return alert('Centang kelas yang sudah tayang (hijau ✓) untuk ditarik.');
+      if (!confirm(`Tarik dari kelas: ${tarik.join(', ')}?\n\nSiswa di kelas itu tidak akan melihatnya lagi.`)) return;
 
       const { error } = await db.from(cfg.pubTabel).delete().eq(cfg.fk, id).in('kelas', tarik);
       if (error) return alert('Gagal menarik: ' + error.message);
@@ -995,13 +1012,6 @@
     let startTime = null;
     let actionCount = 0;
     let timerInterval = null;
-
-    // VARIABLE SESI EXAM SISWA TAHAP 2
-    let activeExam = null;
-    let examSoalList = [];
-    let studentAnswers = {};
-    let currentExamIdx = 0;
-    let examTimerInterval = null;
 
     async function handleLogin() {
       const u = document.getElementById('loginUser').value.trim();
@@ -1058,7 +1068,7 @@
         document.getElementById('siswaKuisView').classList.remove('hidden');
         document.getElementById('siswaLabView').classList.remove('hidden');
         loadMateriSiswa();
-        loadPaketKuisSiswa();
+        loadKuisSiswa();
         loadTugasSiswa();
         initBlockly();
         disablePasteInApp();
@@ -1094,6 +1104,16 @@
       document.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
+    function shuffleArray(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // ================= MODUL 1: BANK MATERI & MULTI MEDIA =================
     function setMateriMode(mode) {
       activeMateriMode = mode;
       document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
@@ -1113,6 +1133,7 @@
       }
     }
 
+    // ---------- Helper tampilan modul ----------
     const materiCache = {};
     let modulAktifId = null;
     let materiReadSet = new Set();
@@ -1152,14 +1173,6 @@
       box.innerHTML = renderKonten(v);
     }
 
-    function updateMateriDropdownRef() {
-      const sel = document.getElementById('genMateriRef');
-      if (!sel) return;
-      const list = Object.values(materiCache).filter(m => !m.diarsipkan);
-      sel.innerHTML = '<option value="">-- Tanpa Rujukan Materi (Gunakan Topik) --</option>' +
-        list.map(m => `<option value="${m.id}">${escHtml(m.judul)}</option>`).join('');
-    }
-
     function bukaModul(id) {
       const m = materiCache[id];
       if (!m) return;
@@ -1183,6 +1196,7 @@
       document.body.style.overflow = '';
     }
 
+    // Simpan PDF: memakai dialog cetak browser (pilih "Simpan sebagai PDF")
     function cetakModul(id) {
       const m = materiCache[id || modulAktifId];
       if (!m) return;
@@ -1211,13 +1225,23 @@
       status.textContent = '🤖 AI sedang menyusun modul A4...';
 
       try {
-        const data = await callAI({ prompt: topik, mode: 'materi' });
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-ai`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          },
+          body: JSON.stringify({ prompt: topik, mode: 'materi' })
+        });
+
+        const data = await response.json();
         if (data.htmlA4) {
           document.getElementById('matKonten').value = data.htmlA4;
           updateMatPreview();
           status.textContent = '✅ Modul berhasil dibuat! Cek pratinjau di bawah, edit bila perlu, lalu simpan.';
         } else {
-          throw new Error(data.error || 'Gagal menghasilkan modul A4');
+          throw new Error(data.error || ('Respons tidak berisi htmlA4: ' + JSON.stringify(data).slice(0, 150)));
         }
       } catch (err) {
         status.textContent = '❌ Gagal AI: ' + err.message;
@@ -1225,6 +1249,7 @@
         btn.disabled = false;
       }
     }
+
 
     async function simpanBankMateri() {
       const judul = document.getElementById('matJudul').value.trim();
@@ -1249,6 +1274,11 @@
     }
 
     async function loadBankMateriGuru() { return loadBank('materi'); }
+
+    async function publishMateriMulti(materiId, targetKelas) {
+      await db.from('materi_published').insert({ materi_id: materiId, kelas: targetKelas });
+      alert(`Materi berhasil dipublish ke Kelas ${targetKelas}!`);
+    }
 
     function getYouTubeEmbedUrl(url) {
       if (!url) return '';
@@ -1312,411 +1342,426 @@
       await loadMateriSiswa();
     }
 
-    // ================= MODUL 2: GENERATOR & PAKET KUIS TAHAP 2 =================
-    let currentDraftSoal = [];
+    // ================= MODUL 2: BANK KUIS AI & SOAL =================
+    // ================= GENERATOR SOAL AI (Tahap 1) =================
+    let draftSoal = [];
+    let draftCtx = null;
+    let uidSeq = 1;
+    const $id = (x) => document.getElementById(x);
 
-    function setKuisInputMode(mode) {
-      document.getElementById('btnKuisModeGen').classList.toggle('active', mode === 'gen');
-      document.getElementById('btnKuisModeFile').classList.toggle('active', mode === 'file');
-      document.getElementById('sectionKuisGen').classList.toggle('hidden', mode !== 'gen');
-      document.getElementById('sectionKuisFile').classList.toggle('hidden', mode !== 'file');
+    function htmlKeTeks(html) {
+      if (!html) return '';
+      if (!isHtmlKonten(html)) return html;
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      doc.querySelectorAll('style,script').forEach(e => e.remove());
+      doc.querySelectorAll('br').forEach(e => e.replaceWith('\n'));
+      doc.querySelectorAll('h1,h2,h3,h4,p,li,div,pre,tr,dt,dd').forEach(e => e.append('\n'));
+      doc.querySelectorAll('b,strong,span,th,td').forEach(e => e.append(' '));
+      return (doc.body.textContent || '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    }
+
+    async function panggilEdge(body, timeoutMs = 140000) {
+      const ctrl = new AbortController();
+      const tm = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/generate-ai`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          body: JSON.stringify(body),
+          signal: ctrl.signal
+        });
+        let data;
+        try { data = await res.json(); } catch (_) { throw new Error('Respons server tidak terbaca (HTTP ' + res.status + ')'); }
+        if (!res.ok || data.error) throw new Error(data.error || ('HTTP ' + res.status));
+        return data;
+      } catch (e) {
+        if (e.name === 'AbortError') throw new Error('Waktu habis. Coba kurangi jumlah soal.');
+        if (/Load failed|Failed to fetch/i.test(e.message)) throw new Error('Koneksi ke server AI gagal. Coba lagi, atau kurangi jumlah soal.');
+        throw e;
+      } finally { clearTimeout(tm); }
+    }
+
+    function isiPilihanMateriAI() {
+      const sel = $id('aiMateri');
+      if (!sel) return;
+      const lama = sel.value;
+      const daftar = (bankState.materi.items || []).filter(m => !m.diarsipkan).slice();
+      if (daftar.some(m => m.created_at)) daftar.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+      else daftar.reverse();
+      sel.innerHTML = daftar.length
+        ? '<option value="">— Pilih materi —</option>' + daftar.map(m => `<option value="${escHtml(m.id)}">${escHtml(m.judul || '(tanpa judul)')}</option>`).join('')
+        : '<option value="">(Bank Materi masih kosong)</option>';
+      if (lama && daftar.some(m => String(m.id) === lama)) sel.value = lama;
+    }
+
+    function aiSumberChange() {
+      const materi = $id('aiSumber').value === 'materi';
+      $id('aiBoxMateri').classList.toggle('hidden', !materi);
+      $id('aiBoxTopik').classList.toggle('hidden', materi);
     }
 
     async function generateSoalAI() {
-      const matId = document.getElementById('genMateriRef').value;
-      const topik = document.getElementById('genTopik').value.trim();
-      const fokus = document.getElementById('genFokus').value.trim();
-      const jumlah = parseInt(document.getElementById('genJumlah').value) || 10;
-      const tingkat = document.getElementById('genTingkat').value;
-      const jenis = document.getElementById('genJenis').value;
-      const status = document.getElementById('genStatus');
-      const btn = document.getElementById('btnGenSoalAI');
+      const status = $id('aiKuisStatus');
+      const btn = $id('btnGenSoalAI');
+      const sumber = $id('aiSumber').value;
+      let topik = '', materiTeks = '', materiId = null;
 
-      let materiTeks = '';
-      if (matId && materiCache[matId]) {
-        materiTeks = materiCache[matId].konten || '';
+      if (sumber === 'materi') {
+        const id = $id('aiMateri').value;
+        if (!id) return alert('Pilih materi dulu.');
+        const m = bankState.materi.items.find(x => String(x.id) === String(id));
+        if (!m) return alert('Materi tidak ditemukan. Muat ulang halaman.');
+        materiTeks = htmlKeTeks(m.konten);
+        if (materiTeks.length < 80) return alert('Isi materi ini terlalu pendek atau hanya berupa tautan media. Pilih materi lain, atau gunakan "topik bebas".');
+        topik = m.judul || ''; materiId = m.id;
+      } else {
+        topik = $id('aiTopik').value.trim();
+        if (!topik) return alert('Isi topik soal!');
       }
 
-      if (!materiTeks && !topik) {
-        return alert('Isi Topik Utama ATAU pilih Rujukan Materi dari Bank!');
-      }
+      const fokus = $id('aiFokus').value.trim();
+      const jumlah = parseInt($id('aiJumlah').value) || 10;
+      const tingkat = $id('aiTingkat').value;
+      const jenis = $id('aiJenis').value;
+
+      const hindari = (bankState.kuis.items || [])
+        .filter(q => materiId ? String(q.sumber_materi_id) === String(materiId) : (q.topik || '').toLowerCase().includes(topik.toLowerCase()))
+        .map(q => q.pertanyaan).filter(Boolean).slice(-30);
 
       btn.disabled = true;
-      status.textContent = '🤖 AI sedang menyusun & memeriksa soal mandiri...';
-
+      status.textContent = `🤖 AI sedang membuat ${jumlah} soal lalu memeriksanya... (bisa 20–60 detik)`;
       try {
-        const payload = { mode: 'soal', topik, fokus, materiTeks, jumlah, tingkat, jenis };
-        const res = await callAI(payload);
-        if (!res.soal || !Array.isArray(res.soal)) throw new Error('Format output AI tidak sesuai.');
-
-        currentDraftSoal = res.soal.map((s, idx) => ({ ...s, checked: true, id_draft: idx }));
-        renderDraftList();
-
-        document.getElementById('draftContainer').classList.remove('hidden');
-        status.textContent = `✅ Berhasil membuat ${res.soal.length} soal draft! (${res.diperiksa ? 'Telah diverifikasi AI' : 'Belum diverifikasi'})`;
+        const data = await panggilEdge({ mode: 'soal', topik, fokus, materiTeks, jumlah, tingkat, jenis, hindari });
+        draftCtx = { topik, fokus, materiTeks, materiId, judulGrup: topik };
+        draftSoal = (data.soal || []).map(s => ({ ...s, uid: uidSeq++, pilih: !s.peringatan, level: s.level || '', loading: false }));
+        const perhatian = draftSoal.filter(d => d.peringatan).length;
+        status.textContent = `✅ ${draftSoal.length} soal siap diperiksa.` +
+          (data.diperiksa ? (perhatian ? ` ⚠️ ${perhatian} soal ditandai pemeriksa AI (tidak dicentang otomatis).` : ' Pemeriksa AI tidak menemukan masalah.') : ' ⚠️ Pemeriksa AI tidak berjalan, periksa kunci dengan teliti.') +
+          (data.dibuang ? ` (${data.dibuang} soal tidak valid dibuang.)` : '');
+        renderDraft();
       } catch (err) {
-        console.error(err);
-        status.textContent = '❌ Gagal AI: ' + err.message;
-      } finally {
-        btn.disabled = false;
-      }
+        status.textContent = '❌ Gagal: ' + err.message;
+      } finally { btn.disabled = false; }
     }
 
-    async function prosesImporFileSoal() {
-      const fileInput = document.getElementById('fileSoalInput');
-      const file = fileInput.files[0];
-      const status = document.getElementById('genStatus');
-      const btn = document.getElementById('btnImporFile');
-
-      if (!file) return alert('Pilih file dokumen terlebih dahulu!');
-
-      btn.disabled = true;
-      status.textContent = '📄 Membaca file dokumen di browser...';
-
-      try {
-        let teksDokumen = '';
-        const fname = file.name.toLowerCase();
-
-        if (fname.endsWith('.txt')) {
-          teksDokumen = await file.text();
-        } else if (fname.endsWith('.docx')) {
-          const arrayBuffer = await file.arrayBuffer();
-          const result = await mammoth.extractRawText({ arrayBuffer });
-          teksDokumen = result.value;
-        } else if (fname.endsWith('.pdf')) {
-          const arrayBuffer = await file.arrayBuffer();
-          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-          let pdfText = '';
-          for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const tokenized = await page.getTextContent();
-            const pageText = tokenized.items.map(item => item.str).join(' ');
-            pdfText += pageText + '\n';
-          }
-          teksDokumen = pdfText;
-        } else {
-          throw new Error('Format file tidak didukung. Harap pilih .docx, .pdf, atau .txt.');
-        }
-
-        if (!teksDokumen.trim()) throw new Error('Isi dokumen kosong atau tidak terbaca.');
-
-        status.textContent = '🤖 AI sedang mengurai, memilah opsi & mendeteksi kunci dari dokumen...';
-
-        const payload = { mode: 'impor_soal', teksDokumen };
-        const res = await callAI(payload);
-
-        if (!res.soal || !Array.isArray(res.soal)) throw new Error('Format ekstraksi AI tidak sesuai.');
-
-        currentDraftSoal = res.soal.map((s, idx) => ({ ...s, checked: true, id_draft: idx }));
-        renderDraftList();
-
-        document.getElementById('draftContainer').classList.remove('hidden');
-        status.textContent = `✅ Berhasil mengekstrak ${res.soal.length} soal dari file "${file.name}"!`;
-      } catch (err) {
-        console.error(err);
-        status.textContent = '❌ Gagal Impor: ' + err.message;
-      } finally {
-        btn.disabled = false;
-      }
-    }
-
-    function renderDraftList() {
-      const container = document.getElementById('draftList');
-      document.getElementById('draftCount').textContent = currentDraftSoal.length;
-
-      if (!currentDraftSoal.length) {
-        container.innerHTML = '<p class="mu">Belum ada draft soal.</p>';
-        return;
+    function draftCardHTML(d, i) {
+      if (d.loading) return `<div class="draft-card"><p class="mu">⏳ Membuat ulang soal ${i + 1}...</p></div>`;
+      let opsiHTML = '';
+      if (d.tipe === 'pg') {
+        opsiHTML = d.opsi.map((o, k) => `
+          <div class="opt-line">
+            <input type="radio" name="kunci-${d.uid}" ${d.kunci === HURUF[k] ? 'checked' : ''} onchange="draftSetKunciPG(${i}, '${HURUF[k]}')" title="Tandai sebagai kunci">
+            <b>${HURUF[k]}.</b>
+            <input type="text" value="${escHtml(o)}" oninput="draftSetOpsi(${i}, ${k}, this.value)">
+          </div>`).join('') + '<div class="mu" style="font-size:0.78rem;">Titik bulat = kunci jawaban</div>';
+      } else if (d.tipe === 'pg_kompleks') {
+        opsiHTML = d.opsi.map((o, k) => `
+          <div class="opt-line">
+            <input type="checkbox" ${d.kunci.includes(HURUF[k]) ? 'checked' : ''} onchange="draftSetKunciKompleks(${i}, '${HURUF[k]}', this.checked)" title="Tandai sebagai kunci">
+            <b>${HURUF[k]}.</b>
+            <input type="text" value="${escHtml(o)}" oninput="draftSetOpsi(${i}, ${k}, this.value)">
+          </div>`).join('') + '<div class="mu" style="font-size:0.78rem;">Kotak centang = jawaban yang benar (minimal 2)</div>';
+      } else {
+        opsiHTML = d.opsi.map((o, k) => `
+          <div class="opt-line">
+            <b>${k + 1}.</b>
+            <input type="text" value="${escHtml(o)}" oninput="draftSetOpsi(${i}, ${k}, this.value)">
+            <select onchange="draftSetKunciBS(${i}, ${k}, this.value)">
+              <option value="B" ${d.kunci[k] === true ? 'selected' : ''}>Benar</option>
+              <option value="S" ${d.kunci[k] === false ? 'selected' : ''}>Salah</option>
+            </select>
+            ${d.opsi.length > 2 ? `<button class="alt danger" style="padding:4px 10px;" onclick="draftBsHapus(${i}, ${k})" title="Hapus pernyataan">✕</button>` : ''}
+          </div>`).join('') + (d.opsi.length < 6 ? `<button class="alt" style="padding:4px 12px; font-size:0.8rem;" onclick="draftBsTambah(${i})">+ Pernyataan</button>` : '');
       }
 
-      container.innerHTML = currentDraftSoal.map((s, idx) => {
-        const warnTag = s.peringatan ? `<div class="badge warn" style="margin-bottom:8px;">⚠️ Peringatan AI Audit: ${escHtml(s.peringatan)}</div>` : '';
-        const tipeLabel = s.tipe === 'pg_kompleks' ? 'PG Kompleks' : s.tipe === 'bs' ? 'Benar / Salah' : 'Pilihan Ganda';
-
-        let opsiHTML = '';
-        if (s.tipe === 'bs') {
-          opsiHTML = (s.opsi || []).map((o, i) => `
-            <div style="display:flex; gap:8px; align-items:center; margin-bottom:4px;">
-              <input type="text" value="${escHtml(o)}" onchange="updateDraftOpsi(${idx}, ${i}, this.value)" style="margin:0;">
-              <select onchange="updateDraftKunciBS(${idx}, ${i}, this.value)" style="width:110px; margin:0;">
-                <option value="true" ${s.kunci[i] ? 'selected' : ''}>BENAR</option>
-                <option value="false" ${!s.kunci[i] ? 'selected' : ''}>SALAH</option>
-              </select>
-            </div>
-          `).join('');
-        } else {
-          const labels = ['A', 'B', 'C', 'D', 'E'];
-          opsiHTML = labels.map((L, i) => {
-            const isChecked = Array.isArray(s.kunci) ? s.kunci.includes(L) : s.kunci === L;
-            return `
-              <div style="display:flex; gap:8px; align-items:center; margin-bottom:4px;">
-                <span style="font-weight:700;">${L}.</span>
-                <input type="text" value="${escHtml(s.opsi[i] || '')}" onchange="updateDraftOpsi(${idx}, ${i}, this.value)" style="margin:0;">
-                <label style="font-size:0.8rem; font-weight:600;"><input type="${s.tipe === 'pg_kompleks' ? 'checkbox' : 'radio'}" name="kunci_${idx}" ${isChecked ? 'checked' : ''} onchange="updateDraftKunci(${idx}, '${L}', this.checked)"> Kunci</label>
-              </div>
-            `;
-          }).join('');
-        }
-
-        return `
-          <div class="draft-soal-card ${s.peringatan ? 'has-warning' : ''}">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-              <label style="font-weight:700;">
-                <input type="checkbox" ${s.checked ? 'checked' : ''} onchange="toggleDraftChecked(${idx}, this.checked)">
-                Soal #${idx + 1} <span class="badge ok">${tipeLabel}</span> <span class="badge">${s.tingkat || 'sedang'}</span>
-              </label>
-            </div>
-            ${warnTag}
-            <label class="mu">Pertanyaan:</label>
-            <textarea rows="2" onchange="updateDraftPertanyaan(${idx}, this.value)" style="margin-bottom:8px;">${escHtml(s.pertanyaan)}</textarea>
-            
-            <label class="mu">Opsi & Kunci Jawaban:</label>
-            ${opsiHTML}
-
-            <label class="mu" style="margin-top:8px; display:block;">Pembahasan:</label>
-            <textarea rows="2" onchange="updateDraftPembahasan(${idx}, this.value)" style="margin-bottom:0;">${escHtml(s.pembahasan || '')}</textarea>
+      return `
+        <div class="draft-card ${d.pilih ? '' : 'unchecked'} ${d.peringatan ? 'warn' : ''}">
+          <div class="draft-head">
+            <input type="checkbox" ${d.pilih ? 'checked' : ''} onchange="draftPilih(${i}, this.checked)" title="Masukkan ke bank">
+            <span class="badge">#${i + 1}</span>
+            <span class="badge">${TIPE_LABEL[d.tipe]}</span>
+            <select onchange="draftSet(${i}, 'tingkat', this.value)">
+              ${['mudah', 'sedang', 'sulit'].map(x => `<option value="${x}" ${d.tingkat === x ? 'selected' : ''}>${x}</option>`).join('')}
+            </select>
+            ${d.level ? `<span class="badge">${escHtml(d.level)}</span>` : ''}
+            <input type="text" value="${escHtml(d.topik)}" placeholder="topik" oninput="draftSet(${i}, 'topik', this.value)">
           </div>
-        `;
-      }).join('');
+          ${d.peringatan ? `<div class="draft-warn">⚠️ ${escHtml(d.peringatan)}</div>` : ''}
+          <label class="mu">Pertanyaan</label>
+          <textarea rows="3" oninput="draftSet(${i}, 'pertanyaan', this.value)">${escHtml(d.pertanyaan)}</textarea>
+          ${opsiHTML}
+          <label class="mu" style="display:block; margin-top:10px;">Pembahasan</label>
+          <textarea rows="3" oninput="draftSet(${i}, 'pembahasan', this.value)">${escHtml(d.pembahasan)}</textarea>
+          <div class="draft-actions">
+            <button class="alt" onclick="draftUlang(${i})">🔄 Buat ulang soal ini</button>
+            <button class="alt danger" onclick="draftBuang(${i})">🗑️ Buang</button>
+          </div>
+        </div>`;
     }
 
-    function toggleDraftChecked(idx, val) { currentDraftSoal[idx].checked = val; }
-    function pilihSemuaDraft(flag) { currentDraftSoal.forEach(s => s.checked = flag); renderDraftList(); }
-    function updateDraftPertanyaan(idx, val) { currentDraftSoal[idx].pertanyaan = val; }
-    function updateDraftPembahasan(idx, val) { currentDraftSoal[idx].pembahasan = val; }
-    function updateDraftOpsi(idx, oIdx, val) { currentDraftSoal[idx].opsi[oIdx] = val; }
-    
-    function updateDraftKunci(idx, label, isChecked) {
-      const s = currentDraftSoal[idx];
-      if (s.tipe === 'pg') {
-        s.kunci = label;
-      } else if (s.tipe === 'pg_kompleks') {
-        if (!Array.isArray(s.kunci)) s.kunci = [];
-        if (isChecked) {
-          if (!s.kunci.includes(label)) s.kunci.push(label);
-        } else {
-          s.kunci = s.kunci.filter(k => k !== label);
-        }
-        s.kunci.sort();
+    function renderDraft() {
+      const area = $id('draftArea');
+      if (!draftSoal.length) { area.classList.add('hidden'); area.innerHTML = ''; return; }
+      area.classList.remove('hidden');
+      const n = draftSoal.filter(d => d.pilih).length;
+      area.innerHTML = `
+        <div class="draft-bar">
+          <b>✏️ Review Draf (${draftSoal.length} soal)</b>
+          <span class="mu" id="draftCount">${n} dicentang</span>
+          <button class="alt" onclick="draftPilihSemua(true)">Centang semua</button>
+          <button class="alt" onclick="draftPilihSemua(false)">Kosongkan</button>
+          <button class="ok" onclick="simpanDraftTerpilih()">💾 Masukkan yang dicentang ke bank</button>
+        </div>
+        ${draftSoal.map((d, i) => draftCardHTML(d, i)).join('')}
+        <button class="ok" onclick="simpanDraftTerpilih()">💾 Masukkan yang dicentang ke bank</button>`;
+    }
+
+    function updateDraftCount() {
+      const el = $id('draftCount');
+      if (el) el.textContent = draftSoal.filter(d => d.pilih).length + ' dicentang';
+    }
+    function draftSet(i, f, v) { draftSoal[i][f] = v; }
+    function draftSetOpsi(i, k, v) { draftSoal[i].opsi[k] = v; }
+    function draftSetKunciPG(i, huruf) { draftSoal[i].kunci = huruf; }
+    function draftSetKunciKompleks(i, huruf, on) {
+      const s = new Set(draftSoal[i].kunci);
+      if (on) s.add(huruf); else s.delete(huruf);
+      draftSoal[i].kunci = [...s].sort();
+    }
+    function draftSetKunciBS(i, k, v) { draftSoal[i].kunci[k] = (v === 'B'); }
+    function draftBsTambah(i) { const d = draftSoal[i]; d.opsi.push(''); d.kunci.push(true); renderDraft(); }
+    function draftBsHapus(i, k) { const d = draftSoal[i]; d.opsi.splice(k, 1); d.kunci.splice(k, 1); renderDraft(); }
+    function draftPilih(i, on) {
+      draftSoal[i].pilih = on;
+      const card = document.querySelectorAll('#draftArea .draft-card')[i];
+      if (card) card.classList.toggle('unchecked', !on);
+      updateDraftCount();
+    }
+    function draftPilihSemua(on) { draftSoal.forEach(d => d.pilih = on); renderDraft(); }
+    function draftBuang(i) { if (!confirm('Buang soal ini dari draf?')) return; draftSoal.splice(i, 1); renderDraft(); }
+
+    async function draftUlang(i) {
+      if (!draftCtx) return alert('Konteks generate hilang. Generate ulang dari awal.');
+      const lama = draftSoal[i];
+      lama.loading = true; renderDraft();
+      try {
+        const data = await panggilEdge({
+          mode: 'soal', topik: draftCtx.topik, fokus: draftCtx.fokus, materiTeks: draftCtx.materiTeks,
+          jumlah: 1, tingkat: lama.tingkat, jenis: lama.tipe,
+          hindari: draftSoal.map(d => d.pertanyaan).filter(Boolean)
+        });
+        const s = (data.soal || [])[0];
+        if (!s) throw new Error('AI tidak menghasilkan soal baru.');
+        draftSoal[i] = { ...s, uid: uidSeq++, pilih: !s.peringatan, level: s.level || '', loading: false };
+      } catch (err) {
+        lama.loading = false;
+        alert('Gagal membuat ulang: ' + err.message);
       }
+      renderDraft();
     }
 
-    function updateDraftKunciBS(idx, oIdx, val) {
-      const s = currentDraftSoal[idx];
-      if (!Array.isArray(s.kunci)) s.kunci = [];
-      s.kunci[oIdx] = (val === 'true');
+    function validasiDraft(d, nomor) {
+      const gagal = (m) => `Soal #${nomor}: ${m}`;
+      if (!String(d.pertanyaan || '').trim()) return gagal('pertanyaan masih kosong.');
+      if (d.opsi.some(o => !String(o || '').trim())) return gagal('ada pilihan/pernyataan yang kosong.');
+      if (d.tipe === 'pg' && !HURUF.includes(d.kunci)) return gagal('kunci belum dipilih.');
+      if (d.tipe === 'pg_kompleks' && (!Array.isArray(d.kunci) || d.kunci.length < 2)) return gagal('PG kompleks minimal 2 jawaban benar (kalau hanya 1, ubah jadi pilihan ganda).');
+      if (d.tipe === 'bs' && (d.opsi.length < 2 || d.kunci.length !== d.opsi.length)) return gagal('benar/salah minimal 2 pernyataan lengkap dengan kuncinya.');
+      return null;
     }
 
-    async function simpanDraftToBankSoal() {
-      const terpilih = currentDraftSoal.filter(s => s.checked);
-      if (!terpilih.length) return alert('Pilih minimal satu soal draft untuk disimpan!');
+    async function simpanDraftTerpilih() {
+      const terpilih = draftSoal.map((d, i) => ({ d, nomor: i + 1 })).filter(x => x.d.pilih);
+      if (!terpilih.length) return alert('Centang minimal satu soal.');
+      for (const { d, nomor } of terpilih) {
+        const err = validasiDraft(d, nomor);
+        if (err) return alert(err);
+      }
 
-      const matId = document.getElementById('genMateriRef').value;
-      const inserts = terpilih.map(s => ({
-        judul: `Soal ${s.topik || 'Master'}`,
-        tipe: s.tipe,
-        pertanyaan: s.pertanyaan,
-        opsi: s.opsi,
-        kunci: s.kunci,
-        pembahasan: s.pembahasan,
-        topik: s.topik,
-        tingkat: s.tingkat,
-        level_kognitif: s.level,
-        sumber_materi_id: matId || null
-      }));
+      const rows = terpilih.map(({ d }) => {
+        const pg = d.tipe === 'pg';
+        return {
+          judul: `Soal: ${draftCtx ? draftCtx.judulGrup : (d.topik || 'AI')}`,
+          pertanyaan: d.pertanyaan.trim(),
+          tipe: d.tipe,
+          opsi: d.opsi.map(o => String(o).trim()),
+          kunci: d.kunci,
+          pembahasan: (d.pembahasan || '').trim() || null,
+          topik: (d.topik || '').trim() || null,
+          tingkat: d.tingkat,
+          level_kognitif: d.level || null,
+          sumber_materi_id: draftCtx && draftCtx.materiId ? String(draftCtx.materiId) : null,
+          // kolom lama diisi untuk soal PG agar tetap kompatibel
+          pilihan_a: pg ? d.opsi[0] : null, pilihan_b: pg ? d.opsi[1] : null, pilihan_c: pg ? d.opsi[2] : null,
+          pilihan_d: pg ? d.opsi[3] : null, pilihan_e: pg ? d.opsi[4] : null,
+          kunci_jawaban: pg ? d.kunci : null
+        };
+      });
 
-      const { error } = await db.from('kuis').insert(inserts);
-      if (error) return alert('Gagal menyimpan ke Bank Soal: ' + error.message);
-
-      alert(`Berhasil menyimpan ${terpilih.length} soal ke Bank Soal Master!`);
-      document.getElementById('draftContainer').classList.add('hidden');
-      currentDraftSoal = [];
+      const { error } = await db.from('kuis').insert(rows);
+      if (error) {
+        return alert('Gagal menyimpan soal: ' + error.message +
+          (/column|schema cache|constraint/i.test(error.message) ? '\n\nKemungkinan migrasi SQL Tahap 1 belum dijalankan di Supabase.' : ''));
+      }
+      alert(`${rows.length} soal masuk ke Bank Soal!`);
+      draftSoal = draftSoal.filter(d => !d.pilih);
+      renderDraft();
+      $id('aiKuisStatus').textContent = draftSoal.length ? `✅ Tersimpan. Sisa ${draftSoal.length} soal di draf.` : '✅ Semua soal tersimpan ke Bank Soal.';
       loadBankSoalGuru();
     }
 
     async function loadBankSoalGuru() { return loadBank('kuis'); }
 
-    // --- TAHAP 2: BANTUAN BUAT PAKET KUIS DARI BANK SOAL ---
-    async function loadBankSoalSelector() {
-      const { data } = await db.from('kuis').select('*').eq('diarsipkan', false);
-      const container = document.getElementById('pktSoalSelector');
-      if (!data || !data.length) { container.innerHTML = '<p class="mu">Belum ada soal di Bank Master.</p>'; return; }
-
-      container.innerHTML = data.map(q => `
-        <label style="display:block; margin-bottom:6px; font-size:0.88rem;">
-          <input type="checkbox" value="${q.id}" class="pkt-soal-cb"> <b>[${(q.tipe||'pg').toUpperCase()}]</b> ${escHtml(q.pertanyaan.slice(0, 80))}...
-        </label>
-      `).join('');
+    async function publishKuisMulti(kuisId, targetKelas) {
+      await db.from('kuis_published').insert({ kuis_id: kuisId, kelas: targetKelas });
+      alert(`Kuis berhasil dipublish ke Kelas ${targetKelas}!`);
     }
 
-    async function simpanPaketKuis() {
-      const judul = document.getElementById('pktJudul').value.trim();
-      const deskripsi = document.getElementById('pktDesk').value.trim();
-      const durasi_menit = parseInt(document.getElementById('pktDurasi').value) || 30;
-      const acak_soal = document.getElementById('pktAcakSoal').value === 'true';
-      const tampil_pembahasan = document.getElementById('pktPembahasan').value === 'true';
+    const kuisSiswaMap = {};
 
-      const selectedSoal = [...document.querySelectorAll('.pkt-soal-cb:checked')].map(c => c.value);
-      if (!judul || !selectedSoal.length) return alert('Isi judul dan pilih minimal satu soal!');
-
-      const { error } = await db.from('paket_kuis').insert({
-        judul, deskripsi, daftar_soal_id: selectedSoal, durasi_menit, acak_soal, tampil_pembahasan
+    async function loadKuisSiswa() {
+      const { data } = await db.from('kuis_published').select('*, kuis(*)').eq('kelas', activeUser.kelas);
+      const container = document.getElementById('listKuisSiswa');
+      const seen = new Set();
+      const soalList = (data || []).map(d => d.kuis).filter(q => {
+        if (!q || q.diarsipkan || seen.has(q.id)) return false;
+        seen.add(q.id);
+        return true;
       });
-
-      if (error) return alert('Gagal menyimpan paket: ' + error.message);
-      alert('Paket Kuis Master berhasil dibuat!');
-      document.getElementById('pktJudul').value = '';
-      document.getElementById('pktDesk').value = '';
+      if (soalList.length === 0) {
+        container.innerHTML = '<p class="mu">Belum ada kuis dipublish untuk kelasmu.</p>';
+        return;
+      }
+      container.innerHTML = shuffleArray(soalList).map((q, idx) => kuisCardHTML(q, idx)).join('');
     }
 
-    // --- TAHAP 2: SISWA EXAM SESSION (SERVER-SIDE GRADING & TIMER) ---
-    async function loadPaketKuisSiswa() {
-      const { data } = await db.from('paket_kuis').select('*').eq('diarsipkan', false);
-      const container = document.getElementById('listPaketKuisSiswa');
-      if (!data || !data.length) { container.innerHTML = '<p class="mu">Belum ada paket kuis untuk kelasmu.</p>'; return; }
+    function kuisCardHTML(q, idx) {
+      const tipe = q.tipe || 'pg';
+      const opsi = soalOpsi(q);
+      const urutan = tipe === 'bs' ? opsi.map((_, i) => i) : shuffleArray(opsi.map((_, i) => i));
+      kuisSiswaMap[q.id] = { q, tipe, opsi, urutan, selesai: false };
 
-      container.innerHTML = data.map(p => `
-        <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <b>${escHtml(p.judul)}</b><br>
-            <span class="mu">⏱️ Durasi: ${p.durasi_menit} Menit • ${p.daftar_soal_id.length} Soal</span>
-          </div>
-          <button onclick="mulaiKuisSiswa('${p.id}')">Kerjakan Kuis</button>
-        </div>
-      `).join('');
-    }
+      const petunjuk = tipe === 'pg' ? 'Pilih satu jawaban.'
+        : tipe === 'pg_kompleks' ? 'Pilih semua jawaban yang benar (bisa lebih dari satu).'
+        : 'Tentukan Benar atau Salah untuk setiap pernyataan.';
 
-    async function mulaiKuisSiswa(paketId) {
-      const { data: paket } = await db.from('paket_kuis').select('*').eq('id', paketId).single();
-      const { data: soalData } = await db.from('kuis').select('id, judul, pertanyaan, tipe, opsi').in('id', paket.daftar_soal_id);
-
-      activeExam = paket;
-      examSoalList = soalData;
-      studentAnswers = {};
-      currentExamIdx = 0;
-
-      document.getElementById('examTitle').textContent = paket.judul;
-      document.getElementById('examSessionArea').classList.remove('hidden');
-      document.getElementById('examResultArea').classList.add('hidden');
-
-      renderExamNav();
-      renderCurrentExamSoal();
-      startExamTimer(paket.durasi_menit * 60);
-    }
-
-    function renderExamNav() {
-      const container = document.getElementById('examNavBox');
-      container.innerHTML = examSoalList.map((_, idx) => `
-        <button class="exam-num-btn ${studentAnswers[examSoalList[idx].id] ? 'answered' : ''} ${idx === currentExamIdx ? 'active' : ''}" onclick="jumpExamSoal(${idx})">${idx + 1}</button>
-      `).join('');
-    }
-
-    function renderCurrentExamSoal() {
-      const q = examSoalList[currentExamIdx];
-      const container = document.getElementById('examQuestionContainer');
-      const savedAns = studentAnswers[q.id];
-
-      let opsiHTML = '';
-      if (q.tipe === 'bs') {
-        opsiHTML = (q.opsi || []).map((o, i) => `
-          <div style="margin-bottom:8px;">
-            <span>${i + 1}. ${escHtml(o)}</span><br>
-            <label><input type="radio" name="ans_bs_${i}" value="true" ${savedAns && savedAns[i] === true ? 'checked' : ''} onchange="saveAnswerBS(${i}, true)"> Benar</label>
-            <label style="margin-left:12px;"><input type="radio" name="ans_bs_${i}" value="false" ${savedAns && savedAns[i] === false ? 'checked' : ''} onchange="saveAnswerBS(${i}, false)"> Salah</label>
-          </div>
-        `).join('');
+      let isi = '';
+      if (tipe === 'pg') {
+        isi = urutan.map((o, pos) =>
+          `<button class="quiz-option" data-idx="${o}" onclick="jawabPG('${q.id}', ${o})">${HURUF[pos]}. ${escHtml(opsi[o])}</button>`).join('');
+      } else if (tipe === 'pg_kompleks') {
+        isi = urutan.map((o, pos) =>
+          `<label class="quiz-option cek" data-idx="${o}"><input type="checkbox" value="${o}"><span>${HURUF[pos]}. ${escHtml(opsi[o])}</span></label>`).join('') +
+          `<button style="margin-top:10px;" onclick="jawabKompleks('${q.id}')">Kirim Jawaban</button>`;
       } else {
-        const labels = ['A', 'B', 'C', 'D', 'E'];
-        opsiHTML = (q.opsi || []).map((o, i) => {
-          const L = labels[i];
-          const isChecked = Array.isArray(savedAns) ? savedAns.includes(L) : savedAns === L;
-          return `
-            <label class="quiz-option">
-              <input type="${q.tipe === 'pg_kompleks' ? 'checkbox' : 'radio'}" name="ans_opt" ${isChecked ? 'checked' : ''} onchange="saveAnswerPG('${L}', ${q.tipe === 'pg_kompleks'})"> ${L}. ${escHtml(o)}
-            </label>
-          `;
-        }).join('');
+        isi = urutan.map((o, pos) => `
+          <div class="bs-row" data-idx="${o}">
+            <div class="bs-teks">${pos + 1}. ${escHtml(opsi[o])}</div>
+            <div class="bs-pil">
+              <label><input type="radio" name="bs-${q.id}-${o}" value="B"> Benar</label>
+              <label><input type="radio" name="bs-${q.id}-${o}" value="S"> Salah</label>
+            </div>
+          </div>`).join('') +
+          `<button style="margin-top:10px;" onclick="jawabBS('${q.id}')">Kirim Jawaban</button>`;
       }
 
-      container.innerHTML = `
-        <div class="badge ok" style="margin-bottom:8px;">Soal #${currentExamIdx + 1} (${(q.tipe||'pg').toUpperCase()})</div>
-        <p style="font-weight:700; margin-bottom:12px;">${escHtml(q.pertanyaan)}</p>
-        ${opsiHTML}
-      `;
-      renderExamNav();
-    }
-
-    function saveAnswerPG(label, isKompleks) {
-      const qId = examSoalList[currentExamIdx].id;
-      if (isKompleks) {
-        if (!Array.isArray(studentAnswers[qId])) studentAnswers[qId] = [];
-        if (studentAnswers[qId].includes(label)) {
-          studentAnswers[qId] = studentAnswers[qId].filter(x => x !== label);
-        } else {
-          studentAnswers[qId].push(label);
-        }
-      } else {
-        studentAnswers[qId] = label;
-      }
-      renderExamNav();
-    }
-
-    function saveAnswerBS(oIdx, val) {
-      const qId = examSoalList[currentExamIdx].id;
-      if (!Array.isArray(studentAnswers[qId])) studentAnswers[qId] = [];
-      studentAnswers[qId][oIdx] = val;
-      renderExamNav();
-    }
-
-    function jumpExamSoal(idx) { currentExamIdx = idx; renderCurrentExamSoal(); }
-    function navExamSoal(dir) {
-      const newIdx = currentExamIdx + dir;
-      if (newIdx >= 0 && newIdx < examSoalList.length) { currentExamIdx = newIdx; renderCurrentExamSoal(); }
-    }
-
-    function startExamTimer(detik) {
-      clearInterval(examTimerInterval);
-      let remaining = detik;
-      examTimerInterval = setInterval(() => {
-        remaining--;
-        const m = String(Math.floor(remaining / 60)).padStart(2, '0');
-        const s = String(remaining % 60).padStart(2, '0');
-        document.getElementById('examTimer').textContent = `⏱️ ${m}:${s}`;
-        if (remaining <= 0) { clearInterval(examTimerInterval); submitExamSiswa(); }
-      }, 1000);
-    }
-
-    async function submitExamSiswa() {
-      if (!confirm('Apakah kamu yakin ingin mengirimkan jawaban kuis ini?')) return;
-      clearInterval(examTimerInterval);
-
-      const payload = {
-        mode: 'submit_kuis',
-        paket_id: activeExam.id,
-        siswa_id: activeUser.id,
-        jawaban_siswa: studentAnswers,
-        durasi_detik: 0
-      };
-
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/generate-ai`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-        body: JSON.stringify(payload)
-      }).then(r => r.json());
-
-      document.getElementById('examSessionArea').classList.add('hidden');
-      document.getElementById('examResultArea').classList.remove('hidden');
-      document.getElementById('examFinalScore').textContent = `Skor Akhir: ${res.nilai}`;
-
-      if (res.tampil_pembahasan) {
-        document.getElementById('examReviewContainer').innerHTML = res.detail_hasil.map((d, i) => `
-          <div style="padding:12px; border:1px solid var(--bd); border-radius:10px; margin-bottom:10px; background:${d.is_benar ? '#f0fdf4' : '#fef2f2'};">
-            <b>Soal #${i + 1}: ${escHtml(d.pertanyaan)}</b><br>
-            <span class="mu">Status: ${d.is_benar ? '✅ BENAR' : '❌ SALAH'} (Skor Soal: ${d.skor_soal})</span><br>
-            <div style="margin-top:6px; font-size:0.85rem;">💡 <b>Pembahasan:</b> ${escHtml(d.pembahasan || 'Tidak ada pembahasan.')}</div>
+      return `
+        <div class="card" id="soal-${q.id}">
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
+            <span class="badge">Soal #${idx + 1}</span><span class="badge">${TIPE_LABEL[tipe] || 'Pilihan Ganda'}</span>
           </div>
-        `).join('');
+          <div class="soal-teks" style="font-size:1.02rem;">${escHtml(q.pertanyaan)}</div>
+          <div class="mu" style="margin:6px 0 10px;">${petunjuk}</div>
+          <div class="soal-pilihan">${isi}</div>
+          <div class="soal-aksi"></div>
+        </div>`;
+    }
+
+    async function simpanNilaiKuis(q, jawabanText, skor) {
+      const { error } = await db.from('nilai_kuis').insert({ kuis_id: q.id, siswa_id: activeUser.id, jawaban_siswa: jawabanText, skor });
+      return error;
+    }
+
+    function kunciIdxSet(q, tipe) {
+      const k = soalKunci(q);
+      const arrK = Array.isArray(k) ? k : [k];
+      return new Set(arrK.map(x => HURUF.indexOf(String(x).toUpperCase())).filter(i => i >= 0));
+    }
+
+    function selesaiSoal(qid, skor, err, dipilih) {
+      const st = kuisSiswaMap[qid];
+      const q = st.q;
+      st.selesai = true;
+      const card = document.getElementById('soal-' + qid);
+      card.querySelectorAll('button, input').forEach(el => el.disabled = true);
+
+      if (st.tipe === 'bs') {
+        const kunci = soalKunci(q);
+        card.querySelectorAll('.bs-row').forEach(row => {
+          const i = Number(row.dataset.idx);
+          const benar = dipilih[i] === !!kunci[i];
+          row.classList.add(benar ? 'benar' : 'salah');
+          if (!benar) row.querySelector('.bs-teks').insertAdjacentHTML('beforeend', `<div class="mu" style="font-size:0.82rem;">Seharusnya: <b>${kunci[i] ? 'Benar' : 'Salah'}</b></div>`);
+        });
+      } else {
+        const kset = kunciIdxSet(q, st.tipe);
+        const pilih = new Set(dipilih);
+        card.querySelectorAll('.quiz-option').forEach(el => {
+          const i = Number(el.dataset.idx);
+          if (kset.has(i)) el.classList.add('benar');
+          else if (pilih.has(i)) el.classList.add('salah');
+        });
       }
+
+      const b = skor >= 100 ? ['ok', '✅ Benar'] : skor > 0 ? ['warn', '🟡 Sebagian benar'] : ['bad', '❌ Salah'];
+      card.querySelector('.soal-aksi').innerHTML =
+        `<div style="margin-top:12px;"><span class="badge ${b[0]}">${b[1]} • Skor ${skor}</span>` +
+        (err ? ` <span class="badge bad" title="${escHtml(err.message)}">Nilai gagal tersimpan</span>` : '') + '</div>' +
+        (q.pembahasan ? `<div class="pembahasan">💡 <b>Pembahasan</b><div class="soal-teks">${escHtml(q.pembahasan)}</div></div>` : '');
+    }
+
+    async function jawabPG(qid, idx) {
+      const st = kuisSiswaMap[qid];
+      if (!st || st.selesai) return;
+      st.selesai = true;
+      const skor = kunciIdxSet(st.q, 'pg').has(idx) ? 100 : 0;
+      const err = await simpanNilaiKuis(st.q, HURUF[idx], skor);
+      selesaiSoal(qid, skor, err, [idx]);
+    }
+
+    async function jawabKompleks(qid) {
+      const st = kuisSiswaMap[qid];
+      if (!st || st.selesai) return;
+      const card = document.getElementById('soal-' + qid);
+      const dipilih = [...card.querySelectorAll('input[type=checkbox]:checked')].map(c => Number(c.value));
+      if (dipilih.length === 0) return alert('Pilih minimal satu jawaban.');
+      st.selesai = true;
+      const kset = kunciIdxSet(st.q, 'pg_kompleks');
+      const benar = dipilih.filter(i => kset.has(i)).length;
+      const salah = dipilih.length - benar;
+      const skor = Math.round(Math.max(0, (benar - salah) / (kset.size || 1)) * 100);
+      const teks = dipilih.slice().sort((a, b) => a - b).map(i => HURUF[i]).join(',');
+      const err = await simpanNilaiKuis(st.q, teks, skor);
+      selesaiSoal(qid, skor, err, dipilih);
+    }
+
+    async function jawabBS(qid) {
+      const st = kuisSiswaMap[qid];
+      if (!st || st.selesai) return;
+      const card = document.getElementById('soal-' + qid);
+      const jawab = {};
+      for (let i = 0; i < st.opsi.length; i++) {
+        const r = card.querySelector(`input[name="bs-${qid}-${i}"]:checked`);
+        if (!r) return alert('Jawab semua pernyataan dulu (Benar atau Salah).');
+        jawab[i] = (r.value === 'B');
+      }
+      st.selesai = true;
+      const kunci = soalKunci(st.q);
+      const benar = st.opsi.filter((_, i) => jawab[i] === !!kunci[i]).length;
+      const skor = Math.round((benar / st.opsi.length) * 100);
+      const teks = st.opsi.map((_, i) => jawab[i] ? 'B' : 'S').join(',');
+      const err = await simpanNilaiKuis(st.q, teks, skor);
+      selesaiSoal(qid, skor, err, jawab);
     }
 
     // ================= MODUL 3: BANK LAB KODING =================
@@ -1733,6 +1778,11 @@
     }
 
     async function loadBankTugasGuru() { return loadBank('tugas'); }
+
+    async function publishTugasMulti(tugasId, targetKelas) {
+      await db.from('tugas_published').insert({ tugas_id: tugasId, kelas: targetKelas });
+      alert(`Tugas Koding dipublish ke Kelas ${targetKelas}!`);
+    }
 
     function initBlockly() {
       workspace = Blockly.inject('blocklyDiv', { toolbox: document.getElementById('toolbox'), scrollbars: false });
@@ -1760,7 +1810,7 @@
         const t = d.tugas;
         return `
           <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-            <div><b>${escHtml(t.judul)}</b><br><span class="mu">${escHtml(t.deskripsi || '')}</span></div>
+            <div><b>${t.judul}</b><br><span class="mu">${t.deskripsi || ''}</span></div>
             <button onclick="bukaLab('${t.id}')">Kerjakan</button>
           </div>
         `;
@@ -1815,7 +1865,7 @@
         return;
       }
 
-      const { data: hasilPaket } = await db.from('hasil_paket_kuis').select('*');
+      const { data: nilaiKuis } = await db.from('nilai_kuis').select('*');
       const { data: pengumpulan } = await db.from('pengumpulan').select('*');
       const { data: readLogs } = await db.from('materi_read_log').select('*');
 
@@ -1825,24 +1875,24 @@
       let partisipasiSelesai = 0;
 
       const rowsHTML = siswaList.map(s => {
-        const hasilSiswa = (hasilPaket || []).filter(k => k.siswa_id === s.id);
-        const avgKuis = hasilSiswa.length > 0 ? (hasilSiswa.reduce((a,b) => a + Number(b.nilai), 0) / hasilSiswa.length).toFixed(1) : '-';
-        if (avgKuis !== '-') { totalSkor += parseFloat(avgKuis); countSkor++; }
+        const kuisSiswa = (nilaiKuis || []).filter(k => k.siswa_id === s.id);
+        const avgKuis = kuisSiswa.length > 0 ? (kuisSiswa.reduce((a,b)=>a+b.skor,0)/kuisSiswa.length) : '-';
+        if (typeof avgKuis === 'number') { totalSkor += avgKuis; countSkor++; }
 
         const materiRead = (readLogs || []).filter(r => r.siswa_id === s.id).length;
         const labSiswa = (pengumpulan || []).find(p => p.siswa_id === s.id);
 
-        if (materiRead > 0 || hasilSiswa.length > 0 || labSiswa) partisipasiSelesai++;
+        if (materiRead > 0 || kuisSiswa.length > 0 || labSiswa) partisipasiSelesai++;
 
         let badgeStatus = '<span class="badge ok">Aman</span>';
         if (labSiswa && labSiswa.status_indikasi.includes('Potensi')) {
-          badgeStatus = `<span class="badge bad">${escHtml(labSiswa.status_indikasi)}</span>`;
+          badgeStatus = `<span class="badge bad">${labSiswa.status_indikasi}</span>`;
           totalWarning++;
         }
 
         return `
           <tr>
-            <td><b>${escHtml(s.nama)}</b></td>
+            <td><b>${s.nama}</b></td>
             <td><span class="badge ok">✅ ${materiRead} Materi Dibaca</span></td>
             <td><b>${avgKuis !== '-' ? avgKuis : 'Belum Kuis'}</b></td>
             <td>${labSiswa ? `${labSiswa.durasi_detik} detik / ${labSiswa.total_aksi} aksi` : '<span class="mu">Belum Mengumpulkan</span>'}</td>
