@@ -557,6 +557,7 @@
             </div>
 
             <button class="ai" id="btnGenSoalAI" onclick="generateSoalAI()">🤖 Generate Soal</button>
+            <button class="alt" onclick="tesKoneksiAI()" style="margin-left: 8px;">🩺 Tes koneksi AI</button>
             <p id="aiKuisStatus" style="font-size: 0.85rem; margin-top: 8px; color: var(--ac);"></p>
 
             <div id="draftArea" class="hidden"></div>
@@ -1375,7 +1376,7 @@
         if (!res.ok || data.error) throw new Error(data.error || ('HTTP ' + res.status));
         return data;
       } catch (e) {
-        if (e.name === 'AbortError') throw new Error('Waktu habis. Coba kurangi jumlah soal.');
+        if (e.name === 'AbortError') throw new Error('Waktu habis (tidak ada respons dari server). Tekan "Tes koneksi AI" untuk mengetahui penyebabnya.');
         if (/Load failed|Failed to fetch/i.test(e.message)) throw new Error('Koneksi ke server AI gagal. Coba lagi, atau kurangi jumlah soal.');
         throw e;
       } finally { clearTimeout(tm); }
@@ -1429,19 +1430,53 @@
         .map(q => q.pertanyaan).filter(Boolean).slice(-30);
 
       btn.disabled = true;
-      status.textContent = `🤖 AI sedang membuat ${jumlah} soal lalu memeriksanya... (bisa 20–60 detik)`;
+      const PER_BAGIAN = 5;
+      const bagian = Math.ceil(jumlah / PER_BAGIAN);
+      let hasil = [], dibuang = 0, semuaDiperiksa = true, galat = null;
+
       try {
-        const data = await panggilEdge({ mode: 'soal', topik, fokus, materiTeks, jumlah, tingkat, jenis, hindari });
-        draftCtx = { topik, fokus, materiTeks, materiId, judulGrup: topik };
-        draftSoal = (data.soal || []).map(s => ({ ...s, uid: uidSeq++, pilih: !s.peringatan, level: s.level || '', loading: false }));
-        const perhatian = draftSoal.filter(d => d.peringatan).length;
-        status.textContent = `✅ ${draftSoal.length} soal siap diperiksa.` +
-          (data.diperiksa ? (perhatian ? ` ⚠️ ${perhatian} soal ditandai pemeriksa AI (tidak dicentang otomatis).` : ' Pemeriksa AI tidak menemukan masalah.') : ' ⚠️ Pemeriksa AI tidak berjalan, periksa kunci dengan teliti.') +
-          (data.dibuang ? ` (${data.dibuang} soal tidak valid dibuang.)` : '');
-        renderDraft();
+        for (let b = 0; b < bagian; b++) {
+          const n = Math.min(PER_BAGIAN, jumlah - b * PER_BAGIAN);
+          status.textContent = `🤖 AI sedang membuat soal... bagian ${b + 1} dari ${bagian} (${n} soal, sekitar 15–40 detik)`;
+          const sudah = hasil.map(s => s.pertanyaan);
+          const data = await panggilEdge({
+            mode: 'soal', topik, fokus, materiTeks, jumlah: n, tingkat, jenis,
+            hindari: [...hindari, ...sudah].slice(-30)
+          }, 100000);
+          hasil = hasil.concat(data.soal || []);
+          dibuang += data.dibuang || 0;
+          if (!data.diperiksa) semuaDiperiksa = false;
+        }
       } catch (err) {
-        status.textContent = '❌ Gagal: ' + err.message;
-      } finally { btn.disabled = false; }
+        galat = err;
+      }
+      btn.disabled = false;
+
+      if (!hasil.length) {
+        status.textContent = '❌ Gagal: ' + (galat ? galat.message : 'AI tidak menghasilkan soal. Coba lagi.');
+        return;
+      }
+
+      draftCtx = { topik, fokus, materiTeks, materiId, judulGrup: topik };
+      draftSoal = hasil.map(s => ({ ...s, uid: uidSeq++, pilih: !s.peringatan, level: s.level || '', loading: false }));
+      const perhatian = draftSoal.filter(d => d.peringatan).length;
+      status.textContent = `✅ ${draftSoal.length} soal siap diperiksa.` +
+        (semuaDiperiksa ? (perhatian ? ` ⚠️ ${perhatian} soal ditandai pemeriksa AI (tidak dicentang otomatis).` : ' Pemeriksa AI tidak menemukan masalah.') : ' ⚠️ Pemeriksa AI tidak berjalan, periksa kunci dengan teliti.') +
+        (dibuang ? ` (${dibuang} soal tidak valid dibuang.)` : '') +
+        (galat ? ` ⚠️ Bagian berikutnya gagal: ${galat.message} Soal yang sudah berhasil tetap ditampilkan.` : '');
+      renderDraft();
+    }
+
+    async function tesKoneksiAI() {
+      const status = $id('aiKuisStatus');
+      status.textContent = '🩺 Menguji koneksi ke AI...';
+      const t0 = Date.now();
+      try {
+        const d = await panggilEdge({ mode: 'ping' }, 30000);
+        status.textContent = `✅ AI merespons dalam ${(d.ms / 1000).toFixed(1)} detik (model: ${d.model}). Total bolak-balik dari perangkat ini: ${((Date.now() - t0) / 1000).toFixed(1)} detik.`;
+      } catch (e) {
+        status.textContent = '❌ Tes gagal: ' + e.message;
+      }
     }
 
     function draftCardHTML(d, i) {
