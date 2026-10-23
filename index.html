@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LMS Informatika SMA - Cyber Sidebar Edition</title>
+  <title>LMS Informatika SMA - Light Edition</title>
   
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -12,18 +12,17 @@
 
   <style>
     :root {
-      --bg: #080c14;
-      --card: #121824;
-      --card-hover: #182030;
-      --tx: #f1f5f9;
-      --mu: #94a3b8;
-      --ac: #00f2fe;
-      --ac-grad: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-      --ai-grad: linear-gradient(135deg, #7f00ff 0%, #e100ff 100%);
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --tx: #0f172a;
+      --mu: #64748b;
+      --ac: #2563eb;
+      --ac-grad: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+      --ai-grad: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
       --ok: #10b981;
-      --bad: #f43f5e;
+      --bad: #ef4444;
       --warn: #f59e0b;
-      --bd: #1e293b;
+      --bd: #e2e8f0;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -44,6 +43,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       z-index: 10;
     }
 
@@ -59,7 +59,7 @@
     /* Sidebar Styling */
     .sidebar {
       width: 260px;
-      background: #0d131f;
+      background: #ffffff;
       border-right: 1px solid var(--bd);
       padding: 20px 12px;
       display: flex;
@@ -82,16 +82,14 @@
     }
 
     .nav-item:hover {
-      background: rgba(0, 242, 254, 0.05);
+      background: #f1f5f9;
       color: var(--tx);
-      border-color: rgba(0, 242, 254, 0.2);
     }
 
     .nav-item.active {
-      background: rgba(0, 242, 254, 0.12);
+      background: #eff6ff;
       color: var(--ac);
-      border-color: var(--ac);
-      box-shadow: 0 0 15px rgba(0, 242, 254, 0.15);
+      border-color: #bfdbfe;
     }
 
     /* Main Content Area */
@@ -108,57 +106,58 @@
       border-radius: 16px;
       padding: 24px;
       margin-bottom: 24px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
     }
 
-    h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 6px; color: #fff; }
-    h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; color: #fff; }
+    h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 6px; color: var(--tx); }
+    h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; color: var(--tx); }
     .mu { color: var(--mu); font-size: 0.88rem; }
 
     input, select, textarea {
       width: 100%; padding: 12px 16px; margin: 6px 0 16px;
-      background: #0d131f; border: 1.5px solid var(--bd);
-      border-radius: 10px; color: #fff; font-family: inherit; font-size: 0.95rem;
+      background: #f8fafc; border: 1.5px solid var(--bd);
+      border-radius: 10px; color: var(--tx); font-family: inherit; font-size: 0.95rem;
       transition: border-color 0.2s;
     }
 
     input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: var(--ac);
+      background: #ffffff;
     }
 
     button {
       background: var(--ac-grad); border: none; padding: 12px 22px;
-      color: #080c14; font-weight: 700; border-radius: 10px; font-size: 0.92rem;
+      color: #ffffff; font-weight: 700; border-radius: 10px; font-size: 0.92rem;
       cursor: pointer; transition: all 0.2s ease;
-      box-shadow: 0 4px 15px rgba(0, 242, 254, 0.25);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
     }
-    button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 242, 254, 0.4); }
-    button.alt { background: rgba(18, 24, 36, 0.8); color: var(--ac); border: 1.5px solid var(--ac); box-shadow: none; }
-    button.ai { background: var(--ai-grad); color: #fff; box-shadow: 0 4px 15px rgba(127, 0, 255, 0.3); }
+    button:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3); }
+    button.alt { background: transparent; color: var(--ac); border: 1.5px solid var(--ac); box-shadow: none; }
+    button.ai { background: var(--ai-grad); color: #fff; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25); }
 
     /* Dual-Mode Lab Layout */
     .lab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: 420px; }
     #blocklyDiv { width: 100%; height: 100%; border-radius: 12px; overflow: hidden; border: 1px solid var(--bd); }
     .code-preview {
-      background: #0d131f; border: 1px solid var(--bd); border-radius: 12px;
+      background: #0f172a; border: 1px solid var(--bd); border-radius: 12px;
       padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.88rem;
-      color: #a5b4fc; overflow-y: auto; white-space: pre-wrap; user-select: none;
+      color: #38bdf8; overflow-y: auto; white-space: pre-wrap; user-select: none;
     }
 
     .quiz-option {
-      display: block; width: 100%; text-align: left; background: #0d131f;
+      display: block; width: 100%; text-align: left; background: #f8fafc;
       border: 1px solid var(--bd); border-radius: 10px; padding: 12px 16px;
       margin: 8px 0; color: var(--tx); cursor: pointer; font-size: 0.92rem; font-weight: 500;
       transition: all 0.2s;
     }
-    .quiz-option:hover { border-color: var(--ac); background: #121a29; color: #fff; }
+    .quiz-option:hover { border-color: var(--ac); background: #eff6ff; color: var(--ac); }
 
     .hidden { display: none !important; }
-    .badge { background: rgba(0,242,254,0.1); color: var(--ac); padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; }
-    .badge.warn { background: rgba(245,158,11,0.15); color: var(--warn); }
-    .badge.bad { background: rgba(244,63,94,0.15); color: var(--bad); }
-    .badge.ok { background: rgba(16,185,129,0.15); color: var(--ok); }
+    .badge { background: #eff6ff; color: var(--ac); padding: 4px 10px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; border: 1px solid #bfdbfe; }
+    .badge.warn { background: #fffbeb; color: var(--warn); border-color: #fde68a; }
+    .badge.bad { background: #fef2f2; color: var(--bad); border-color: #fecaca; }
+    .badge.ok { background: #ecfdf5; color: var(--ok); border-color: #a7f3d0; }
   </style>
 </head>
 <body>
@@ -276,7 +275,7 @@
           <!-- WORKSPACE INTERAKTIF -->
           <div id="labSection" class="card hidden" style="margin-top: 24px;">
             <h3>🎮 Lab Koding Interaktif (Dual Mode)</h3>
-            <p class="mu" style="margin-bottom: 12px;">Fitur Copy-Paste dimatikan untuk integritas pengerjaan.</p>
+            <p class="mu" style="margin-bottom: 12px;">Fitur Copy-Paste dimatikan untuk menjaga integritas pengerjaan.</p>
             
             <div class="lab-grid">
               <div id="blocklyDiv"></div>
@@ -338,7 +337,7 @@
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // GEMINI API KEY
-    const GEMINI_API_KEY = 'GEMINI_API_KEY';
+    const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY_HERE';
 
     let activeUser = null;
     let workspace = null;
@@ -555,7 +554,7 @@
       container.innerHTML = data.map(m => `
         <div class="card">
           <b>${m.judul}</b>
-          <p class="mu" style="margin-top:8px; line-height:1.6; color:#e2e8f0;">${m.konten || ''}</p>
+          <p class="mu" style="margin-top:8px; line-height:1.6; color:#334155;">${m.konten || ''}</p>
         </div>
       `).join('');
     }
@@ -591,7 +590,7 @@
           <div class="card">
             <div class="badge" style="margin-bottom:8px;">Soal #${idx + 1}</div>
             <b style="display:block; font-size:1.05rem; margin-bottom:4px;">${q.judul}</b>
-            <p style="margin: 8px 0 16px; color: #fff;">${q.pertanyaan}</p>
+            <p style="margin: 8px 0 16px; color: var(--tx);">${q.pertanyaan}</p>
             ${tombolOpsiHTML}
           </div>
         `;
@@ -608,9 +607,7 @@
         skor: skor
       });
 
-      alert(`Kuis Selesai!
-Jawaban Kamu: Opsi ${labelDipilih}
-Status: ${isCorrect ? '✅ BENAR (Skor: 100)' : '❌ SALAH (Skor: 0)'}`);
+      alert(`Kuis Selesai!\nJawaban Kamu: Opsi ${labelDipilih}\nStatus: ${isCorrect ? '✅ BENAR (Skor: 100)' : '❌ SALAH (Skor: 0)'}`);
     }
 
     function initBlockly() {
@@ -733,7 +730,7 @@ Status: ${isCorrect ? '✅ BENAR (Skor: 100)' : '❌ SALAH (Skor: 0)'}`);
         const statusClass = item.status_indikasi.includes('Potensi') || deteksiMirip ? 'bad' : 'ok';
         
         return `
-          <div style="border: 1px solid var(--bd); border-radius:12px; padding:16px; margin-bottom:12px; background: #0d131f;">
+          <div style="border: 1px solid var(--bd); border-radius:12px; padding:16px; margin-bottom:12px; background: #ffffff;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
               <b>${item.siswa?.nama} (${item.siswa?.kelas})</b>
               <span class="badge ${statusClass}">${item.status_indikasi}</span>
@@ -742,7 +739,7 @@ Status: ${isCorrect ? '✅ BENAR (Skor: 100)' : '❌ SALAH (Skor: 0)'}`);
               Modul: <b>${item.tugas?.judul}</b> | Durasi: <b>${item.durasi_detik} detik</b> | Perubahan Balok: <b>${item.total_aksi}×</b>
             </div>
             ${deteksiMirip ? `<div class="badge bad" style="display:inline-block; margin-bottom:8px;">${deteksiMirip}</div>` : ''}
-            <pre style="background:#151d2a; padding:10px; border-radius:6px; color:#a5b4fc; font-family:monospace; font-size:0.85rem;">${item.jawaban_kode}</pre>
+            <pre style="background:#0f172a; padding:10px; border-radius:6px; color:#38bdf8; font-family:monospace; font-size:0.85rem;">${item.jawaban_kode}</pre>
           </div>
         `;
       }).join('');
