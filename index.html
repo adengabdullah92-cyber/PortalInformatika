@@ -292,6 +292,13 @@
       body.printing .a4-page { box-shadow: none; border: none; border-radius: 0; margin: 0; padding: 0; max-width: none; min-height: auto; }
       body.printing .a4-card, body.printing .a4-term, body.printing .a4-footer { break-inside: avoid; }
     }
+
+    /* Panel publish multi-kelas */
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #fff; border: 1.5px solid var(--bd); border-radius: 999px; font-size: 0.85rem; font-weight: 600; cursor: pointer; user-select: none; }
+    .chip input { width: auto; margin: 0; padding: 0; }
+    .chip:has(input:checked) { background: #eff6ff; border-color: var(--ac); color: var(--ac); }
+    .publish-panel { background: #fff; border: 1px solid var(--bd); border-radius: 12px; padding: 12px; }
   </style>
 </head>
 <body>
@@ -507,10 +514,7 @@
           <div style="flex: 1;">
             <label class="mu">Pilih Kelas Target:</label>
             <select id="filterKelasGroup" onchange="renderModul4PerKelas()">
-              <option value="X-1">Kelas X-1</option>
-              <option value="X-2">Kelas X-2</option>
-              <option value="XI-1">Kelas XI-1</option>
-            </select>
+              </select>
           </div>
           <button class="alt" onclick="exportKeExcel()" style="margin-top: 16px;">📥 Unduh Rekap Nilai CSV/Excel</button>
         </div>
@@ -607,6 +611,54 @@
       return data.text ?? data.result ?? data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     }
 
+    // Daftar kelas untuk publish & rekap. Tambah/ubah di sini bila perlu (mis. 'XI-1').
+    const DAFTAR_KELAS = Array.from({ length: 10 }, (_, i) => `X-${i + 1}`);
+
+    const PUBLISH_MAP = {
+      materi: ['materi_published', 'materi_id'],
+      kuis:   ['kuis_published', 'kuis_id'],
+      tugas:  ['tugas_published', 'tugas_id']
+    };
+
+    function publishPanelHTML(tipe, id) {
+      const chips = DAFTAR_KELAS.map(k => `<label class="chip"><input type="checkbox" value="${k}"> ${k}</label>`).join('');
+      return `
+        <div class="publish-panel" data-tipe="${tipe}" data-id="${id}">
+          <div class="mu" style="font-weight:600; margin-bottom:8px;">Publish ke kelas:</div>
+          <div class="chips">${chips}</div>
+          <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+            <button class="alt" style="padding:6px 12px;" onclick="pilihSemuaKelas(this)">Pilih semua</button>
+            <button style="padding:6px 12px;" onclick="publishTerpilih(this)">📤 Publish</button>
+          </div>
+        </div>`;
+    }
+
+    function pilihSemuaKelas(btn) {
+      const boxes = btn.closest('.publish-panel').querySelectorAll('input[type=checkbox]');
+      const semua = [...boxes].every(b => b.checked);
+      boxes.forEach(b => b.checked = !semua);
+    }
+
+    async function publishTerpilih(btn) {
+      const panel = btn.closest('.publish-panel');
+      const [tabel, kolom] = PUBLISH_MAP[panel.dataset.tipe];
+      const id = panel.dataset.id;
+      const dipilih = [...panel.querySelectorAll('input:checked')].map(c => c.value);
+      if (dipilih.length === 0) return alert('Pilih minimal satu kelas.');
+
+      const { data: ada } = await db.from(tabel).select('kelas').eq(kolom, id);
+      const sudah = new Set((ada || []).map(r => r.kelas));
+      const baru = dipilih.filter(k => !sudah.has(k));
+      if (baru.length === 0) return alert('Semua kelas yang dipilih sudah pernah dipublish.');
+
+      const { error } = await db.from(tabel).insert(baru.map(k => ({ [kolom]: id, kelas: k })));
+      if (error) return alert('Gagal publish: ' + error.message);
+
+      const dilewati = dipilih.filter(k => sudah.has(k));
+      alert(`Berhasil dipublish ke: ${baru.join(', ')}` + (dilewati.length ? `\n(Sudah pernah dipublish, dilewati: ${dilewati.join(', ')})` : ''));
+      panel.querySelectorAll('input:checked').forEach(c => c.checked = false);
+    }
+
     let activeUser = null;
     let workspace = null;
     let selectedTugasId = null;
@@ -664,6 +716,7 @@
         loadBankMateriGuru();
         loadBankSoalGuru();
         loadBankTugasGuru();
+        document.getElementById('filterKelasGroup').innerHTML = DAFTAR_KELAS.map(k => `<option value="${k}">Kelas ${k}</option>`).join('');
         renderModul4PerKelas();
       } else {
         document.getElementById('siswaMateriView').classList.remove('hidden');
@@ -907,12 +960,7 @@
               <button class="alt" style="padding:6px 12px;" onclick="bukaModul('${m.id}')">👁️ Lihat</button>
               <button class="alt" style="padding:6px 12px;" onclick="cetakModul('${m.id}')">🖨️ Simpan PDF</button>
             </div>
-            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-              <span class="mu" style="font-weight:600;">Publish Ke:</span>
-              <button class="alt" style="padding:6px 12px;" onclick="publishMateriMulti('${m.id}', 'X-1')">+ X-1</button>
-              <button class="alt" style="padding:6px 12px;" onclick="publishMateriMulti('${m.id}', 'X-2')">+ X-2</button>
-              <button class="alt" style="padding:6px 12px;" onclick="publishMateriMulti('${m.id}', 'XI-1')">+ XI-1</button>
-            </div>
+            ${publishPanelHTML('materi', m.id)}
           </div>
         `;
       }).join('');
@@ -1058,12 +1106,7 @@
           <b>${q.judul}</b>
           <p style="margin:6px 0 8px;">${q.pertanyaan}</p>
           <div class="mu" style="font-size:0.8rem; margin-bottom:12px;">Kunci: <b>${q.kunci_jawaban}</b></div>
-          <div style="display:flex; gap:10px; align-items:center;">
-            <span class="mu" style="font-weight:600;">Publish Ke:</span>
-            <button class="alt" style="padding:6px 12px;" onclick="publishKuisMulti('${q.id}', 'X-1')">+ X-1</button>
-            <button class="alt" style="padding:6px 12px;" onclick="publishKuisMulti('${q.id}', 'X-2')">+ X-2</button>
-            <button class="alt" style="padding:6px 12px;" onclick="publishKuisMulti('${q.id}', 'XI-1')">+ XI-1</button>
-          </div>
+          ${publishPanelHTML('kuis', q.id)}
         </div>
       `).join('');
     }
@@ -1143,12 +1186,7 @@
         <div class="card" style="background:#f8fafc;">
           <b>${t.judul}</b>
           <p class="mu" style="margin:6px 0 12px;">${t.deskripsi || ''}</p>
-          <div style="display:flex; gap:10px; align-items:center;">
-            <span class="mu" style="font-weight:600;">Publish Ke:</span>
-            <button class="alt" style="padding:6px 12px;" onclick="publishTugasMulti('${t.id}', 'X-1')">+ X-1</button>
-            <button class="alt" style="padding:6px 12px;" onclick="publishTugasMulti('${t.id}', 'X-2')">+ X-2</button>
-            <button class="alt" style="padding:6px 12px;" onclick="publishTugasMulti('${t.id}', 'XI-1')">+ XI-1</button>
-          </div>
+          ${publishPanelHTML('tugas', t.id)}
         </div>
       `).join('');
     }
