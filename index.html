@@ -299,6 +299,28 @@
     .chip input { width: auto; margin: 0; padding: 0; }
     .chip:has(input:checked) { background: #eff6ff; border-color: var(--ac); color: var(--ac); }
     .publish-panel { background: #fff; border: 1px solid var(--bd); border-radius: 12px; padding: 12px; }
+
+    /* Bank master: daftar ringkas */
+    .bank-toolbar { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+    .bank-toolbar input { flex: 1; min-width: 180px; margin: 0; }
+    .bank-toolbar select { width: auto; margin: 0; }
+    .bank-row { border: 1px solid var(--bd); border-radius: 12px; background: #f8fafc; margin-bottom: 8px; overflow: hidden; }
+    .bank-row.open { background: #ffffff; border-color: #bfdbfe; }
+    .bank-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; flex-wrap: wrap; }
+    .bank-head:hover { background: #f1f5f9; }
+    .bank-caret { color: var(--mu); width: 14px; }
+    .bank-title { flex: 1; min-width: 200px; }
+    .bank-sub { font-size: 0.78rem; color: var(--mu); margin-top: 2px; }
+    .bank-status { display: flex; gap: 6px; flex-wrap: wrap; }
+    .bank-body { padding: 4px 14px 14px; border-top: 1px solid var(--bd); }
+    .bank-detail { margin: 10px 0; font-size: 0.9rem; line-height: 1.55; }
+    .bank-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+    .bank-actions button, .bank-pager button { padding: 6px 12px; }
+    .bank-pager { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 12px; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    button.danger { color: var(--bad); border-color: var(--bad); }
+    .chip.on { background: #ecfdf5; border-color: #6ee7b7; color: #047857; }
+    .chip:has(input:checked) { background: #eff6ff; border-color: var(--ac); color: var(--ac); }
   </style>
 </head>
 <body>
@@ -614,21 +636,216 @@
     // Daftar kelas untuk publish & rekap. Tambah/ubah di sini bila perlu (mis. 'XI-1').
     const DAFTAR_KELAS = Array.from({ length: 10 }, (_, i) => `X-${i + 1}`);
 
-    const PUBLISH_MAP = {
-      materi: ['materi_published', 'materi_id'],
-      kuis:   ['kuis_published', 'kuis_id'],
-      tugas:  ['tugas_published', 'tugas_id']
+    const PER_HALAMAN = 10;
+
+    const BANK = {
+      materi: {
+        tabel: 'materi', pubTabel: 'materi_published', fk: 'materi_id', el: 'listBankMateri', nama: 'materi',
+        anak: [['materi_read_log', 'materi_id']], dampak: ' dan catatan "sudah dibaca" siswa',
+        judul: m => m.judul || '(tanpa judul)',
+        cari: m => `${m.judul || ''} ${ringkasKonten(m.konten, 400)}`,
+        sub: m => isModulA4(m.konten) ? '📄 Modul A4' : m.tipe_media === 'youtube' ? '🎥 Video YouTube' : m.tipe_media === 'pdf' ? '📄 PDF' : m.tipe_media === 'gdrive' ? '📁 Google Drive' : '📝 Teks',
+        detail: m => `<span class="mu">${escHtml(ringkasKonten(m.konten, 300)) || '(isi kosong)'}</span>`,
+        aksi: m => `<button class="alt" onclick="bukaModul('${m.id}')">👁️ Lihat</button><button class="alt" onclick="cetakModul('${m.id}')">🖨️ Simpan PDF</button>`
+      },
+      kuis: {
+        tabel: 'kuis', pubTabel: 'kuis_published', fk: 'kuis_id', el: 'listBankSoal', nama: 'soal',
+        anak: [['nilai_kuis', 'kuis_id']], dampak: ' dan nilai siswa untuk soal ini',
+        judul: q => q.judul || '(tanpa judul)',
+        cari: q => `${q.judul || ''} ${q.pertanyaan || ''}`,
+        sub: q => escHtml((q.pertanyaan || '').slice(0, 90)) + ((q.pertanyaan || '').length > 90 ? '…' : ''),
+        detail: q => `<p style="margin:0 0 8px;">${escHtml(q.pertanyaan)}</p>` +
+          ['A', 'B', 'C', 'D', 'E'].map(L => {
+            const ok = q.kunci_jawaban === L;
+            return `<div style="padding:4px 8px; border-radius:6px; ${ok ? 'background:#ecfdf5; font-weight:700;' : ''}">${L}. ${escHtml(q['pilihan_' + L.toLowerCase()])}${ok ? ' ✓ (kunci)' : ''}</div>`;
+          }).join(''),
+        aksi: () => ''
+      },
+      tugas: {
+        tabel: 'tugas', pubTabel: 'tugas_published', fk: 'tugas_id', el: 'listBankTugas', nama: 'tugas',
+        anak: [['pengumpulan', 'tugas_id']], dampak: ' dan pengumpulan tugas siswa',
+        judul: x => x.judul || '(tanpa judul)',
+        cari: x => `${x.judul || ''} ${x.deskripsi || ''}`,
+        sub: x => escHtml((x.deskripsi || '').slice(0, 90)) + ((x.deskripsi || '').length > 90 ? '…' : ''),
+        detail: x => `<span class="mu">${escHtml(x.deskripsi) || '(tanpa instruksi)'}</span>`,
+        aksi: () => ''
+      }
     };
 
-    function publishPanelHTML(tipe, id) {
-      const chips = DAFTAR_KELAS.map(k => `<label class="chip"><input type="checkbox" value="${k}"> ${k}</label>`).join('');
+    const bankState = {};
+    Object.keys(BANK).forEach(k => {
+      bankState[k] = { items: [], pub: {}, q: '', page: 1, arsip: false, open: new Set(), siap: false };
+    });
+
+    const urutKelas = (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true });
+
+    function buildBankShell(key) {
+      const cfg = BANK[key];
+      document.getElementById(cfg.el).innerHTML = `
+        <div class="bank-toolbar">
+          <input type="text" id="bank-${key}-q" placeholder="🔍 Cari ${cfg.nama}..." oninput="bankCari('${key}', this.value)">
+          <select id="bank-${key}-mode" onchange="bankMode('${key}', this.value)">
+            <option value="aktif">Tampilkan: Aktif</option>
+            <option value="arsip">Tampilkan: Arsip</option>
+          </select>
+        </div>
+        <div class="mu" id="bank-${key}-info" style="margin-bottom:10px;"></div>
+        <div id="bank-${key}-list"></div>
+        <div id="bank-${key}-pager" class="bank-pager"></div>`;
+      bankState[key].siap = true;
+    }
+
+    async function loadBank(key) {
+      const cfg = BANK[key], st = bankState[key];
+      if (!st.siap) buildBankShell(key);
+      const [r1, r2] = await Promise.all([
+        db.from(cfg.tabel).select('*'),
+        db.from(cfg.pubTabel).select('*')
+      ]);
+      if (r1.error) {
+        document.getElementById(`bank-${key}-list`).innerHTML = `<p class="mu">Gagal memuat: ${escHtml(r1.error.message)}</p>`;
+        return;
+      }
+      st.items = r1.data || [];
+      st.pub = {};
+      (r2.data || []).forEach(p => {
+        const k = String(p[cfg.fk]);
+        if (!st.pub[k]) st.pub[k] = [];
+        st.pub[k].push(p.kelas);
+      });
+      if (key === 'materi') st.items.forEach(m => { materiCache[m.id] = m; });
+      renderBank(key);
+    }
+
+    function statusPublishHTML(kelas) {
+      if (!kelas.length) return '<span class="badge warn">Belum dipublish</span>';
+      if (kelas.length >= DAFTAR_KELAS.length) return `<span class="badge ok">✅ Semua kelas (${kelas.length})</span>`;
+      const tampil = kelas.slice(0, 3).join(', ') + (kelas.length > 3 ? ` +${kelas.length - 3}` : '');
+      return `<span class="badge ok">✅ ${kelas.length} kelas: ${tampil}</span>`;
+    }
+
+    function renderBank(key) {
+      const cfg = BANK[key], st = bankState[key];
+      const q = st.q.trim().toLowerCase();
+      let items = st.items.filter(i => !!i.diarsipkan === st.arsip);
+      if (q) items = items.filter(i => cfg.cari(i).toLowerCase().includes(q));
+
+      items = items.slice();
+      if (items.some(i => i.created_at)) items.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+      else items.reverse();
+
+      const total = items.length;
+      const jumlahHal = Math.max(1, Math.ceil(total / PER_HALAMAN));
+      if (st.page > jumlahHal) st.page = jumlahHal;
+      const potong = items.slice((st.page - 1) * PER_HALAMAN, st.page * PER_HALAMAN);
+
+      const nAktif = st.items.filter(i => !i.diarsipkan).length;
+      const nArsip = st.items.length - nAktif;
+      document.getElementById(`bank-${key}-info`).textContent =
+        `${total} ${cfg.nama}${q ? ' ditemukan' : (st.arsip ? ' di arsip' : ' aktif')}  •  Total aktif: ${nAktif}  •  Arsip: ${nArsip}`;
+
+      document.getElementById(`bank-${key}-list`).innerHTML = potong.length
+        ? potong.map(i => bankRowHTML(key, i)).join('')
+        : `<p class="mu">${q ? 'Tidak ada yang cocok dengan pencarian.' : (st.arsip ? 'Arsip kosong.' : 'Belum ada data.')}</p>`;
+
+      document.getElementById(`bank-${key}-pager`).innerHTML = jumlahHal > 1
+        ? `<button class="alt" onclick="bankHal('${key}', -1)" ${st.page <= 1 ? 'disabled' : ''}>‹ Sebelumnya</button>
+           <span class="mu">Hal ${st.page} / ${jumlahHal}</span>
+           <button class="alt" onclick="bankHal('${key}', 1)" ${st.page >= jumlahHal ? 'disabled' : ''}>Berikutnya ›</button>`
+        : '';
+    }
+
+    function bankRowHTML(key, i) {
+      const cfg = BANK[key], st = bankState[key];
+      const id = String(i.id);
+      const open = st.open.has(id);
+      const kelas = (st.pub[id] || []).slice().sort(urutKelas);
+      const arsip = !!i.diarsipkan;
+      const status = arsip ? '<span class="badge bad">🗄️ Diarsipkan</span>' : statusPublishHTML(kelas);
+      const tgl = i.created_at ? ' • ' + new Date(i.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
+      let body = '';
+      if (open) {
+        const aksi = cfg.aksi(i);
+        body = `
+          <div class="bank-body">
+            <div class="bank-detail">${cfg.detail(i)}</div>
+            ${aksi ? `<div class="bank-actions">${aksi}</div>` : ''}
+            ${arsip ? '<p class="mu">Materi diarsipkan: tidak terlihat siswa. Pulihkan dulu untuk mengatur publish.</p>' : publishPanelHTML(key, id)}
+            <div class="bank-actions" style="margin-top:12px; border-top:1px dashed var(--bd); padding-top:12px;">
+              ${arsip
+                ? `<button class="alt" onclick="bankArsip('${key}', '${id}', false)">♻️ Pulihkan</button>
+                   <button class="alt danger" onclick="bankHapus('${key}', '${id}')">🗑️ Hapus permanen</button>`
+                : `<button class="alt" onclick="bankArsip('${key}', '${id}', true)">🗄️ Arsipkan</button>`}
+            </div>
+          </div>`;
+      }
+
       return `
-        <div class="publish-panel" data-tipe="${tipe}" data-id="${id}">
-          <div class="mu" style="font-weight:600; margin-bottom:8px;">Publish ke kelas:</div>
+        <div class="bank-row ${open ? 'open' : ''}">
+          <div class="bank-head" onclick="bankToggle('${key}', '${id}')">
+            <span class="bank-caret">${open ? '▾' : '▸'}</span>
+            <div class="bank-title">
+              <b>${escHtml(cfg.judul(i))}</b>
+              <div class="bank-sub">${cfg.sub(i)}${tgl}</div>
+            </div>
+            <div class="bank-status">${status}</div>
+          </div>
+          ${body}
+        </div>`;
+    }
+
+    function bankToggle(key, id) {
+      const s = bankState[key].open;
+      if (s.has(id)) s.delete(id); else s.add(id);
+      renderBank(key);
+    }
+    function bankCari(key, v) { bankState[key].q = v; bankState[key].page = 1; renderBank(key); }
+    function bankMode(key, v) { bankState[key].arsip = (v === 'arsip'); bankState[key].page = 1; renderBank(key); }
+    function bankHal(key, d) { bankState[key].page += d; renderBank(key); }
+
+    async function bankArsip(key, id, flag) {
+      const cfg = BANK[key];
+      const item = bankState[key].items.find(x => String(x.id) === String(id));
+      if (flag && !confirm(`Arsipkan "${item ? cfg.judul(item) : ''}"?\n\nTidak lagi terlihat siswa. Data & status publish tetap tersimpan dan bisa dipulihkan.`)) return;
+      const { error } = await db.from(cfg.tabel).update({ diarsipkan: flag }).eq('id', id);
+      if (error) {
+        return alert('Gagal: ' + error.message + (/diarsipkan/.test(error.message) ? '\n\nKolom "diarsipkan" belum ada. Jalankan SQL penambahan kolom di Supabase dulu.' : ''));
+      }
+      bankState[key].open.delete(String(id));
+      await loadBank(key);
+    }
+
+    async function bankHapus(key, id) {
+      const cfg = BANK[key];
+      const item = bankState[key].items.find(x => String(x.id) === String(id));
+      if (!item) return;
+      if (!confirm(`Hapus PERMANEN "${cfg.judul(item)}"?\n\nIkut terhapus: status publish${cfg.dampak}.\nTidak bisa dibatalkan.`)) return;
+      for (const [tbl, col] of [[cfg.pubTabel, cfg.fk], ...cfg.anak]) {
+        const { error } = await db.from(tbl).delete().eq(col, id);
+        if (error) return alert(`Gagal menghapus (${tbl}): ${error.message}`);
+      }
+      const { error } = await db.from(cfg.tabel).delete().eq('id', id);
+      if (error) return alert('Gagal menghapus: ' + error.message);
+      bankState[key].open.delete(String(id));
+      await loadBank(key);
+    }
+
+    // ---------- Panel publish: status per kelas, publish & tarik ----------
+    function publishPanelHTML(key, id) {
+      const tayang = new Set(bankState[key].pub[String(id)] || []);
+      const chips = DAFTAR_KELAS.map(k =>
+        `<label class="chip ${tayang.has(k) ? 'on' : ''}"><input type="checkbox" value="${k}"> ${tayang.has(k) ? '✓ ' : ''}${k}</label>`
+      ).join('');
+      return `
+        <div class="publish-panel" data-key="${key}" data-id="${id}">
+          <div class="mu" style="font-weight:600; margin-bottom:4px;">Status & atur publish per kelas</div>
+          <div class="mu" style="font-size:0.78rem; margin-bottom:8px;">Hijau ✓ = sudah tayang di kelas itu. Centang kelas, lalu pilih Publish atau Tarik.</div>
           <div class="chips">${chips}</div>
-          <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
-            <button class="alt" style="padding:6px 12px;" onclick="pilihSemuaKelas(this)">Pilih semua</button>
-            <button style="padding:6px 12px;" onclick="publishTerpilih(this)">📤 Publish</button>
+          <div class="bank-actions" style="margin-top:10px;">
+            <button class="alt" onclick="pilihSemuaKelas(this)">Pilih semua</button>
+            <button onclick="publishTerpilih(this)">📤 Publish ke terpilih</button>
+            <button class="alt danger" onclick="tarikTerpilih(this)">↩️ Tarik dari terpilih</button>
           </div>
         </div>`;
     }
@@ -641,22 +858,31 @@
 
     async function publishTerpilih(btn) {
       const panel = btn.closest('.publish-panel');
-      const [tabel, kolom] = PUBLISH_MAP[panel.dataset.tipe];
-      const id = panel.dataset.id;
+      const key = panel.dataset.key, id = panel.dataset.id, cfg = BANK[key];
       const dipilih = [...panel.querySelectorAll('input:checked')].map(c => c.value);
       if (dipilih.length === 0) return alert('Pilih minimal satu kelas.');
 
-      const { data: ada } = await db.from(tabel).select('kelas').eq(kolom, id);
-      const sudah = new Set((ada || []).map(r => r.kelas));
+      const sudah = new Set(bankState[key].pub[String(id)] || []);
       const baru = dipilih.filter(k => !sudah.has(k));
-      if (baru.length === 0) return alert('Semua kelas yang dipilih sudah pernah dipublish.');
+      if (baru.length === 0) return alert('Semua kelas yang dipilih sudah tayang.');
 
-      const { error } = await db.from(tabel).insert(baru.map(k => ({ [kolom]: id, kelas: k })));
+      const { error } = await db.from(cfg.pubTabel).insert(baru.map(k => ({ [cfg.fk]: id, kelas: k })));
       if (error) return alert('Gagal publish: ' + error.message);
+      await loadBank(key);
+    }
 
-      const dilewati = dipilih.filter(k => sudah.has(k));
-      alert(`Berhasil dipublish ke: ${baru.join(', ')}` + (dilewati.length ? `\n(Sudah pernah dipublish, dilewati: ${dilewati.join(', ')})` : ''));
-      panel.querySelectorAll('input:checked').forEach(c => c.checked = false);
+    async function tarikTerpilih(btn) {
+      const panel = btn.closest('.publish-panel');
+      const key = panel.dataset.key, id = panel.dataset.id, cfg = BANK[key];
+      const dipilih = [...panel.querySelectorAll('input:checked')].map(c => c.value);
+      const sudah = new Set(bankState[key].pub[String(id)] || []);
+      const tarik = dipilih.filter(k => sudah.has(k));
+      if (tarik.length === 0) return alert('Centang kelas yang sudah tayang (hijau ✓) untuk ditarik.');
+      if (!confirm(`Tarik dari kelas: ${tarik.join(', ')}?\n\nSiswa di kelas itu tidak akan melihatnya lagi.`)) return;
+
+      const { error } = await db.from(cfg.pubTabel).delete().eq(cfg.fk, id).in('kelas', tarik);
+      if (error) return alert('Gagal menarik: ' + error.message);
+      await loadBank(key);
     }
 
     let activeUser = null;
@@ -928,43 +1154,7 @@
       loadBankMateriGuru();
     }
 
-    async function loadBankMateriGuru() {
-      const { data } = await db.from('materi').select('*');
-      const container = document.getElementById('listBankMateri');
-      if (!data || data.length === 0) {
-        container.innerHTML = '<p class="mu">Bank Materi masih kosong.</p>';
-        return;
-      }
-
-      container.innerHTML = data.map(m => {
-        materiCache[m.id] = m;
-        let mediaTag = '';
-        if (isModulA4(m.konten)) {
-          mediaTag = `<div class="badge">📄 Modul A4</div>`;
-        } else if (m.tipe_media === 'youtube' && m.url_media) {
-          mediaTag = `<div class="badge ok">🎥 Youtube Link</div>`;
-        } else if (m.tipe_media === 'pdf' && m.url_media) {
-          mediaTag = `<div class="badge warn">📄 PDF / Modul File</div>`;
-        } else if (m.tipe_media === 'gdrive' && m.url_media) {
-          mediaTag = `<div class="badge">📁 GDrive Folder</div>`;
-        }
-
-        return `
-          <div class="card" style="background:#f8fafc;">
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-              <b>${escHtml(m.judul)}</b>
-              ${mediaTag}
-            </div>
-            <p class="mu" style="margin:6px 0 12px; line-height:1.5;">${escHtml(ringkasKonten(m.konten))}</p>
-            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
-              <button class="alt" style="padding:6px 12px;" onclick="bukaModul('${m.id}')">👁️ Lihat</button>
-              <button class="alt" style="padding:6px 12px;" onclick="cetakModul('${m.id}')">🖨️ Simpan PDF</button>
-            </div>
-            ${publishPanelHTML('materi', m.id)}
-          </div>
-        `;
-      }).join('');
-    }
+    async function loadBankMateriGuru() { return loadBank('materi'); }
 
     async function publishMateriMulti(materiId, targetKelas) {
       await db.from('materi_published').insert({ materi_id: materiId, kelas: targetKelas });
@@ -981,7 +1171,7 @@
     async function loadMateriSiswa() {
       const { data } = await db.from('materi_published').select('*, materi(*)').eq('kelas', activeUser.kelas);
       const container = document.getElementById('listMateriSiswa');
-      const rows = (data || []).filter(p => p.materi);
+      const rows = (data || []).filter(p => p.materi && !p.materi.diarsipkan);
       if (rows.length === 0) {
         container.innerHTML = '<p class="mu">Belum ada materi dipublish untuk kelasmu.</p>';
         return;
@@ -1093,23 +1283,7 @@
       loadBankSoalGuru();
     }
 
-    async function loadBankSoalGuru() {
-      const { data } = await db.from('kuis').select('*');
-      const container = document.getElementById('listBankSoal');
-      if (!data || data.length === 0) {
-        container.innerHTML = '<p class="mu">Bank Soal masih kosong.</p>';
-        return;
-      }
-
-      container.innerHTML = data.map(q => `
-        <div class="card" style="background:#f8fafc;">
-          <b>${q.judul}</b>
-          <p style="margin:6px 0 8px;">${q.pertanyaan}</p>
-          <div class="mu" style="font-size:0.8rem; margin-bottom:12px;">Kunci: <b>${q.kunci_jawaban}</b></div>
-          ${publishPanelHTML('kuis', q.id)}
-        </div>
-      `).join('');
-    }
+    async function loadBankSoalGuru() { return loadBank('kuis'); }
 
     async function publishKuisMulti(kuisId, targetKelas) {
       await db.from('kuis_published').insert({ kuis_id: kuisId, kelas: targetKelas });
@@ -1124,7 +1298,12 @@
         return;
       }
 
-      const soalList = data.map(d => d.kuis);
+      const soalList = data.map(d => d.kuis).filter(q => q && !q.diarsipkan);
+      if (soalList.length === 0) {
+        container.innerHTML = '<p class="mu">Belum ada kuis dipublish untuk kelasmu.</p>';
+        return;
+      }
+
       const soalAcak = shuffleArray(soalList);
 
       container.innerHTML = soalAcak.map((q, idx) => {
@@ -1174,22 +1353,7 @@
       loadBankTugasGuru();
     }
 
-    async function loadBankTugasGuru() {
-      const { data } = await db.from('tugas').select('*');
-      const container = document.getElementById('listBankTugas');
-      if (!data || data.length === 0) {
-        container.innerHTML = '<p class="mu">Bank Tugas masih kosong.</p>';
-        return;
-      }
-
-      container.innerHTML = data.map(t => `
-        <div class="card" style="background:#f8fafc;">
-          <b>${t.judul}</b>
-          <p class="mu" style="margin:6px 0 12px;">${t.deskripsi || ''}</p>
-          ${publishPanelHTML('tugas', t.id)}
-        </div>
-      `).join('');
-    }
+    async function loadBankTugasGuru() { return loadBank('tugas'); }
 
     async function publishTugasMulti(tugasId, targetKelas) {
       await db.from('tugas_published').insert({ tugas_id: tugasId, kelas: targetKelas });
@@ -1213,7 +1377,12 @@
         return;
       }
 
-      container.innerHTML = data.map(d => {
+      const rowsT = data.filter(d => d.tugas && !d.tugas.diarsipkan);
+      if (rowsT.length === 0) {
+        container.innerHTML = '<p class="mu">Belum ada tugas lab dipublish untuk kelasmu.</p>';
+        return;
+      }
+      container.innerHTML = rowsT.map(d => {
         const t = d.tugas;
         return `
           <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
