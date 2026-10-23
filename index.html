@@ -342,12 +342,13 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
           'Authorization': `Bearer ${SUPABASE_KEY}`
         },
         body: JSON.stringify({ prompt })
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+      if (!response.ok) throw new Error('HTTP ' + response.status + ' - ' + (data.error?.message || data.error || data.message || JSON.stringify(data)));
       return data.text ?? data.result ?? data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     }
 
@@ -474,7 +475,7 @@
         status.textContent = '✅ Ringkasan materi berhasil di-generate AI!';
       } catch (err) {
         console.error(err);
-        status.textContent = '❌ Gagal generate AI. Cek API Key milikmu.';
+        status.textContent = '❌ Gagal generate AI: ' + err.message;
       } finally {
         btn.disabled = false;
       }
@@ -524,7 +525,7 @@
         document.getElementById('aiTopik').value = '';
       } catch (err) {
         console.error(err);
-        status.textContent = '❌ Gagal membuat soal AI. Cek API Key milikmu.';
+        status.textContent = '❌ Gagal membuat soal AI: ' + err.message;
       } finally {
         btn.disabled = false;
       }
