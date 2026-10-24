@@ -374,6 +374,31 @@
     .bs-pil label { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.9rem; cursor: pointer; }
     .bs-pil input { width: auto; margin: 0; padding: 0; }
 
+    /* Kuis siswa (Tahap 2B) */
+    .ks-badges { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+    .ks-aksi { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+    .ks-riwayat { margin-top: 12px; border-top: 1px dashed var(--bd); padding-top: 8px; }
+    .ks-riw { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 4px 0; font-size: 0.9rem; }
+    .ks-riw button { padding: 6px 12px; font-size: 0.82rem; }
+    .ks-bar { position: sticky; top: 0; z-index: 8; display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #ffffff; border: 1px solid var(--bd); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .ks-info { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+    .ks-info .badge { font-size: 0.95rem; }
+    .quiz-option.sel { background: #eff6ff; border-color: var(--ac); color: var(--ac); }
+    .ks-navbtn { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .ks-navbtn button { padding: 10px 12px; white-space: nowrap; font-size: 0.88rem; }
+    .ks-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .ks-no { width: 40px; height: 40px; padding: 0; border-radius: 10px; background: #f1f5f9; color: var(--tx); box-shadow: none; border: 1.5px solid var(--bd); font-size: 0.9rem; }
+    .ks-no:hover { transform: none; box-shadow: none; }
+    .ks-no.done { background: #ecfdf5; border-color: #10b981; color: #047857; }
+    .ks-no.part { background: #fffbeb; border-color: #f59e0b; color: #b45309; }
+    .ks-no.now { outline: 3px solid #93c5fd; }
+    .ks-skor { text-align: center; }
+    .ks-angka { font-size: 3.2rem; font-weight: 800; color: var(--ac); line-height: 1.1; margin: 6px 0; }
+    .hs-kelas { margin: 12px 0; padding-top: 8px; border-top: 1px dashed var(--bd); }
+    .tbl-scroll { overflow-x: auto; }
+    .tbl-scroll table { min-width: 480px; }
+    @media (max-width: 480px) { .ks-no { width: 36px; height: 36px; } .ks-bar { padding: 8px 10px; } }
+
     /* ===== Responsif HP & tablet kecil ===== */
     .main-content { min-width: 0; }
     @media (max-width: 768px) {
@@ -505,9 +530,11 @@
       <div id="tabKuis" class="tab-content hidden">
         <!-- SISWA VIEW -->
         <div id="siswaKuisView" class="hidden">
-          <h2>🤖 Latihan Soal</h2>
-          <p class="mu" style="margin-bottom: 20px;">Soal dan pilihan dikocok otomatis untuk setiap siswa.</p>
-          <div id="listKuisSiswa">Memuat kuis...</div>
+          <h2>🤖 Kuis & Latihan Soal</h2>
+          <p class="mu" style="margin-bottom: 20px;">Kerjakan paket soal yang dibuka gurumu. Jawaban dinilai otomatis dan tersimpan selama kamu mengerjakan.</p>
+          <div id="kuisDaftarWrap"><div id="listKuisSiswa">Memuat kuis...</div></div>
+          <div id="sesiKuis" class="hidden"></div>
+          <div id="hasilKuis" class="hidden"></div>
         </div>
 
         <!-- GURU VIEW -->
@@ -903,7 +930,7 @@
         cari: p => `${p.judul || ''} ${p.jenis || ''}`,
         sub: p => escHtml(paketRingkas(p)),
         detail: p => paketDetailHTML(p),
-        aksi: p => `<button class="alt" onclick="paketLihat('${p.id}')">${paketLihatOpen.has(String(p.id)) ? '🙈 Sembunyikan soal' : '👁️ Lihat soal & kunci'}</button><button class="alt" onclick="paketAtur('${p.id}')">${paketEditId === String(p.id) ? '✖️ Tutup pengaturan' : '⚙️ Atur'}</button>`
+        aksi: p => `<button class="alt" onclick="paketLihat('${p.id}')">${paketLihatOpen.has(String(p.id)) ? '🙈 Sembunyikan soal' : '👁️ Lihat soal & kunci'}</button><button class="alt" onclick="paketHasil('${p.id}')">${paketHasilOpen.has(String(p.id)) ? '🙈 Sembunyikan hasil' : '📊 Hasil siswa'}</button><button class="alt" onclick="paketAtur('${p.id}')">${paketEditId === String(p.id) ? '✖️ Tutup pengaturan' : '⚙️ Atur'}</button>`
       },
       tugas: {
         tabel: 'tugas', pubTabel: 'tugas_published', fk: 'tugas_id', el: 'listBankTugas', nama: 'tugas',
@@ -939,11 +966,20 @@
       bankState[key].siap = true;
     }
 
+    // Soal (beserta kunci) dibaca guru lewat RPC yang memeriksa akun guru, supaya browser siswa
+    // tidak bisa membaca kunci langsung dari tabel. Bila SQL penutup akses belum dijalankan, pakai cara lama.
+    async function ambilSoalGuru() {
+      const r = await db.rpc('guru_daftar_soal', { p_user: activeUser.username, p_pass: activeUser.password });
+      if (!r.error) return { data: r.data || [], error: null };
+      if (/function|schema cache|does not exist/i.test(r.error.message || '')) return db.from('kuis').select('*');
+      return r;
+    }
+
     async function loadBank(key) {
       const cfg = BANK[key], st = bankState[key];
       if (!st.siap) buildBankShell(key);
       const [r1, r2] = await Promise.all([
-        db.from(cfg.tabel).select('*'),
+        key === 'kuis' ? ambilSoalGuru() : db.from(cfg.tabel).select('*'),
         db.from(cfg.pubTabel).select('*')
       ]);
       if (r1.error) {
@@ -1971,6 +2007,7 @@
         <div><b>PG kompleks:</b> ${p.skema_kompleks === 'semua_atau_nol' ? 'semua-atau-nol' : 'parsial'}</div>
       </div>`;
       if (paketEditId === id) h += paketFormEditHTML(p);
+      if (paketHasilOpen.has(id)) h += paketHasilHTML(id);
       if (paketLihatOpen.has(id)) {
         const soal = paketSoalCache[id];
         h += soal
@@ -2083,151 +2120,438 @@
       alert(`Kuis berhasil dipublish ke Kelas ${targetKelas}!`);
     }
 
-    const kuisSiswaMap = {};
+    // ================= TAHAP 2B: KUIS SISWA (dinilai di SERVER) =================
+    // Siswa tidak pernah menerima kunci jawaban sebelum mengirim. Semua lewat Edge Function "kuis-siswa".
+    const KUIS_URL = `${SUPABASE_URL}/functions/v1/kuis-siswa`;
+    let kuisDaftar = [];
+    let sesi = null;          // sesi pengerjaan yang sedang berjalan
+    let kuisBusy = false;
 
-    async function loadKuisSiswa() {
-      const { data } = await db.from('kuis_published').select('*, kuis(*)').eq('kelas', activeUser.kelas);
-      const container = document.getElementById('listKuisSiswa');
-      const seen = new Set();
-      const soalList = (data || []).map(d => d.kuis).filter(q => {
-        if (!q || q.diarsipkan || seen.has(q.id)) return false;
-        seen.add(q.id);
-        return true;
-      });
-      if (soalList.length === 0) {
-        container.innerHTML = '<p class="mu">Belum ada kuis dipublish untuk kelasmu.</p>';
-        return;
-      }
-      container.innerHTML = shuffleArray(soalList).map((q, idx) => kuisCardHTML(q, idx)).join('');
+    async function kuisAPI(aksi, extra = {}, opsi = {}) {
+      const ctrl = new AbortController();
+      const tm = setTimeout(() => ctrl.abort(), opsi.timeout || 30000);
+      try {
+        const res = await fetch(KUIS_URL, {
+          method: 'POST',
+          keepalive: !!opsi.keepalive,
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          body: JSON.stringify({ aksi, user: activeUser.username, pass: activeUser.password, ...extra }),
+          signal: ctrl.signal
+        });
+        let data;
+        try { data = await res.json(); } catch (_) { throw new Error('Respons server tidak terbaca (HTTP ' + res.status + ')'); }
+        if (!res.ok || data.error) { const e = new Error(data.error || ('HTTP ' + res.status)); e.status = res.status; throw e; }
+        return data;
+      } catch (e) {
+        if (e.name === 'AbortError') { const x = new Error('Server tidak merespons. Periksa koneksi internet lalu coba lagi.'); x.jaringan = true; throw x; }
+        if (/Load failed|Failed to fetch|NetworkError/i.test(e.message || '')) { const x = new Error('Koneksi terputus. Periksa internet lalu coba lagi.'); x.jaringan = true; throw x; }
+        throw e;
+      } finally { clearTimeout(tm); }
     }
 
-    function kuisCardHTML(q, idx) {
-      const tipe = q.tipe || 'pg';
-      const opsi = soalOpsi(q);
-      const urutan = tipe === 'bs' ? opsi.map((_, i) => i) : shuffleArray(opsi.map((_, i) => i));
-      kuisSiswaMap[q.id] = { q, tipe, opsi, urutan, selesai: false };
-
-      const petunjuk = tipe === 'pg' ? 'Pilih satu jawaban.'
-        : tipe === 'pg_kompleks' ? 'Pilih semua jawaban yang benar (bisa lebih dari satu).'
-        : 'Tentukan Benar atau Salah untuk setiap pernyataan.';
-
-      let isi = '';
-      if (tipe === 'pg') {
-        isi = urutan.map((o, pos) =>
-          `<button class="quiz-option" data-idx="${o}" onclick="jawabPG('${q.id}', ${o})">${HURUF[pos]}. ${escHtml(opsi[o])}</button>`).join('');
-      } else if (tipe === 'pg_kompleks') {
-        isi = urutan.map((o, pos) =>
-          `<label class="quiz-option cek" data-idx="${o}"><input type="checkbox" value="${o}"><span>${HURUF[pos]}. ${escHtml(opsi[o])}</span></label>`).join('') +
-          `<button style="margin-top:10px;" onclick="jawabKompleks('${q.id}')">Kirim Jawaban</button>`;
-      } else {
-        isi = urutan.map((o, pos) => `
-          <div class="bs-row" data-idx="${o}">
-            <div class="bs-teks">${pos + 1}. ${escHtml(opsi[o])}</div>
-            <div class="bs-pil">
-              <label><input type="radio" name="bs-${q.id}-${o}" value="B"> Benar</label>
-              <label><input type="radio" name="bs-${q.id}-${o}" value="S"> Salah</label>
-            </div>
-          </div>`).join('') +
-          `<button style="margin-top:10px;" onclick="jawabBS('${q.id}')">Kirim Jawaban</button>`;
+    // ---------- Daftar paket ----------
+    async function loadKuisSiswa() {
+      const box = $id('listKuisSiswa');
+      if (!box) return;
+      try {
+        const d = await kuisAPI('daftar');
+        kuisDaftar = d.paket || [];
+        box.innerHTML = kuisDaftar.length
+          ? kuisDaftar.map(kuisPaketHTML).join('')
+          : '<p class="mu">Belum ada kuis yang dibuka untuk kelasmu.</p>';
+      } catch (e) {
+        box.innerHTML = `<p class="mu">Gagal memuat kuis: ${escHtml(e.message)}</p><button class="alt" onclick="loadKuisSiswa()">🔄 Coba lagi</button>`;
       }
+    }
+
+    function kuisPaketHTML(p) {
+      const adaSisa = p.sisa > 0;
+      const lencana = [
+        `<span class="badge">${escHtml(JENIS_PAKET[p.jenis] || p.jenis)}</span>`,
+        `<span class="badge">${p.jumlah_soal || 0} soal</span>`,
+        `<span class="badge">${p.durasi_menit ? p.durasi_menit + ' menit' : 'tanpa timer'}</span>`,
+        `<span class="badge">Percobaan ${p.selesai.length}/${p.maks_percobaan}</span>`
+      ];
+      if (p.status === 'belum_buka') lencana.push('<span class="badge warn">⏳ Belum dibuka</span>');
+      else if (p.status === 'tutup') lencana.push('<span class="badge bad">🔒 Ditutup</span>');
+      else if (p.aktif) lencana.push('<span class="badge warn">✍️ Sedang dikerjakan</span>');
+      if (p.skor_terbaik !== null) lencana.push(`<span class="badge ok">Skor terbaik ${p.skor_terbaik}</span>`);
+
+      let aksi = '';
+      if (p.aktif) aksi = `<button onclick="mulaiKuis(${p.id})">↻ Lanjutkan pengerjaan</button>`;
+      else if (p.status === 'buka' && adaSisa) aksi = `<button onclick="mulaiKuis(${p.id})">${p.selesai.length ? '🔁 Coba lagi' : '▶ Mulai'}</button>`;
+      else if (p.status === 'belum_buka') aksi = `<span class="mu">Dibuka ${p.buka_at ? escHtml(tglPendek(p.buka_at)) : 'segera'}.</span>`;
+      else if (p.status === 'tutup') aksi = '<span class="mu">Paket sudah ditutup.</span>';
+      else aksi = '<span class="mu">Batas percobaan sudah habis.</span>';
+
+      const riwayat = p.selesai.length
+        ? `<div class="ks-riwayat">${p.selesai.map(x =>
+            `<div class="ks-riw"><span>Percobaan ${x.ke}: <b>${x.skor}</b>${x.terlambat ? ' <span class="badge warn">terlambat</span>' : ''}</span>
+             <button class="alt" onclick="lihatHasil(${x.id})">Lihat hasil</button></div>`).join('')}</div>`
+        : '';
 
       return `
-        <div class="card" id="soal-${q.id}">
-          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px;">
-            <span class="badge">Soal #${idx + 1}</span><span class="badge">${TIPE_LABEL[tipe] || 'Pilihan Ganda'}</span>
-          </div>
-          <div class="soal-teks" style="font-size:1.02rem;">${escHtml(q.pertanyaan)}</div>
-          <div class="mu" style="margin:6px 0 10px;">${petunjuk}</div>
-          <div class="soal-pilihan">${isi}</div>
-          <div class="soal-aksi"></div>
+        <div class="card ks-paket">
+          <b style="font-size:1.05rem;">${escHtml(p.judul)}</b>
+          <div class="ks-badges">${lencana.join('')}</div>
+          <div class="mu" style="margin:6px 0;">Jadwal: ${escHtml(jadwalTeks(p))}</div>
+          <div class="ks-aksi">${aksi}</div>
+          ${riwayat}
         </div>`;
     }
 
-    async function simpanNilaiKuis(q, jawabanText, skor) {
-      const { error } = await db.from('nilai_kuis').insert({ kuis_id: q.id, siswa_id: activeUser.id, jawaban_siswa: jawabanText, skor });
-      return error;
+    // ---------- Mulai & sesi pengerjaan ----------
+    async function mulaiKuis(paketId) {
+      if (kuisBusy || sesi) return;
+      const p = kuisDaftar.find(x => x.id === paketId);
+      if (p && !p.aktif) {
+        const lines = [];
+        if (p.jenis === 'ulangan') lines.push('ULANGAN hanya bisa dikerjakan ' + p.maks_percobaan + ' kali.');
+        if (p.durasi_menit) lines.push(`Timer ${p.durasi_menit} menit mulai berjalan setelah kamu menekan OK dan tetap berjalan walau halaman ditutup.`);
+        if (lines.length && !confirm(lines.join('\n') + '\n\nMulai sekarang?')) return;
+      }
+      kuisBusy = true;
+      try {
+        const d = await kuisAPI('mulai', { paket_id: paketId }, { timeout: 40000 });
+        mulaiSesi(d);
+      } catch (e) {
+        alert(e.message);
+        loadKuisSiswa();
+      } finally { kuisBusy = false; }
     }
 
-    function kunciIdxSet(q, tipe) {
-      const k = soalKunci(q);
-      const arrK = Array.isArray(k) ? k : [k];
-      return new Set(arrK.map(x => HURUF.indexOf(String(x).toUpperCase())).filter(i => i >= 0));
+    function normJawab(s, j) {
+      if (s.tipe === 'pg') return Number.isInteger(j) ? j : null;
+      if (s.tipe === 'pg_kompleks') return Array.isArray(j) ? j.filter(Number.isInteger) : [];
+      const a = Array.isArray(j) ? j : [];
+      return s.opsi.map((_, i) => typeof a[i] === 'boolean' ? a[i] : null);
     }
 
-    function selesaiSoal(qid, skor, err, dipilih) {
-      const st = kuisSiswaMap[qid];
-      const q = st.q;
-      st.selesai = true;
-      const card = document.getElementById('soal-' + qid);
-      card.querySelectorAll('button, input').forEach(el => el.disabled = true);
+    function mulaiSesi(d) {
+      sesi = {
+        pid: d.percobaan_id, paketId: d.paket_id, judul: d.judul, jenis: d.jenis, ke: d.ke, maks: d.maks,
+        soal: d.soal, jawab: d.soal.map((s, i) => normJawab(s, (d.jawaban || [])[i])),
+        idx: 0, deadline: d.deadline ? Date.parse(d.deadline) : null,
+        offset: Date.parse(d.sekarang) - Date.now(),
+        mengirim: false, kotor: false, menyimpan: false, saveTimer: null, tick: null, cobaTerakhir: 0, kirimTerakhir: 0
+      };
+      $id('kuisDaftarWrap').classList.add('hidden');
+      $id('hasilKuis').classList.add('hidden');
+      $id('sesiKuis').classList.remove('hidden');
+      $id('sesiKuis').innerHTML = `
+        <div class="ks-bar">
+          <div class="ks-judul"><b>${escHtml(sesi.judul)}</b><div class="mu" style="font-size:0.78rem;">Percobaan ke-${sesi.ke} dari ${sesi.maks}</div></div>
+          <div class="ks-info"><span id="ksTimer" class="badge">--:--</span><span id="ksSimpan" class="mu" style="font-size:0.75rem;"></span></div>
+        </div>
+        <div id="ksSoal"></div>
+        <div id="ksNav"></div>`;
+      renderSoalSesi(); renderNavSesi();
+      sesi.tick = setInterval(tickSesi, 500);
+      tickSesi();
+      window.addEventListener('beforeunload', peringatTutupKuis);
+      document.addEventListener('visibilitychange', visKuis);
+      window.scrollTo({ top: 0 });
+    }
 
-      if (st.tipe === 'bs') {
-        const kunci = soalKunci(q);
-        card.querySelectorAll('.bs-row').forEach(row => {
-          const i = Number(row.dataset.idx);
-          const benar = dipilih[i] === !!kunci[i];
-          row.classList.add(benar ? 'benar' : 'salah');
-          if (!benar) row.querySelector('.bs-teks').insertAdjacentHTML('beforeend', `<div class="mu" style="font-size:0.82rem;">Seharusnya: <b>${kunci[i] ? 'Benar' : 'Salah'}</b></div>`);
-        });
+    function sisaDetik() { return sesi.deadline === null ? null : Math.floor((sesi.deadline - (Date.now() + sesi.offset)) / 1000); }
+
+    function tickSesi() {
+      if (!sesi) return;
+      const el = $id('ksTimer');
+      const sisa = sisaDetik();
+      if (el) {
+        if (sisa === null) { el.textContent = '∞ tanpa batas waktu'; }
+        else {
+          const s = Math.max(0, sisa), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), dt = s % 60;
+          el.textContent = '⏱ ' + (h ? h + ':' : '') + String(m).padStart(2, '0') + ':' + String(dt).padStart(2, '0');
+          el.className = 'badge ' + (sisa <= 60 ? 'bad' : sisa <= 300 ? 'warn' : '');
+        }
+      }
+      if (sisa !== null && sisa <= 0 && !sesi.mengirim && Date.now() - sesi.kirimTerakhir > 6000) kirimSesi(true);
+      if (sesi.kotor && !sesi.menyimpan && Date.now() - sesi.cobaTerakhir > 8000) simpanDraf();
+    }
+
+    function peringatTutupKuis(e) { if (sesi) { e.preventDefault(); e.returnValue = ''; } }
+    function visKuis() { if (document.hidden && sesi && sesi.kotor) simpanDraf(true); }
+
+    function sudahJawab(i) {
+      const s = sesi.soal[i], j = sesi.jawab[i];
+      if (s.tipe === 'pg') return j !== null;
+      if (s.tipe === 'pg_kompleks') return j.length > 0;
+      return j.every(x => x !== null);
+    }
+    function sebagianJawab(i) {
+      const s = sesi.soal[i], j = sesi.jawab[i];
+      return s.tipe === 'bs' && j.some(x => x !== null) && !j.every(x => x !== null);
+    }
+
+    function renderSoalSesi() {
+      const i = sesi.idx, s = sesi.soal[i], j = sesi.jawab[i];
+      const petunjuk = s.tipe === 'pg' ? 'Pilih satu jawaban.'
+        : s.tipe === 'pg_kompleks' ? 'Pilih semua jawaban yang benar (bisa lebih dari satu).'
+        : 'Tentukan Benar atau Salah untuk setiap pernyataan.';
+      let isi = '';
+      if (s.tipe === 'pg') {
+        isi = s.opsi.map((o, k) =>
+          `<button type="button" class="quiz-option ${j === k ? 'sel' : ''}" onclick="pilihPG(${k})">${HURUF[k]}. ${escHtml(o)}</button>`).join('');
+      } else if (s.tipe === 'pg_kompleks') {
+        isi = s.opsi.map((o, k) =>
+          `<label class="quiz-option cek ${j.includes(k) ? 'sel' : ''}"><input type="checkbox" ${j.includes(k) ? 'checked' : ''} onchange="pilihPGK(${k}, this.checked)"><span>${HURUF[k]}. ${escHtml(o)}</span></label>`).join('');
       } else {
-        const kset = kunciIdxSet(q, st.tipe);
-        const pilih = new Set(dipilih);
-        card.querySelectorAll('.quiz-option').forEach(el => {
-          const i = Number(el.dataset.idx);
-          if (kset.has(i)) el.classList.add('benar');
-          else if (pilih.has(i)) el.classList.add('salah');
-        });
+        isi = s.opsi.map((o, k) => `
+          <div class="bs-row">
+            <div class="bs-teks">${k + 1}. ${escHtml(o)}</div>
+            <div class="bs-pil">
+              <label><input type="radio" name="bs-${i}-${k}" ${j[k] === true ? 'checked' : ''} onchange="pilihBS(${k}, true)"> Benar</label>
+              <label><input type="radio" name="bs-${i}-${k}" ${j[k] === false ? 'checked' : ''} onchange="pilihBS(${k}, false)"> Salah</label>
+            </div>
+          </div>`).join('');
       }
-
-      const b = skor >= 100 ? ['ok', '✅ Benar'] : skor > 0 ? ['warn', '🟡 Sebagian benar'] : ['bad', '❌ Salah'];
-      card.querySelector('.soal-aksi').innerHTML =
-        `<div style="margin-top:12px;"><span class="badge ${b[0]}">${b[1]} • Skor ${skor}</span>` +
-        (err ? ` <span class="badge bad" title="${escHtml(err.message)}">Nilai gagal tersimpan</span>` : '') + '</div>' +
-        (q.pembahasan ? `<div class="pembahasan">💡 <b>Pembahasan</b><div class="soal-teks">${escHtml(q.pembahasan)}</div></div>` : '');
+      $id('ksSoal').innerHTML = `
+        <div class="card">
+          <div class="ks-badges"><span class="badge">Soal ${i + 1} dari ${sesi.soal.length}</span><span class="badge">${escHtml(TIPE_LABEL[s.tipe] || s.tipe)}</span></div>
+          <div class="soal-teks" style="font-size:1.02rem; margin-top:10px;">${escHtml(s.pertanyaan)}</div>
+          <div class="mu" style="margin:6px 0 10px;">${petunjuk}</div>
+          ${isi}
+        </div>`;
     }
 
-    async function jawabPG(qid, idx) {
-      const st = kuisSiswaMap[qid];
-      if (!st || st.selesai) return;
-      st.selesai = true;
-      const skor = kunciIdxSet(st.q, 'pg').has(idx) ? 100 : 0;
-      const err = await simpanNilaiKuis(st.q, HURUF[idx], skor);
-      selesaiSoal(qid, skor, err, [idx]);
+    function renderNavSesi() {
+      const n = sesi.soal.length;
+      const terjawab = sesi.soal.filter((_, i) => sudahJawab(i)).length;
+      const grid = sesi.soal.map((_, i) =>
+        `<button type="button" class="ks-no ${i === sesi.idx ? 'now' : sudahJawab(i) ? 'done' : sebagianJawab(i) ? 'part' : ''}" onclick="pindahSoal(${i})">${i + 1}</button>`).join('');
+      $id('ksNav').innerHTML = `
+        <div class="card">
+          <div class="ks-navbtn">
+            <button type="button" class="alt" onclick="pindahSoal(${sesi.idx - 1})" ${sesi.idx === 0 ? 'disabled' : ''}>‹ Sebelumnya</button>
+            <span class="mu">${terjawab}/${n} terjawab</span>
+            <button type="button" class="alt" onclick="pindahSoal(${sesi.idx + 1})" ${sesi.idx >= n - 1 ? 'disabled' : ''}>Berikutnya ›</button>
+          </div>
+          <div class="ks-grid">${grid}</div>
+          <button type="button" id="btnKirimSesi" class="ok" style="width:100%; margin-top:12px; padding:14px;" onclick="kirimSesi(false)">📤 Kirim Jawaban</button>
+        </div>`;
     }
 
-    async function jawabKompleks(qid) {
-      const st = kuisSiswaMap[qid];
-      if (!st || st.selesai) return;
-      const card = document.getElementById('soal-' + qid);
-      const dipilih = [...card.querySelectorAll('input[type=checkbox]:checked')].map(c => Number(c.value));
-      if (dipilih.length === 0) return alert('Pilih minimal satu jawaban.');
-      st.selesai = true;
-      const kset = kunciIdxSet(st.q, 'pg_kompleks');
-      const benar = dipilih.filter(i => kset.has(i)).length;
-      const salah = dipilih.length - benar;
-      const skor = Math.round(Math.max(0, (benar - salah) / (kset.size || 1)) * 100);
-      const teks = dipilih.slice().sort((a, b) => a - b).map(i => HURUF[i]).join(',');
-      const err = await simpanNilaiKuis(st.q, teks, skor);
-      selesaiSoal(qid, skor, err, dipilih);
+    function pindahSoal(i) {
+      if (!sesi || i < 0 || i >= sesi.soal.length) return;
+      sesi.idx = i;
+      renderSoalSesi(); renderNavSesi();
+      $id('sesiKuis').scrollIntoView({ block: 'start' });
+    }
+    function setelahUbah() { sesi.kotor = true; $id('ksSimpan').textContent = ''; renderNavSesi(); clearTimeout(sesi.saveTimer); sesi.saveTimer = setTimeout(simpanDraf, 1200); }
+    function pilihPG(k) { if (!sesi || sesi.mengirim) return; sesi.jawab[sesi.idx] = k; renderSoalSesi(); setelahUbah(); }
+    function pilihPGK(k, on) {
+      if (!sesi || sesi.mengirim) return;
+      const a = new Set(sesi.jawab[sesi.idx]); if (on) a.add(k); else a.delete(k);
+      sesi.jawab[sesi.idx] = [...a].sort((x, y) => x - y);
+      renderSoalSesi(); setelahUbah();
+    }
+    function pilihBS(k, v) { if (!sesi || sesi.mengirim) return; sesi.jawab[sesi.idx][k] = v; renderNavSesi(); setelahUbah(); }
+
+    // Simpan otomatis jawaban sementara (draf) — melindungi dari tab tertutup / koneksi putus
+    async function simpanDraf(keepalive) {
+      if (!sesi || sesi.mengirim || !sesi.kotor || sesi.menyimpan) return;
+      sesi.menyimpan = true; sesi.kotor = false; sesi.cobaTerakhir = Date.now();
+      const info = $id('ksSimpan');
+      try {
+        await kuisAPI('simpan', { percobaan_id: sesi.pid, jawaban: sesi.jawab }, { keepalive: !!keepalive, timeout: 15000 });
+        if (info) info.textContent = '✓ tersimpan otomatis';
+      } catch (e) {
+        if (sesi) sesi.kotor = true;
+        if (info) info.textContent = '⚠️ belum tersimpan, mencoba lagi…';
+      } finally { if (sesi) sesi.menyimpan = false; }
     }
 
-    async function jawabBS(qid) {
-      const st = kuisSiswaMap[qid];
-      if (!st || st.selesai) return;
-      const card = document.getElementById('soal-' + qid);
-      const jawab = {};
-      for (let i = 0; i < st.opsi.length; i++) {
-        const r = card.querySelector(`input[name="bs-${qid}-${i}"]:checked`);
-        if (!r) return alert('Jawab semua pernyataan dulu (Benar atau Salah).');
-        jawab[i] = (r.value === 'B');
+    async function kirimSesi(otomatis) {
+      if (!sesi || sesi.mengirim) return;
+      if (!otomatis) {
+        const kosong = sesi.soal.filter((_, i) => !sudahJawab(i)).length;
+        const pesan = (kosong ? `Masih ada ${kosong} soal yang belum dijawab penuh. ` : '') + 'Kirim jawaban sekarang? Jawaban tidak bisa diubah setelah dikirim.';
+        if (!confirm(pesan)) return;
       }
-      st.selesai = true;
-      const kunci = soalKunci(st.q);
-      const benar = st.opsi.filter((_, i) => jawab[i] === !!kunci[i]).length;
-      const skor = Math.round((benar / st.opsi.length) * 100);
-      const teks = st.opsi.map((_, i) => jawab[i] ? 'B' : 'S').join(',');
-      const err = await simpanNilaiKuis(st.q, teks, skor);
-      selesaiSoal(qid, skor, err, jawab);
+      sesi.mengirim = true; sesi.kirimTerakhir = Date.now();
+      clearTimeout(sesi.saveTimer);
+      const btn = $id('btnKirimSesi');
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Mengirim…'; }
+      try {
+        const h = await kuisAPI('kirim', { percobaan_id: sesi.pid, jawaban: sesi.jawab }, { timeout: 45000 });
+        akhiriSesi();
+        tampilHasil(h, otomatis);
+      } catch (e) {
+        if (!sesi) return;
+        sesi.mengirim = false;
+        if (btn) { btn.disabled = false; btn.textContent = '📤 Kirim Jawaban'; }
+        alert('Jawaban belum terkirim: ' + e.message + '\n\nJawabanmu aman di halaman ini dan tersimpan otomatis. Periksa koneksi lalu tekan Kirim lagi.');
+      }
+    }
+
+    function akhiriSesi() {
+      if (sesi) { clearInterval(sesi.tick); clearTimeout(sesi.saveTimer); }
+      sesi = null;
+      window.removeEventListener('beforeunload', peringatTutupKuis);
+      document.removeEventListener('visibilitychange', visKuis);
+      $id('sesiKuis').classList.add('hidden');
+      $id('sesiKuis').innerHTML = '';
+    }
+
+    // ---------- Hasil & pembahasan ----------
+    async function lihatHasil(percobaanId) {
+      try { tampilHasil(await kuisAPI('hasil', { percobaan_id: percobaanId })); }
+      catch (e) { alert(e.message); }
+    }
+
+    function kembaliKeDaftar() {
+      $id('hasilKuis').classList.add('hidden');
+      $id('kuisDaftarWrap').classList.remove('hidden');
+      loadKuisSiswa();
+    }
+
+    function tampilHasil(h, otomatis) {
+      $id('kuisDaftarWrap').classList.add('hidden');
+      const box = $id('hasilKuis');
+      box.classList.remove('hidden');
+      const catatan = [];
+      if (otomatis) catatan.push('⏰ Waktu habis, jawabanmu dikirim otomatis.');
+      if (h.terlambat && !otomatis) catatan.push('Kiriman ini melewati batas waktu.');
+      let pembahasan = '';
+      if (h.review_status === 'tampil' && h.review) pembahasan = `<h3 style="margin:16px 0 8px;">📝 Pembahasan</h3>` + h.review.map(reviewHTML).join('');
+      else if (h.review_status === 'nanti') pembahasan = `<div class="card"><p class="mu">🔒 Pembahasan akan dibuka setelah paket ditutup${h.tutup_at ? ' (' + escHtml(tglPendek(h.tutup_at)) + ')' : ''}.</p></div>`;
+      else pembahasan = '<div class="card"><p class="mu">Pembahasan tidak ditampilkan untuk paket ini.</p></div>';
+      const bisaUlang = h.sisa > 0 && h.status_paket === 'buka';
+      box.innerHTML = `
+        <div class="card ks-skor">
+          <div class="mu">${escHtml(h.judul)} • Percobaan ke-${h.ke}</div>
+          <div class="ks-angka">${h.skor}</div>
+          <div class="ks-badges" style="justify-content:center;">
+            <span class="badge ok">${h.benar} dari ${h.jumlah_soal} soal benar penuh</span>
+            ${h.skor_terbaik !== null ? `<span class="badge">Skor terbaik ${h.skor_terbaik}</span>` : ''}
+            <span class="badge">Sisa percobaan ${h.sisa}</span>
+          </div>
+          ${catatan.map(c => `<p class="mu" style="margin-top:8px;">${escHtml(c)}</p>`).join('')}
+          <div class="ks-aksi" style="justify-content:center; margin-top:12px;">
+            <button class="alt" onclick="kembaliKeDaftar()">← Kembali ke daftar</button>
+            ${bisaUlang ? `<button onclick="kembaliKeDaftar(); mulaiKuis(${h.paket_id})">🔁 Coba lagi</button>` : ''}
+          </div>
+        </div>
+        ${pembahasan}`;
+      window.scrollTo({ top: 0 });
+    }
+
+    function reviewHTML(r) {
+      const nilai = r.skor >= 0.999 ? ['ok', '✅ Benar'] : r.skor > 0 ? ['warn', '🟡 Sebagian benar'] : ['bad', '❌ Salah / kosong'];
+      let isi = '';
+      if (r.tipe === 'pg') {
+        isi = r.opsi.map((o, k) => {
+          const cls = k === r.kunci ? 'benar' : (k === r.jawaban ? 'salah' : '');
+          const tag = k === r.jawaban ? ' <span class="badge">jawabanmu</span>' : (k === r.kunci ? ' <span class="badge ok">kunci</span>' : '');
+          return `<div class="quiz-option ${cls}">${HURUF[k]}. ${escHtml(o)}${tag}</div>`;
+        }).join('');
+      } else if (r.tipe === 'pg_kompleks') {
+        const dip = new Set(r.jawaban || []), kun = new Set(r.kunci || []);
+        isi = r.opsi.map((o, k) => {
+          const cls = kun.has(k) ? 'benar' : (dip.has(k) ? 'salah' : '');
+          const tag = dip.has(k) && kun.has(k) ? ' <span class="badge ok">dipilih ✓</span>' : dip.has(k) ? ' <span class="badge bad">dipilih ✗</span>' : (kun.has(k) ? ' <span class="badge warn">terlewat</span>' : '');
+          return `<div class="quiz-option ${cls}">${HURUF[k]}. ${escHtml(o)}${tag}</div>`;
+        }).join('');
+      } else {
+        const j = r.jawaban || [], kun = r.kunci || [];
+        isi = r.opsi.map((o, k) => {
+          const benar = typeof j[k] === 'boolean' && j[k] === kun[k];
+          const kataJ = j[k] === true ? 'Benar' : j[k] === false ? 'Salah' : 'kosong';
+          return `<div class="bs-row ${benar ? 'benar' : 'salah'}"><div class="bs-teks">${k + 1}. ${escHtml(o)}<div class="mu" style="font-size:0.82rem;">Jawabanmu: <b>${kataJ}</b> • Seharusnya: <b>${kun[k] ? 'Benar' : 'Salah'}</b></div></div></div>`;
+        }).join('');
+      }
+      return `
+        <div class="card">
+          <div class="ks-badges"><span class="badge">Soal ${r.no}</span><span class="badge ${nilai[0]}">${nilai[1]}</span></div>
+          <div class="soal-teks" style="margin-top:8px;">${escHtml(r.pertanyaan)}</div>
+          <div style="margin-top:8px;">${isi}</div>
+          ${r.pembahasan ? `<div class="pembahasan">💡 <b>Pembahasan</b><div class="soal-teks">${escHtml(r.pembahasan)}</div></div>` : ''}
+        </div>`;
+    }
+
+    // ================= TAHAP 2B: HASIL PAKET (sisi guru) =================
+    const paketHasilOpen = new Set();
+    const paketHasilCache = {};
+
+    async function paketHasil(id) {
+      id = String(id);
+      if (paketHasilOpen.has(id)) { paketHasilOpen.delete(id); return renderBank('paket'); }
+      paketHasilOpen.add(id);
+      renderBank('paket');
+      await muatHasilPaket(id);
+    }
+
+    async function muatHasilPaket(id) {
+      id = String(id);
+      delete paketHasilCache[id];
+      renderBank('paket');
+      try {
+        paketHasilCache[id] = await kuisAPI('rekap', { paket_id: Number(id) });
+      } catch (e) {
+        paketHasilOpen.delete(id);
+        alert('Gagal memuat hasil: ' + e.message);
+      }
+      renderBank('paket');
+    }
+
+    function paketHasilHTML(id) {
+      const h = paketHasilCache[String(id)];
+      if (!h) return '<p class="mu">Memuat hasil…</p>';
+      let out = `<div class="bank-actions">
+          <button class="alt" onclick="muatHasilPaket('${id}')">🔄 Muat ulang</button>
+          <button class="alt" onclick="unduhHasilPaket('${id}')">📥 Unduh CSV</button>
+        </div>`;
+      if (!h.kelas.length) return out + '<p class="mu">Paket ini belum dipublish ke kelas mana pun.</p>';
+      out += h.kelas.map(k => `
+        <div class="hs-kelas">
+          <div><b>${escHtml(k.kelas)}</b> <span class="mu">— ${k.sudah}/${k.jumlah} siswa sudah mengerjakan • rata-rata skor terbaik: ${k.rata === null ? '-' : k.rata}</span></div>
+          <div class="tbl-scroll"><table>
+            <thead><tr><th>Nama</th><th>Skor terbaik</th><th>Percobaan</th><th>Status</th><th></th></tr></thead>
+            <tbody>${k.siswa.map(s => `
+              <tr>
+                <td>${escHtml(s.nama)}</td>
+                <td><b>${s.skor_terbaik === null ? '-' : s.skor_terbaik}</b></td>
+                <td>${s.percobaan.length ? s.percobaan.map(x => `${x.ke}: ${x.skor}${x.terlambat ? '⏰' : ''}`).join(' • ') : '<span class="mu">-</span>'}</td>
+                <td>${s.aktif ? '<span class="badge warn">Sedang mengerjakan</span>' : s.selesai ? '<span class="badge ok">Selesai</span>' : '<span class="badge">Belum</span>'}</td>
+                <td>${s.jumlah_percobaan ? `<button class="alt danger" onclick="paketResetSiswa('${id}', '${s.id}', this.dataset.nama)" data-nama="${escHtml(s.nama)}">Reset</button>` : ''}</td>
+              </tr>`).join('')}
+            </tbody></table></div>
+        </div>`).join('');
+      return out;
+    }
+
+    async function paketResetSiswa(paketId, siswaId, nama) {
+      if (!confirm(`Reset SEMUA percobaan ${nama} di paket ini?\n\nSkor dan jawabannya dihapus, dan ia bisa mengerjakan dari awal. Tidak bisa dibatalkan.`)) return;
+      try {
+        await kuisAPI('reset', { paket_id: Number(paketId), siswa_id: String(siswaId) });
+        await muatHasilPaket(paketId);
+      } catch (e) { alert('Gagal reset: ' + e.message); }
+    }
+
+    function unduhHasilPaket(id) {
+      const h = paketHasilCache[String(id)];
+      if (!h || !h.kelas.length) return alert('Belum ada data untuk diunduh.');
+      const baris = [['Kelas', 'Nama', 'Skor terbaik', 'Jumlah percobaan selesai', 'Detail percobaan', 'Status']];
+      h.kelas.forEach(k => k.siswa.forEach(s => baris.push([
+        k.kelas, s.nama, s.skor_terbaik === null ? '' : s.skor_terbaik, s.selesai,
+        s.percobaan.map(x => `${x.ke}:${x.skor}`).join(' | '),
+        s.aktif ? 'Sedang mengerjakan' : s.selesai ? 'Selesai' : 'Belum'
+      ])));
+      unduhCSV('hasil_' + (h.paket.judul || 'paket').replace(/[^\w-]+/g, '_') + '.csv', baris);
+    }
+
+    // CSV dengan pemisah titik koma + BOM (terbaca benar di Excel berlokal Indonesia & Google Sheets)
+    function unduhCSV(namaFile, baris) {
+      const esc = v => { const s = String(v ?? ''); return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+      const isi = '\ufeff' + baris.map(r => r.map(esc).join(';')).join('\r\n');
+      const blob = new Blob([isi], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = namaFile;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
     }
 
     // ================= MODUL 3: BANK LAB KODING =================
@@ -2317,11 +2641,14 @@
     }
 
     // ================= MODUL 4: REKAP PER KELAS =================
+    let rekapBaris = [];
+
     async function renderModul4PerKelas() {
       const targetKelas = document.getElementById('filterKelasGroup').value;
 
       const { data: siswaList } = await db.from('siswa').select('*').eq('kelas', targetKelas);
       const tbody = document.getElementById('tbodyRekapKelas');
+      rekapBaris = [];
 
       if (!siswaList || siswaList.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="mu">Belum ada siswa terdaftar di kelas ini.</td></tr>';
@@ -2335,39 +2662,58 @@
       const { data: pengumpulan } = await db.from('pengumpulan').select('*');
       const { data: readLogs } = await db.from('materi_read_log').select('*');
 
+      // Nilai paket kuis (dihitung server): rata-rata skor terbaik per paket
+      let paketNilai = {}, paketGalat = '';
+      try { paketNilai = (await kuisAPI('rekap_kelas', { kelas: targetKelas })).siswa || {}; }
+      catch (e) { paketGalat = e.message; }
+
       let totalSkor = 0;
       let countSkor = 0;
       let totalWarning = 0;
       let partisipasiSelesai = 0;
 
+      rekapBaris = [['Nama', 'Materi dibaca', 'Nilai paket kuis', 'Jumlah paket', 'Nilai soal lama', 'Lab koding (durasi/aksi)', 'Status']];
       const rowsHTML = siswaList.map(s => {
-        const kuisSiswa = (nilaiKuis || []).filter(k => k.siswa_id === s.id);
-        const avgKuis = kuisSiswa.length > 0 ? (kuisSiswa.reduce((a,b)=>a+b.skor,0)/kuisSiswa.length) : '-';
-        if (typeof avgKuis === 'number') { totalSkor += avgKuis; countSkor++; }
+        const kuisSiswa = (nilaiKuis || []).filter(k => String(k.siswa_id) === String(s.id));
+        const avgLama = kuisSiswa.length > 0 ? (kuisSiswa.reduce((a, b) => a + b.skor, 0) / kuisSiswa.length) : null;
+        const baru = paketNilai[String(s.id)] || null;
 
-        const materiRead = (readLogs || []).filter(r => r.siswa_id === s.id).length;
-        const labSiswa = (pengumpulan || []).find(p => p.siswa_id === s.id);
+        const nilaiPakai = baru ? baru.rata : avgLama;
+        if (typeof nilaiPakai === 'number') { totalSkor += nilaiPakai; countSkor++; }
 
-        if (materiRead > 0 || kuisSiswa.length > 0 || labSiswa) partisipasiSelesai++;
+        const materiRead = (readLogs || []).filter(r => String(r.siswa_id) === String(s.id)).length;
+        const labSiswa = (pengumpulan || []).find(p => String(p.siswa_id) === String(s.id));
+
+        if (materiRead > 0 || kuisSiswa.length > 0 || baru || labSiswa) partisipasiSelesai++;
 
         let badgeStatus = '<span class="badge ok">Aman</span>';
-        if (labSiswa && labSiswa.status_indikasi.includes('Potensi')) {
-          badgeStatus = `<span class="badge bad">${labSiswa.status_indikasi}</span>`;
+        let statusTeks = 'Aman';
+        if (labSiswa && String(labSiswa.status_indikasi || '').includes('Potensi')) {
+          badgeStatus = `<span class="badge bad">${escHtml(labSiswa.status_indikasi)}</span>`;
+          statusTeks = labSiswa.status_indikasi;
           totalWarning++;
         }
 
+        let selNilai;
+        if (baru) selNilai = `<b>${baru.rata}</b> <span class="mu">(${baru.n} paket)</span>` + (avgLama !== null ? `<div class="mu" style="font-size:0.78rem;">soal lama: ${avgLama.toFixed(1)}</div>` : '');
+        else if (avgLama !== null) selNilai = `<b>${avgLama.toFixed(1)}</b> <span class="mu">(soal lama)</span>`;
+        else selNilai = '<b>Belum Kuis</b>';
+
+        const labTeks = labSiswa ? `${labSiswa.durasi_detik} detik / ${labSiswa.total_aksi} aksi` : '';
+        rekapBaris.push([s.nama, materiRead, baru ? baru.rata : '', baru ? baru.n : 0, avgLama !== null ? avgLama.toFixed(1) : '', labTeks, statusTeks]);
+
         return `
           <tr>
-            <td><b>${s.nama}</b></td>
+            <td><b>${escHtml(s.nama)}</b></td>
             <td><span class="badge ok">✅ ${materiRead} Materi Dibaca</span></td>
-            <td><b>${avgKuis !== '-' ? avgKuis : 'Belum Kuis'}</b></td>
+            <td>${selNilai}</td>
             <td>${labSiswa ? `${labSiswa.durasi_detik} detik / ${labSiswa.total_aksi} aksi` : '<span class="mu">Belum Mengumpulkan</span>'}</td>
             <td>${badgeStatus}</td>
           </tr>
         `;
       }).join('');
 
-      tbody.innerHTML = rowsHTML;
+      tbody.innerHTML = (paketGalat ? `<tr><td colspan="5" class="mu">⚠️ Nilai paket kuis belum bisa dimuat: ${escHtml(paketGalat)}</td></tr>` : '') + rowsHTML;
 
       const pctPartisipasi = Math.round((partisipasiSelesai / siswaList.length) * 100);
       const avgKelas = countSkor > 0 ? (totalSkor / countSkor).toFixed(1) : '0.0';
@@ -2378,7 +2724,9 @@
     }
 
     function exportKeExcel() {
-      alert('📥 Rekapitulasi nilai kelas berhasil diunduh ke CSV/Excel!');
+      if (rekapBaris.length < 2) return alert('Belum ada data. Pilih kelas yang sudah memiliki siswa.');
+      const kelas = document.getElementById('filterKelasGroup').value || 'kelas';
+      unduhCSV(`rekap_${kelas}.csv`, rekapBaris);
     }
   </script>
 </body>
