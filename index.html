@@ -293,6 +293,18 @@
       body.printing .a4-card, body.printing .a4-term, body.printing .a4-footer { break-inside: avoid; }
     }
 
+    /* Paket kuis (Tahap 2A) */
+    .pk-list { max-height: 340px; overflow-y: auto; border: 1px solid var(--bd); border-radius: 12px; background: #fff; margin: 8px 0 12px; }
+    .pk-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 12px; border-bottom: 1px solid var(--bd); cursor: pointer; font-size: 0.88rem; line-height: 1.45; }
+    .pk-row:last-child { border-bottom: none; }
+    .pk-row input { width: auto; margin: 3px 0 0; flex: none; }
+    .pk-row:has(input:checked) { background: #eff6ff; }
+    .pk-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 4px 14px; font-size: 0.85rem; margin: 8px 0; }
+    .pk-edit { background: #f8fafc; border: 1px dashed var(--bd); border-radius: 12px; padding: 12px; margin: 10px 0; }
+    .pk-soal { border-top: 1px dashed var(--bd); padding: 10px 0; }
+    .pk-acak { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .pk-acak input { width: 80px; margin: 0; }
+
     /* Panel publish multi-kelas */
     .chips { display: flex; flex-wrap: wrap; gap: 6px; }
     .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #fff; border: 1.5px solid var(--bd); border-radius: 999px; font-size: 0.85rem; font-weight: 600; cursor: pointer; user-select: none; }
@@ -565,7 +577,113 @@
 
           <div class="card">
             <h3>🗂️ Koleksi Bank Soal & Publish Multi-Kelas</h3>
+            <p class="mu" style="margin-bottom: 10px;">Tombol <b>➕ Tambah ke paket</b> memasukkan soal ke keranjang paket di bawah. Publish per butir di sini hanya untuk tampilan siswa yang lama; paket menggantikannya.</p>
             <div id="listBankSoal">Memuat Bank Soal...</div>
+          </div>
+
+          <div class="card">
+            <h3>📦 Buat Paket Kuis</h3>
+            <p class="mu" style="margin-bottom: 14px;">Paket = kumpulan soal dengan satu skor, satu timer, dan aturan sendiri. Soal disalin dan dibekukan saat paket dibuat, jadi mengedit soal di Bank Soal tidak mengubah paket yang sudah ada. Siswa baru bisa mengerjakan paket setelah sesi siswa (Pengiriman B) dipasang.</p>
+
+            <div class="gen-grid">
+              <div>
+                <label class="mu">Judul paket</label>
+                <input type="text" id="pkJudul" placeholder="mis. Latihan Algoritma Minggu 1">
+              </div>
+              <div>
+                <label class="mu">Jenis</label>
+                <select id="pkJenis" onchange="pkJenisChange()">
+                  <option value="latihan">Latihan (boleh diulang)</option>
+                  <option value="ulangan">Ulangan (satu kali)</option>
+                </select>
+              </div>
+              <div>
+                <label class="mu">Durasi (menit, kosong = tanpa timer)</label>
+                <input type="number" id="pkDurasi" min="1" placeholder="tanpa timer">
+              </div>
+              <div>
+                <label class="mu">Maks percobaan</label>
+                <select id="pkMaks">
+                  <option value="1">1x</option>
+                  <option value="2">2x</option>
+                  <option value="3" selected>3x (skor terbaik dipakai)</option>
+                </select>
+              </div>
+              <div>
+                <label class="mu">Acak urutan soal</label>
+                <select id="pkAcakSoal"><option value="ya">Ya</option><option value="tidak">Tidak</option></select>
+              </div>
+              <div>
+                <label class="mu">Acak urutan opsi</label>
+                <select id="pkAcakOpsi"><option value="ya">Ya</option><option value="tidak">Tidak</option></select>
+              </div>
+              <div>
+                <label class="mu">Pembahasan tampil</label>
+                <select id="pkPembahasan">
+                  <option value="langsung">Langsung setelah kirim</option>
+                  <option value="setelah_tutup">Setelah paket ditutup</option>
+                  <option value="tidak">Tidak ditampilkan</option>
+                </select>
+              </div>
+              <div>
+                <label class="mu">Penilaian PG kompleks</label>
+                <select id="pkSkema">
+                  <option value="parsial">Parsial (nilai sebagian)</option>
+                  <option value="semua_atau_nol">Semua-atau-nol</option>
+                </select>
+              </div>
+              <div>
+                <label class="mu">Dibuka (opsional)</label>
+                <input type="datetime-local" id="pkBuka">
+              </div>
+              <div>
+                <label class="mu">Ditutup (opsional)</label>
+                <input type="datetime-local" id="pkTutup">
+              </div>
+            </div>
+
+            <h4 style="margin: 14px 0 6px;">Pilih soal dari Bank Soal</h4>
+            <div class="gen-grid">
+              <div><input type="text" id="pkCari" placeholder="🔍 Cari soal / topik..." oninput="pkRenderList()"></div>
+              <div><select id="pkTopik" onchange="pkRenderList()"><option value="">Semua topik</option></select></div>
+              <div>
+                <select id="pkTingkat" onchange="pkRenderList()">
+                  <option value="">Semua tingkat</option>
+                  <option value="mudah">Mudah</option>
+                  <option value="sedang">Sedang</option>
+                  <option value="sulit">Sulit</option>
+                </select>
+              </div>
+              <div>
+                <select id="pkTipe" onchange="pkRenderList()">
+                  <option value="">Semua jenis</option>
+                  <option value="pg">Pilihan ganda</option>
+                  <option value="pg_kompleks">PG kompleks</option>
+                  <option value="bs">Benar/Salah</option>
+                </select>
+              </div>
+            </div>
+            <div class="bank-actions">
+              <button class="alt" onclick="paketPilihTampil(true)">☑️ Pilih semua yang tampil</button>
+              <button class="alt" onclick="paketPilihTampil(false)">⬜ Lepas yang tampil</button>
+              <button class="alt danger" onclick="paketKosongkan()">🧹 Kosongkan pilihan</button>
+            </div>
+            <div class="pk-acak">
+              <span class="mu">Atau acak dari soal yang tampil:</span>
+              <input type="number" id="pkAcakN" min="1" max="50" value="10">
+              <span class="mu">soal</span>
+              <button class="alt" onclick="paketAcak()">🎲 Acak & pilih</button>
+            </div>
+            <div class="mu" id="pkCount" style="margin-top: 10px; font-weight: 600;"></div>
+            <div id="pkList" class="pk-list"></div>
+
+            <button id="btnBuatPaket" onclick="buatPaket(this)">📦 Buat Paket</button>
+            <p id="pkStatus" style="font-size: 0.85rem; margin-top: 8px; color: var(--ac);"></p>
+          </div>
+
+          <div class="card">
+            <h3>📚 Daftar Paket Kuis & Publish ke Kelas</h3>
+            <div id="listPaket">Memuat paket...</div>
           </div>
         </div>
       </div>
@@ -776,7 +894,16 @@
         cari: q => `${q.judul || ''} ${q.pertanyaan || ''} ${q.topik || ''} ${q.tingkat || ''}`,
         sub: q => escHtml([TIPE_LABEL[q.tipe || 'pg'] || 'Pilihan Ganda', q.topik, q.tingkat, q.level_kognitif, q.judul].filter(Boolean).join(' • ')),
         detail: q => soalDetailHTML(q),
-        aksi: () => ''
+        aksi: q => `<button class="alt" onclick="paketTambah('${q.id}')">${paketSel.includes(String(q.id)) ? '➖ Keluarkan dari paket' : '➕ Tambah ke paket'}</button>`
+      },
+      paket: {
+        tabel: 'paket', pubTabel: 'paket_published', fk: 'paket_id', el: 'listPaket', nama: 'paket',
+        anak: [], dampak: ', soal beku di dalam paket, dan SEMUA hasil pengerjaan siswa',
+        judul: p => p.judul || '(tanpa judul)',
+        cari: p => `${p.judul || ''} ${p.jenis || ''}`,
+        sub: p => escHtml(paketRingkas(p)),
+        detail: p => paketDetailHTML(p),
+        aksi: p => `<button class="alt" onclick="paketLihat('${p.id}')">${paketLihatOpen.has(String(p.id)) ? '🙈 Sembunyikan soal' : '👁️ Lihat soal & kunci'}</button><button class="alt" onclick="paketAtur('${p.id}')">${paketEditId === String(p.id) ? '✖️ Tutup pengaturan' : '⚙️ Atur'}</button>`
       },
       tugas: {
         tabel: 'tugas', pubTabel: 'tugas_published', fk: 'tugas_id', el: 'listBankTugas', nama: 'tugas',
@@ -1061,6 +1188,7 @@
         document.getElementById('guruLabView').classList.remove('hidden');
         loadBankMateriGuru();
         loadBankSoalGuru();
+        loadPaketGuru();
         loadBankTugasGuru();
         document.getElementById('filterKelasGroup').innerHTML = DAFTAR_KELAS.map(k => `<option value="${k}">Kelas ${k}</option>`).join('');
         renderModul4PerKelas();
@@ -1645,7 +1773,310 @@
       loadBankSoalGuru();
     }
 
-    async function loadBankSoalGuru() { return loadBank('kuis'); }
+    // ================= TAHAP 2A: PAKET KUIS (sisi guru) =================
+    let paketSel = [];                 // id soal di keranjang paket (berurutan)
+    const paketSoalCache = {};         // id paket -> soal beku (dari RPC guru)
+    const paketLihatOpen = new Set();
+    let paketEditId = null;
+
+    const JENIS_PAKET = { latihan: 'Latihan', ulangan: 'Ulangan' };
+    const PEMBAHASAN_LABEL = { langsung: 'Langsung setelah kirim', setelah_tutup: 'Setelah paket ditutup', tidak: 'Tidak ditampilkan' };
+
+    function keInputDT(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d)) return '';
+      const p = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+    }
+    function dariInputDT(v) {
+      if (!v) return null;
+      const d = new Date(v);
+      return isNaN(d) ? null : d.toISOString();
+    }
+    function tglPendek(iso) {
+      return new Date(iso).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    }
+    function jadwalTeks(p) {
+      if (!p.buka_at && !p.tutup_at) return 'tanpa jadwal';
+      return `${p.buka_at ? tglPendek(p.buka_at) : 'sekarang'} → ${p.tutup_at ? tglPendek(p.tutup_at) : 'tanpa batas'}`;
+    }
+    function paketRingkas(p) {
+      return [
+        JENIS_PAKET[p.jenis] || p.jenis,
+        `${p.jumlah_soal || 0} soal`,
+        p.durasi_menit ? `${p.durasi_menit} menit` : 'tanpa timer',
+        `maks ${p.maks_percobaan}x`
+      ].join(' • ');
+    }
+
+    // ---------- Pemilih soal (keranjang) ----------
+    function paketBankAktif() { return (bankState.kuis.items || []).filter(q => !q.diarsipkan); }
+
+    function paketFilterBank() {
+      const q = ($id('pkCari') ? $id('pkCari').value : '').trim().toLowerCase();
+      const topik = $id('pkTopik') ? $id('pkTopik').value : '';
+      const tingkat = $id('pkTingkat') ? $id('pkTingkat').value : '';
+      const tipe = $id('pkTipe') ? $id('pkTipe').value : '';
+      return paketBankAktif().filter(x =>
+        (!q || `${x.pertanyaan || ''} ${x.topik || ''}`.toLowerCase().includes(q)) &&
+        (!topik || (x.topik || '') === topik) &&
+        (!tingkat || x.tingkat === tingkat) &&
+        (!tipe || (x.tipe || 'pg') === tipe));
+    }
+
+    function renderPaketPicker() {
+      if (!$id('pkList')) return;
+      const aktif = new Set(paketBankAktif().map(x => String(x.id)));
+      paketSel = paketSel.filter(id => aktif.has(id));
+      const sel = $id('pkTopik');
+      const cur = sel.value;
+      const topik = [...new Set(paketBankAktif().map(x => x.topik).filter(Boolean))].sort();
+      sel.innerHTML = '<option value="">Semua topik</option>' + topik.map(t => `<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('');
+      sel.value = topik.includes(cur) ? cur : '';
+      pkRenderList();
+    }
+
+    function pkRenderList() {
+      const daftar = paketFilterBank();
+      const set = new Set(paketSel);
+      $id('pkList').innerHTML = daftar.length ? daftar.map(x => {
+        const id = String(x.id);
+        const t = String(x.pertanyaan || x.judul || '').replace(/\s+/g, ' ').trim();
+        const meta = [TIPE_LABEL[x.tipe || 'pg'], x.topik, x.tingkat].filter(Boolean).join(' • ');
+        return `<label class="pk-row"><input type="checkbox" ${set.has(id) ? 'checked' : ''} onchange="paketToggle('${id}', this.checked)"><div><div>${escHtml(t.length > 140 ? t.slice(0, 140) + '…' : t)}</div><div class="mu" style="font-size:0.75rem;">${escHtml(meta)}</div></div></label>`;
+      }).join('') : '<p class="mu" style="padding:10px;">Tidak ada soal yang cocok dengan filter.</p>';
+      pkUpdateCount(daftar.length);
+    }
+
+    function pkUpdateCount(tampil) {
+      const el = $id('pkCount');
+      if (el) el.textContent = `${paketSel.length} soal terpilih` + (tampil !== undefined ? ` • ${tampil} tampil` : '');
+    }
+
+    function paketToggle(id, on) {
+      id = String(id);
+      const i = paketSel.indexOf(id);
+      if (on && i < 0) paketSel.push(id);
+      if (!on && i >= 0) paketSel.splice(i, 1);
+      pkUpdateCount();
+    }
+
+    function paketPilihTampil(on) {
+      paketFilterBank().forEach(x => {
+        const id = String(x.id);
+        const i = paketSel.indexOf(id);
+        if (on && i < 0) paketSel.push(id);
+        if (!on && i >= 0) paketSel.splice(i, 1);
+      });
+      pkRenderList();
+      renderBank('kuis');
+    }
+
+    function paketKosongkan() {
+      paketSel = [];
+      pkRenderList();
+      renderBank('kuis');
+    }
+
+    function paketAcak() {
+      const n = Math.max(1, parseInt($id('pkAcakN').value) || 10);
+      const daftar = paketFilterBank();
+      if (!daftar.length) return alert('Tidak ada soal pada filter ini.');
+      paketSel = shuffleArray(daftar).slice(0, n).map(x => String(x.id));
+      pkRenderList();
+      renderBank('kuis');
+      $id('pkStatus').textContent = `🎲 ${paketSel.length} soal diacak dari ${daftar.length} soal yang tampil (pilihan sebelumnya diganti).`;
+    }
+
+    function paketTambah(id) {
+      id = String(id);
+      const i = paketSel.indexOf(id);
+      if (i >= 0) paketSel.splice(i, 1); else paketSel.push(id);
+      pkRenderList();
+      renderBank('kuis');
+      $id('pkStatus').textContent = `${paketSel.length} soal di keranjang paket.`;
+    }
+
+    function pkJenisChange() {
+      const ul = $id('pkJenis').value === 'ulangan';
+      const m = $id('pkMaks');
+      if (ul) m.value = '1';
+      m.disabled = ul;
+    }
+
+    // ---------- Buat paket ----------
+    async function buatPaket(btn) {
+      const judul = $id('pkJudul').value.trim();
+      if (!judul) return alert('Isi judul paket.');
+      if (!paketSel.length) return alert('Pilih minimal satu soal dari Bank Soal.');
+
+      const jenis = $id('pkJenis').value;
+      const durasiRaw = $id('pkDurasi').value.trim();
+      let durasi = null;
+      if (durasiRaw) {
+        durasi = parseInt(durasiRaw);
+        if (!(durasi > 0)) return alert('Durasi harus berupa menit lebih dari 0, atau kosongkan untuk tanpa timer.');
+      }
+      const buka = dariInputDT($id('pkBuka').value);
+      const tutup = dariInputDT($id('pkTutup').value);
+      if (buka && tutup && new Date(tutup) <= new Date(buka)) return alert('Waktu tutup harus setelah waktu buka.');
+      const maks = jenis === 'ulangan' ? 1 : (parseInt($id('pkMaks').value) || 3);
+
+      btn.disabled = true;
+      const { error } = await db.rpc('guru_buat_paket', {
+        p_user: activeUser.username,
+        p_pass: activeUser.password,
+        p_judul: judul,
+        p_jenis: jenis,
+        p_durasi: durasi,
+        p_acak_soal: $id('pkAcakSoal').value === 'ya',
+        p_acak_opsi: $id('pkAcakOpsi').value === 'ya',
+        p_maks: maks,
+        p_buka: buka,
+        p_tutup: tutup,
+        p_pembahasan: $id('pkPembahasan').value,
+        p_skema: $id('pkSkema').value,
+        p_soal_ids: paketSel
+      });
+      btn.disabled = false;
+
+      if (error) {
+        return alert('Gagal membuat paket: ' + error.message +
+          (/function|schema cache|does not exist|relation/i.test(error.message) ? '\n\nKemungkinan SQL migrasi Tahap 2A belum dijalankan di Supabase.' : ''));
+      }
+      const n = paketSel.length;
+      alert(`Paket "${judul}" dibuat dengan ${n} soal. Atur publish ke kelas di Daftar Paket di bawah.`);
+      paketSel = [];
+      $id('pkJudul').value = '';
+      $id('pkDurasi').value = '';
+      $id('pkBuka').value = '';
+      $id('pkTutup').value = '';
+      $id('pkStatus').textContent = `✅ Paket "${judul}" dibuat (${n} soal).`;
+      pkRenderList();
+      renderBank('kuis');
+      await loadPaketGuru();
+    }
+
+    // ---------- Detail, lihat soal, pengaturan ----------
+    function paketDetailHTML(p) {
+      const id = String(p.id);
+      let h = `<div class="pk-info">
+        <div><b>Jenis:</b> ${escHtml(JENIS_PAKET[p.jenis] || p.jenis)}</div>
+        <div><b>Durasi:</b> ${p.durasi_menit ? p.durasi_menit + ' menit' : 'tanpa timer'}</div>
+        <div><b>Percobaan:</b> maks ${p.maks_percobaan}x${p.jenis === 'latihan' ? ' (skor terbaik dipakai)' : ''}</div>
+        <div><b>Acak:</b> soal ${p.acak_soal ? 'ya' : 'tidak'}, opsi ${p.acak_opsi ? 'ya' : 'tidak'}</div>
+        <div><b>Jadwal:</b> ${escHtml(jadwalTeks(p))}</div>
+        <div><b>Pembahasan:</b> ${escHtml(PEMBAHASAN_LABEL[p.tampil_pembahasan] || p.tampil_pembahasan)}</div>
+        <div><b>PG kompleks:</b> ${p.skema_kompleks === 'semua_atau_nol' ? 'semua-atau-nol' : 'parsial'}</div>
+      </div>`;
+      if (paketEditId === id) h += paketFormEditHTML(p);
+      if (paketLihatOpen.has(id)) {
+        const soal = paketSoalCache[id];
+        h += soal
+          ? (soal.length ? soal.map((x, i) => `<div class="pk-soal"><div class="mu" style="font-weight:700;">Soal ${i + 1}</div>${soalDetailHTML(x)}</div>`).join('') : '<p class="mu">Paket ini tidak berisi soal.</p>')
+          : '<p class="mu">Memuat soal…</p>';
+      }
+      return h;
+    }
+
+    async function paketLihat(id) {
+      id = String(id);
+      if (paketLihatOpen.has(id)) {
+        paketLihatOpen.delete(id);
+        return renderBank('paket');
+      }
+      paketLihatOpen.add(id);
+      renderBank('paket');
+      if (!paketSoalCache[id]) {
+        const { data, error } = await db.rpc('guru_detail_paket', {
+          p_user: activeUser.username, p_pass: activeUser.password, p_id: Number(id)
+        });
+        if (error) {
+          paketLihatOpen.delete(id);
+          renderBank('paket');
+          return alert('Gagal memuat soal paket: ' + error.message);
+        }
+        paketSoalCache[id] = data || [];
+        renderBank('paket');
+      }
+    }
+
+    function paketAtur(id) {
+      id = String(id);
+      paketEditId = paketEditId === id ? null : id;
+      renderBank('paket');
+    }
+
+    function paketFormEditHTML(p) {
+      const ul = p.jenis === 'ulangan';
+      const pilihMaks = [...new Set([1, 2, 3, p.maks_percobaan])].sort((a, b) => a - b);
+      const opt = (v, cur, t) => `<option value="${v}" ${v === cur ? 'selected' : ''}>${t}</option>`;
+      return `<div class="pk-edit">
+        <div class="gen-grid">
+          <div><label class="mu">Judul paket</label><input type="text" id="pe-judul" value="${escHtml(p.judul)}"></div>
+          <div><label class="mu">Durasi (menit, kosong = tanpa timer)</label><input type="number" id="pe-durasi" min="1" value="${p.durasi_menit || ''}"></div>
+          <div><label class="mu">Maks percobaan${ul ? ' (ulangan: 1x)' : ''}</label>
+            <select id="pe-maks" ${ul ? 'disabled' : ''}>${pilihMaks.map(n => opt(n, p.maks_percobaan, n + 'x')).join('')}</select></div>
+          <div><label class="mu">Acak urutan soal</label>
+            <select id="pe-acaksoal">${opt('ya', p.acak_soal ? 'ya' : 'tidak', 'Ya')}${opt('tidak', p.acak_soal ? 'ya' : 'tidak', 'Tidak')}</select></div>
+          <div><label class="mu">Acak urutan opsi</label>
+            <select id="pe-acakopsi">${opt('ya', p.acak_opsi ? 'ya' : 'tidak', 'Ya')}${opt('tidak', p.acak_opsi ? 'ya' : 'tidak', 'Tidak')}</select></div>
+          <div><label class="mu">Pembahasan tampil</label>
+            <select id="pe-pembahasan">${Object.keys(PEMBAHASAN_LABEL).map(k => opt(k, p.tampil_pembahasan, PEMBAHASAN_LABEL[k])).join('')}</select></div>
+          <div><label class="mu">Penilaian PG kompleks</label>
+            <select id="pe-skema">${opt('parsial', p.skema_kompleks, 'Parsial (nilai sebagian)')}${opt('semua_atau_nol', p.skema_kompleks, 'Semua-atau-nol')}</select></div>
+          <div><label class="mu">Dibuka</label><input type="datetime-local" id="pe-buka" value="${keInputDT(p.buka_at)}"></div>
+          <div><label class="mu">Ditutup</label><input type="datetime-local" id="pe-tutup" value="${keInputDT(p.tutup_at)}"></div>
+        </div>
+        <div class="bank-actions">
+          <button onclick="paketSimpanAtur('${p.id}')">💾 Simpan pengaturan</button>
+          <button class="alt" onclick="paketAtur('${p.id}')">Batal</button>
+        </div>
+        <p class="mu" style="font-size:0.78rem;">Isi soal tidak bisa diubah setelah paket dibuat. Untuk soal berbeda, buat paket baru.</p>
+      </div>`;
+    }
+
+    async function paketSimpanAtur(id) {
+      const p = bankState.paket.items.find(x => String(x.id) === String(id));
+      if (!p) return;
+      const judul = $id('pe-judul').value.trim();
+      if (!judul) return alert('Judul tidak boleh kosong.');
+      const durasiRaw = $id('pe-durasi').value.trim();
+      let durasi = null;
+      if (durasiRaw) {
+        durasi = parseInt(durasiRaw);
+        if (!(durasi > 0)) return alert('Durasi harus berupa menit lebih dari 0, atau kosongkan untuk tanpa timer.');
+      }
+      const buka = dariInputDT($id('pe-buka').value);
+      const tutup = dariInputDT($id('pe-tutup').value);
+      if (buka && tutup && new Date(tutup) <= new Date(buka)) return alert('Waktu tutup harus setelah waktu buka.');
+
+      const upd = {
+        judul,
+        durasi_menit: durasi,
+        maks_percobaan: p.jenis === 'ulangan' ? 1 : (parseInt($id('pe-maks').value) || p.maks_percobaan),
+        acak_soal: $id('pe-acaksoal').value === 'ya',
+        acak_opsi: $id('pe-acakopsi').value === 'ya',
+        tampil_pembahasan: $id('pe-pembahasan').value,
+        skema_kompleks: $id('pe-skema').value,
+        buka_at: buka,
+        tutup_at: tutup
+      };
+      const { error } = await db.from('paket').update(upd).eq('id', id);
+      if (error) return alert('Gagal menyimpan pengaturan: ' + error.message);
+      paketEditId = null;
+      await loadPaketGuru();
+    }
+
+    async function loadPaketGuru() {
+      await loadBank('paket');
+    }
+
+    async function loadBankSoalGuru() {
+      await loadBank('kuis');
+      renderPaketPicker();
+    }
 
     async function publishKuisMulti(kuisId, targetKelas) {
       await db.from('kuis_published').insert({ kuis_id: kuisId, kelas: targetKelas });
