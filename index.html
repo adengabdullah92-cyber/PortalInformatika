@@ -437,6 +437,17 @@
     .an-flag { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 8px; padding: 8px 10px; margin: 6px 0; font-size: 0.88rem; }
     @media (max-width: 640px) { .an-kontrol { grid-template-columns: 1fr; } .an-opsi { grid-template-columns: 1fr; } .an-topik-baris button { margin-left: 0; } }
 
+    /* Bantuan pemula Lab Koding */
+    .lab-panduan { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 10px 14px; margin: 10px 0; }
+    .lab-panduan summary { cursor: pointer; font-weight: 600; color: #0369a1; }
+    .lab-panduan ol { margin: 8px 0 8px 20px; }
+    .lab-panduan table { margin: 8px 0; font-size: 0.88rem; }
+    .lab-panduan td, .lab-panduan th { padding: 6px 8px; }
+    .lab-panduan code { background: #e0f2fe; padding: 1px 6px; border-radius: 5px; font-size: 0.85rem; }
+    .lab-tips { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 10px 14px; margin: 10px 0; font-size: 0.9rem; color: #92400e; }
+    .lab-tips ul { margin: 6px 0 0 18px; }
+    pre.lab-pseudo { background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 10px; margin: 6px 0; white-space: pre-wrap; font-size: 0.85rem; user-select: text; }
+
     /* ===== Responsif HP & tablet kecil ===== */
     .main-content { min-width: 0; }
     @media (max-width: 768px) {
@@ -452,7 +463,7 @@
       .code-preview { min-height: 140px; }
       #tabKoreksi .card { overflow-x: auto; }
     }
-    /* =====================================================================
+      /* =====================================================================
        TEMA SCRAPBOOK / KERTAS  — hanya lapisan tampilan (CSS).
        Struktur HTML, id, class, dan seluruh logika JavaScript TIDAK diubah.
        Untuk kembali ke tampilan lama: hapus blok ini sampai penanda AKHIR TEMA.
@@ -726,6 +737,13 @@
       .card h3:not(.a4-page h3) { line-height: 1.8; }
       body { background-image: linear-gradient(111deg, transparent 0 78%, #f2b4c3 78% 92%, transparent 92%), radial-gradient(rgba(90, 70, 40, 0.07) 1px, transparent 1px); }
     }
+
+    /* ---- Bantuan pemula Lab Koding (mengikuti tema) ---- */
+    .lab-panduan { background: #dff1f8; border: 2px solid var(--ink); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink); }
+    .lab-panduan summary { font-family: var(--f-type); font-weight: 400; color: var(--ink); }
+    .lab-panduan code { background: var(--note); border: 1px solid var(--ink); border-radius: 3px; font-family: var(--f-body); }
+    .lab-tips { background: var(--note); border: 2px solid var(--ink); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink); color: var(--ink); }
+    pre.lab-pseudo { background: var(--ink); color: #8fe3d6; border: 2px solid var(--ink); border-radius: 3px; }
     /* ===== AKHIR TEMA ===== */
   </style>
 </head>
@@ -1039,6 +1057,7 @@
           <!-- WORKSPACE INTERAKTIF -->
           <div id="labSection" class="card hidden" style="margin-top: 24px;">
             <div id="labHead"></div>
+            <details class="lab-panduan" id="labPanduan"><summary>🧭 Bingung memulai? Lihat peta pseudokode → balok</summary><div id="labPanduanIsi"></div></details>
             <div id="labPetunjukBox" style="margin: 10px 0;"></div>
             <p class="mu" style="margin-bottom: 8px;">Fitur Copy-Paste dimatikan untuk keamanan kejujuran.</p>
 
@@ -1111,6 +1130,8 @@
 
             <label class="mu" style="margin-top: 12px; display:block;">Petunjuk bertahap (satu per baris, dibuka siswa satu per satu):</label>
             <textarea id="tgPetunjuk" rows="3"></textarea>
+            <label class="mu">Kerangka pseudokode (jadi petunjuk TERAKHIR; kosongkan bagian penting dengan "..." agar siswa tetap berpikir):</label>
+            <textarea id="tgPseudo" rows="5" style="font-family: ui-monospace, Menlo, monospace;"></textarea>
             <label class="mu">Rubrik penilaian (untuk guru):</label>
             <textarea id="tgRubrik" rows="3"></textarea>
 
@@ -3181,7 +3202,7 @@
       const el = $id(divId);
       el.innerHTML = '';
       const cfg = {
-        scrollbars: true, trashcan: true, sounds: false,
+        scrollbars: true, trashcan: true, sounds: false, oneBasedIndex: false,   // indeks daftar mulai 0, sama seperti pseudokode di materi
         zoom: { controls: true, wheel: false, startScale: 0.9, minScale: 0.5, maxScale: 1.6 },
         move: { scrollbars: true, drag: true, wheel: false }
       };
@@ -3201,6 +3222,35 @@
       try { Blockly.serialization.workspaces.load(typeof str === 'string' ? JSON.parse(str) : str, ws); return true; } catch (_) { return false; }
     }
 
+    // ---------- Peta pseudokode -> balok (bantuan untuk pemula) ----------
+    // Nama balok mengikuti tulisan di Blockly (bahasa Inggris); tulisan persisnya bisa sedikit berbeda.
+    const LAB_PETA = {
+      io: [['BACA x (angka)', 'prompt for number with message', 'Cetak & Input'], ['BACA x (teks)', 'prompt for text with message', 'Cetak & Input'], ['CETAK nilai', 'print', 'Cetak & Input']],
+      variabel: [['x ← nilai', 'set [x] to', 'Variabel (buat variabel dulu)'], ['pakai nilai x', '[x]', 'Variabel']],
+      matematika: [['+  −  ×  ÷', '[ ] + [ ] (pilih operatornya dari menu)', 'Matematika'], ['x % y (sisa bagi)', 'remainder of [ ] ÷ [ ]', 'Matematika']],
+      logika: [['IF ... ELSE', 'if ... do (klik ikon roda gigi ⚙ untuk menambah else if / else)', 'Logika'], ['x = y, x > y, x ≥ y', '[ ] = [ ] (pilih pembandingnya dari menu)', 'Logika'], ['DAN / ATAU', '[ ] and [ ]', 'Logika']],
+      perulangan: [['FOR i ← 1 TO n', 'count with i from 1 to n by 1', 'Perulangan'], ['WHILE kondisi', 'repeat while [ ]', 'Perulangan'], ['ulangi n kali', 'repeat [ ] times', 'Perulangan']],
+      teks: [['panjang teks', 'length of [ ]', 'Teks']],
+      daftar: [['data ← [a, b, c]', 'create list with', 'Daftar'], ['data[i]', 'in list ... get # [i]', 'Daftar'], ['data[i] ← nilai', 'in list ... set # [i] as', 'Daftar'], ['panjang data', 'length of [list]', 'Daftar']],
+      fungsi: [['FUNGSI nama(n) ... RETURN', 'to [do something] ... return', 'Fungsi'], ['panggil fungsi', 'do something (balok pemanggil muncul setelah fungsi dibuat)', 'Fungsi']]
+    };
+
+    function labPanduanHTML(kat) {
+      const pilih = ['io', ...labKategoriList(kat)];
+      const baris = pilih.filter(k => LAB_PETA[k]).flatMap(k => LAB_PETA[k]);
+      const adaDaftar = pilih.includes('daftar');
+      return `<ol>
+          <li>Klik sebuah <b>kategori</b> di sebelah kiri area kerja, lalu <b>seret balok</b> ke area putih.</li>
+          <li>Sambungkan balok seperti <b>puzzle</b>: tonjolan harus masuk ke lekukan. Balok yang menggantung sendirian tidak ikut dijalankan.</li>
+          <li>Tekan <b>▶ Jalankan</b> untuk mencoba, lalu <b>✔ Periksa</b> untuk menguji dengan kasus uji. Balok salah? Seret ke tempat sampah.</li>
+        </ol>
+        <div class="tbl-scroll"><table><thead><tr><th>Di pseudokode</th><th>Cari balok</th><th>Letaknya</th></tr></thead><tbody>
+          ${baris.map(r => `<tr><td><code>${escHtml(r[0])}</code></td><td>${escHtml(r[1])}</td><td>${escHtml(r[2])}</td></tr>`).join('')}
+        </tbody></table></div>
+        ${adaDaftar ? '<p class="mu">Di Lab ini indeks daftar <b>mulai dari 0</b> (elemen pertama = 0), sama seperti pseudokode di materi.</p>' : ''}
+        <p class="mu">Tulisan di balok memakai bahasa Inggris. Tulisan persisnya bisa sedikit berbeda dari tabel ini.</p>`;
+    }
+
     // ---------- Mesin jalankan (JavaScript dari blok, di browser) ----------
     function labKodeJS(ws) {
       if (typeof javascript === 'undefined' || !javascript.javascriptGenerator) {
@@ -3216,19 +3266,19 @@
 
     function jalankanKode(kode, masukan) {
       const keluar = [];
-      let i = 0;
+      let i = 0, dibaca = 0;
       const win = {
         alert: (v) => { keluar.push(String(v)); },
-        prompt: () => (i < masukan.length ? String(masukan[i++]) : '')
+        prompt: () => { dibaca++; return i < masukan.length ? String(masukan[i++]) : ''; }
       };
       try {
         new Function('window', 'alert', 'prompt', '__lt', kode)(win, win.alert, win.prompt, LAB_BATAS_LANGKAH);
-        return { keluar, galat: null };
+        return { keluar, galat: null, dibaca };
       } catch (e) {
         const msg = e && e.message === '__LOOP__'
           ? 'Program berjalan terlalu lama (kemungkinan perulangan yang tidak pernah berhenti).'
           : 'Program berhenti karena galat: ' + (e && e.message ? e.message : e);
-        return { keluar, galat: msg };
+        return { keluar, galat: msg, dibaca };
       }
     }
 
@@ -3257,8 +3307,48 @@
       return kasus.map((k, i) => {
         const r = jalankanKode(kode, k.input);
         const keluar = r.keluar.join('\n');
-        return { no: i + 1, lulus: !r.galat && samaKeluaran(keluar, k.output), keluar, galat: r.galat, input: k.input, harapan: k.output };
+        return { no: i + 1, lulus: !r.galat && samaKeluaran(keluar, k.output), keluar, galat: r.galat, input: k.input, harapan: k.output, dibaca: r.dibaca };
       });
+    }
+
+    // Tebakan penyebab kegagalan dalam bahasa sederhana (untuk siswa pemula)
+    function labTips(hasil, opsi = {}) {
+      const tips = [];
+      const tambah = (t) => { if (!tips.includes(t)) tips.push(t); };
+      const gagal = hasil.filter(h => !h.lulus);
+      if (!gagal.length) return tips;
+      const rapat = (x) => String(x).toLowerCase().replace(/[\s.,;:!?'"()\-]+/g, '');
+      gagal.forEach(h => {
+        const k = String(h.keluar || '').trim();
+        const harapan = typeof h.harapan === 'string' && h.harapan !== '' ? h.harapan.trim() : null;
+        if (h.galat) {
+          if (/masih kosong/.test(h.galat)) tambah('Area kerja masih kosong. Pilih kategori di sebelah kiri, seret balok ke area putih, lalu sambungkan seperti puzzle (tonjolan masuk ke lekukan).');
+          else if (/terlalu lama/.test(h.galat)) tambah('Perulangan tidak pernah berhenti. Pastikan nilai yang diperiksa pada kondisi berubah di dalam perulangan, misalnya N dikurangi 1 setiap putaran.');
+          else if (/not defined|before initialization/.test(h.galat)) tambah('Ada variabel yang dipakai sebelum diberi nilai. Beri nilai awal lebih dulu dengan balok "set ... to".');
+          else tambah('Program berhenti karena galat. Periksa balok yang belum tersambung atau kotak yang masih kosong.');
+          return;
+        }
+        if (!opsi.tebak) {
+          if (k === '') { tambah('Programmu belum mencetak apa pun. Tambahkan balok "print" dan sambungkan ke nilai yang ingin ditampilkan.'); return; }
+          if (/NaN/.test(k)) tambah('Muncul NaN (bukan angka). Baca angka dengan balok "prompt for number" dan pastikan jumlah masukan sesuai soal.');
+          if (typeof h.dibaca === 'number' && Array.isArray(h.input) && h.dibaca !== h.input.length) tambah(`Jumlah masukan yang tersedia (${h.input.length}) tidak sama dengan yang dibaca programmu (${h.dibaca}). Cek balok "prompt" yang kamu pakai.`);
+          if (Array.isArray(h.input) && h.input.length >= 2 && k === h.input.slice(0, 2).join('')) tambah(`Hasilnya (${k}) menggabungkan teks, bukan menjumlahkan angka. Baca masukan dengan "prompt for number", bukan "prompt for text".`);
+        }
+        if (harapan !== null) {
+          if (k.toLowerCase() === harapan.toLowerCase() && k !== harapan) tambah('Isinya sudah benar tetapi huruf besar/kecilnya berbeda. Tulis persis seperti contoh.');
+          else if (rapat(k) === rapat(harapan) && k !== harapan) tambah('Isinya mirip, tetapi spasi atau tanda baca berbeda dari yang diminta. Tulis persis seperti contoh.');
+          else {
+            const a = k.split('\n').length, b = harapan.split('\n').length;
+            if (a !== b) tambah(`Banyak baris keluaran berbeda: seharusnya ${b} baris, ${opsi.tebak ? 'tebakanmu' : 'programmu'} ${a} baris.${opsi.tebak ? '' : ' Periksa apakah "print" berada di dalam atau di luar perulangan.'}`);
+          }
+        }
+      });
+      if (hasil.length > 1 && hasil[0].lulus && gagal.length) tambah('Lulus di kasus contoh tetapi gagal di kasus lain. Coba kasus tepi seperti 0, bilangan negatif, atau dua bilangan yang sama.');
+      return tips.slice(0, 3);
+    }
+
+    function labTipsHTML(tips) {
+      return tips.length ? `<div class="lab-tips">💡 <b>Kemungkinan penyebab</b><ul>${tips.map(t => `<li>${escHtml(t)}</li>`).join('')}</ul></div>` : '';
     }
 
     function labHasilHTML(hasil, opsi = {}) {
@@ -3275,7 +3365,7 @@
           ${!h.lulus && !tampilHarapan ? '<div class="mu">Kasus ini tersembunyi: periksa kembali logikamu.</div>' : ''}
         </div>`;
       }).join('');
-      return `<div style="margin:10px 0;"><span class="badge ${lencana}">Lulus ${lulus} dari ${hasil.length} kasus uji</span></div>${baris}`;
+      return `<div style="margin:10px 0;"><span class="badge ${lencana}">Lulus ${lulus} dari ${hasil.length} kasus uji</span></div>${labTipsHTML(opsi.tips || [])}${baris}`;
     }
 
     // ================= SISI GURU: FORM TUGAS =================
@@ -3374,6 +3464,7 @@
         $id('tgDesk').value = t.deskripsi || '';
         $id('tgPetunjuk').value = (t.petunjuk || []).join('\n');
         $id('tgRubrik').value = t.rubrik || '';
+        $id('tgPseudo').value = t.pseudokode || '';
         tgSetKategori(t.kategori || []);
         tgIsiKasus(t.kasus_uji || []);
         status.textContent = '✅ Draf terisi. Periksa semua isian, terutama keluaran kasus uji (hitungan AI bisa keliru): susun jawaban contoh di workspace lalu tekan "Uji kasus uji".';
@@ -3410,7 +3501,7 @@
 
     function tgReset() {
       tgEditId = null; tgHasilUji = null;
-      ['tgJudul', 'tgDesk', 'tgTopik', 'tgTujuan', 'tgPetunjuk', 'tgRubrik'].forEach(i => { $id(i).value = ''; });
+      ['tgJudul', 'tgDesk', 'tgTopik', 'tgTujuan', 'tgPetunjuk', 'tgRubrik', 'tgPseudo'].forEach(i => { $id(i).value = ''; });
       $id('tgJenis').value = 'buat'; $id('tgMateri').value = '';
       $id('tgAIStatus').textContent = ''; $id('tgUjiHasil').innerHTML = '';
       tgSetKategori([]); tgIsiKasus([]); tgJenisBerubah();
@@ -3438,6 +3529,7 @@
         topik: $id('tgTopik').value.trim() || null, tujuan: $id('tgTujuan').value.trim() || null,
         kategori: tgKategoriDipilih(), kasus_uji: kasus,
         petunjuk: $id('tgPetunjuk').value.split('\n').map(s => s.trim()).filter(Boolean),
+        pseudokode: $id('tgPseudo').value.trim() || null,
         rubrik: $id('tgRubrik').value.trim() || null, starter
       };
       const q = tgEditId ? db.from('tugas').update(baris).eq('id', tgEditId) : db.from('tugas').insert(baris);
@@ -3457,7 +3549,7 @@
       $id('tgJenis').value = LAB_JENIS[x.jenis] ? x.jenis : 'buat';
       $id('tgTopik').value = x.topik || ''; $id('tgTujuan').value = x.tujuan || '';
       $id('tgPetunjuk').value = (Array.isArray(x.petunjuk) ? x.petunjuk : []).join('\n');
-      $id('tgRubrik').value = x.rubrik || '';
+      $id('tgRubrik').value = x.rubrik || ''; $id('tgPseudo').value = x.pseudokode || '';
       tgSetKategori(Array.isArray(x.kategori) ? x.kategori : []);
       tgIsiKasus(labKasusList(x.kasus_uji));
       tgJenisBerubah();
@@ -3490,6 +3582,7 @@
         ${x.tujuan ? `<div><b>Tujuan:</b> ${escHtml(x.tujuan)}</div>` : ''}
         <div class="soal-teks" style="margin-top:6px;">${escHtml(x.deskripsi) || '<span class="mu">(tanpa instruksi)</span>'}</div>
         ${pet.length ? `<div style="margin-top:6px;"><b>Petunjuk:</b><ol style="margin:4px 0 0 18px;">${pet.map(p => `<li>${escHtml(p)}</li>`).join('')}</ol></div>` : ''}
+        ${x.pseudokode ? `<div style="margin-top:6px;"><b>Kerangka pseudokode (petunjuk terakhir):</b><pre class="lab-pseudo">${escHtml(x.pseudokode)}</pre></div>` : ''}
         ${x.rubrik ? `<div style="margin-top:6px;"><b>Rubrik:</b><div class="soal-teks">${escHtml(x.rubrik)}</div></div>` : ''}
       </div>`;
       if (tugasKumOpen.has(String(x.id))) h += tugasKumHTML(String(x.id));
@@ -3675,7 +3768,7 @@
       selectedTugasId = t.id;
       labS = { t, ws: null, mulai: Date.now(), aksi: 0, jalankan: 0, periksa: 0, petunjuk: 0, memuat: true, kunci: null, terakhir: null, simpanT: null, timer: null };
       const jenis = LAB_JENIS[t.jenis] ? t.jenis : 'buat';
-      const pet = Array.isArray(t.petunjuk) ? t.petunjuk : [];
+      const pet = labPetunjukList(t);
       const kasus = labKasusList(t.kasus_uji);
 
       $id('labSection').classList.remove('hidden');
@@ -3686,6 +3779,8 @@
         <div class="soal-teks lab-instruksi">${escHtml(t.deskripsi) || '(tanpa instruksi)'}</div>`;
       $id('labPetunjukBox').innerHTML = pet.length
         ? `<div id="labPetunjukIsi"></div><button class="alt" id="btnPetunjuk" onclick="labPetunjuk()">💡 Butuh petunjuk? (0/${pet.length})</button>` : '';
+      $id('labPanduanIsi').innerHTML = labPanduanHTML(t.kategori);
+      $id('labPanduan').open = false;
       $id('labMasukan').value = (kasus[0] && kasus[0].input || []).join('\n');
       $id('labMasukanBox').classList.toggle('hidden', jenis === 'tebak');
       $id('labTebakBox').classList.toggle('hidden', jenis !== 'tebak');
@@ -3722,11 +3817,19 @@
       $id('labSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
+    function labPetunjukList(t) {
+      const p = (Array.isArray(t.petunjuk) ? t.petunjuk : []).map(x => ({ teks: x }));
+      if (t.pseudokode) p.push({ teks: t.pseudokode, pseudo: true });
+      return p;
+    }
+
     function labPetunjuk() {
-      const pet = Array.isArray(labS.t.petunjuk) ? labS.t.petunjuk : [];
+      const pet = labPetunjukList(labS.t);
       if (labS.petunjuk >= pet.length) return;
       labS.petunjuk++;
-      $id('labPetunjukIsi').innerHTML = pet.slice(0, labS.petunjuk).map((p, i) => `<div class="pembahasan">💡 <b>Petunjuk ${i + 1}</b><div class="soal-teks">${escHtml(p)}</div></div>`).join('');
+      $id('labPetunjukIsi').innerHTML = pet.slice(0, labS.petunjuk).map((p, i) => p.pseudo
+        ? `<div class="pembahasan">🧩 <b>Kerangka pseudokode</b><pre class="lab-pseudo">${escHtml(p.teks)}</pre><div class="mu">Bagian bertanda ... harus kamu isi sendiri.</div></div>`
+        : `<div class="pembahasan">💡 <b>Petunjuk ${i + 1}</b><div class="soal-teks">${escHtml(p.teks)}</div></div>`).join('');
       const b = $id('btnPetunjuk');
       if (labS.petunjuk >= pet.length) b.classList.add('hidden'); else b.textContent = `💡 Petunjuk berikutnya (${labS.petunjuk}/${pet.length})`;
     }
@@ -3739,7 +3842,8 @@
       const masukan = $id('labMasukan').value.split('\n').map(s => s.trim()).filter(s => s !== '');
       const r = jalankanKode(kode, masukan);
       $id('labKeluaran').innerHTML = `<div class="mu">Keluaran program:</div><pre class="lab-out">${escHtml(r.keluar.join('\n')) || '(tidak ada keluaran)'}</pre>` +
-        (r.galat ? `<div class="lab-galat">${escHtml(r.galat)}</div>` : '');
+        (r.galat ? `<div class="lab-galat">${escHtml(r.galat)}</div>` : '') +
+        labTipsHTML(labTips([{ lulus: false, keluar: r.keluar.join('\n'), galat: r.galat, input: masukan, dibaca: r.dibaca }]));
     }
 
     function labHitungHasil() {
@@ -3762,7 +3866,7 @@
       let hasil;
       try { hasil = labHitungHasil(); } catch (e) { return alert(e.message); }
       labS.periksa++; labS.terakhir = hasil;
-      $id('labHasil').innerHTML = labHasilHTML(hasil, { semua: false });
+      $id('labHasil').innerHTML = labHasilHTML(hasil, { semua: false, tips: labTips(hasil, { tebak: labS.t.jenis === 'tebak' }) });
     }
 
     function tutupLab() {
@@ -3784,7 +3888,7 @@
       try { hasil = labHitungHasil(); } catch (e) { return alert(e.message); }
       const lulus = hasil.filter(h => h.lulus).length;
       if (hasil.length && lulus < hasil.length && !confirm(`Baru ${lulus} dari ${hasil.length} kasus uji yang lulus. Tetap kirim ke guru?`)) {
-        labS.terakhir = hasil; $id('labHasil').innerHTML = labHasilHTML(hasil, { semua: false });
+        labS.terakhir = hasil; $id('labHasil').innerHTML = labHasilHTML(hasil, { semua: false, tips: labTips(hasil, { tebak: jenis === 'tebak' }) });
         return;
       }
 
