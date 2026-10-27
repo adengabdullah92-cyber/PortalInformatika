@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LMS Informatika SMAN 6 Pandeglang</title>
+  <title>LMS Informatika SMA - Master Multi-Media Edition</title>
   
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&family=Playfair+Display:wght@700;900&family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/blockly/blockly.min.js"></script>
   <script src="https://unpkg.com/blockly/python_compressed.js"></script>
@@ -417,6 +417,26 @@
     .ai-box { background: #faf5ff; border: 1px dashed #c4b5fd; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
     @media (max-width: 640px) { .tg-baris { grid-template-columns: 1fr; } .tg-kasus { grid-template-columns: 1fr; } .tg-kasus button { margin-top: 0; } #tgEditorDiv { height: 340px; } .lab-ctrl .mu { margin-left: 0; width: 100%; } }
 
+    /* Analisis butir soal (Tahap 3) */
+    .an-panel { margin-top: 12px; }
+    .an-kontrol { display: grid; grid-template-columns: 1fr 1.4fr 0.8fr auto; gap: 10px; align-items: end; margin-bottom: 10px; }
+    .an-kontrol select, .an-kontrol input { margin: 2px 0 0; }
+    .an-topik { margin: 8px 0; }
+    .an-topik-baris { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
+    .an-topik-baris button { padding: 6px 12px; font-size: 0.82rem; margin-left: auto; }
+    .an-bar { height: 10px; background: #e2e8f0; border-radius: 6px; overflow: hidden; flex: 1; min-width: 60px; }
+    .an-bar > i { display: block; height: 100%; background: #10b981; border-radius: 6px; }
+    .an-bar > i.warn { background: #f59e0b; }
+    .an-bar > i.bad { background: #ef4444; }
+    .an-butir { border: 1px solid var(--bd); border-radius: 10px; padding: 8px 12px; margin: 8px 0; background: #fff; }
+    .an-butir summary { cursor: pointer; list-style: none; }
+    .an-butir[open] { border-color: var(--ac); }
+    .an-isi { margin-top: 10px; border-top: 1px dashed var(--bd); padding-top: 10px; }
+    .an-opsi { display: grid; grid-template-columns: 1fr 120px auto; gap: 8px; align-items: center; margin: 6px 0; font-size: 0.9rem; }
+    .an-opsi.pengecoh { background: #fffbeb; border-radius: 8px; padding: 4px 6px; }
+    .an-flag { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 8px; padding: 8px 10px; margin: 6px 0; font-size: 0.88rem; }
+    @media (max-width: 640px) { .an-kontrol { grid-template-columns: 1fr; } .an-opsi { grid-template-columns: 1fr; } .an-topik-baris button { margin-left: 0; } }
+
     /* ===== Responsif HP & tablet kecil ===== */
     .main-content { min-width: 0; }
     @media (max-width: 768px) {
@@ -432,276 +452,13 @@
       .code-preview { min-height: 140px; }
       #tabKoreksi .card { overflow-x: auto; }
     }
-
-    /* =====================================================================
-       TEMA SCRAPBOOK / KERTAS  — hanya lapisan tampilan (CSS).
-       Struktur HTML, id, class, dan seluruh logika JavaScript TIDAK diubah.
-       Untuk kembali ke tampilan lama: hapus blok ini sampai penanda AKHIR TEMA.
-       ===================================================================== */
-    :root {
-      --ink: #1d2140;
-      --paper: #f7f3e9;
-      --paper-2: #fbf9f3;
-      --grid: #e4dcc8;
-      --kraft: #cfa970;
-      --yellow: #f3c53b;
-      --note: #fbf3b8;
-      --pink: #f4a9c3;
-      --sky: #93d3ee;
-      --mint: #a5e2ab;
-      --lav: #c9b8f3;
-      --peach: #f8b98a;
-      --teal: #1e7a70;
-      --red: #d63a2d;
-      --hot: #e8456b;
-
-      --bg: #eae1d0;
-      --card: var(--paper);
-      --tx: var(--ink);
-      --mu: #6a6455;
-      --ac: var(--teal);
-      --ac-grad: var(--teal);
-      --ai-grad: #7a5fcc;
-      --ok: #2a8f5f;
-      --bad: var(--red);
-      --warn: #c98a0b;
-      --bd: #d2c8b0;
-
-      --f-head: 'Playfair Display', Georgia, serif;
-      --f-type: 'Special Elite', 'Courier New', monospace;
-      --f-body: 'Courier Prime', 'Courier New', monospace;
-    }
-
-    ::selection { background: var(--yellow); color: var(--ink); }
-
-    /* ---- Latar: krem + pita pink diagonal ---- */
-    body {
-      font-family: var(--f-body);
-      color: var(--ink);
-      background-color: #eae1d0;
-      background-image:
-        linear-gradient(111deg, transparent 0 70%, #f2b4c3 70% 87%, transparent 87%),
-        radial-gradient(rgba(90, 70, 40, 0.07) 1px, transparent 1px);
-      background-size: 100% 100%, 5px 5px;
-      background-attachment: fixed;
-    }
-
-    /* ---- Header: kertas kraft + selotip + tepi sobek ---- */
-    header {
-      position: relative;
-      background: var(--kraft);
-      border-bottom: 2px solid var(--ink);
-      box-shadow: none;
-      padding: 14px 26px;
-      margin-bottom: 10px;
-    }
-    header::before {
-      content: ''; position: absolute; left: 16px; top: -7px; width: 88px; height: 22px;
-      background: rgba(255, 255, 255, 0.6); transform: rotate(-3deg);
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15); pointer-events: none;
-    }
-    header::after {
-      content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 10px;
-      background:
-        linear-gradient(135deg, var(--kraft) 50%, transparent 50%) 0 0 / 14px 10px,
-        linear-gradient(225deg, var(--kraft) 50%, transparent 50%) 0 0 / 14px 10px;
-      filter: drop-shadow(0 2px 0 var(--ink)); pointer-events: none;
-    }
-    .brand {
-      font-family: var(--f-head); font-weight: 900; font-size: 1.25rem; letter-spacing: 0;
-      color: var(--ink); background: var(--yellow);
-      padding: 4px 16px 5px; border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
-      transform: rotate(-1deg);
-    }
-
-    /* ---- Sidebar -> stiker tab berwarna ---- */
-    .sidebar { background: transparent; border-right: none; padding: 26px 14px 20px; gap: 14px; }
-    .nav-item {
-      font-family: var(--f-type); font-weight: 400; font-size: 0.95rem;
-      color: var(--ink); background: var(--pink);
-      border: 2px solid var(--ink); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink);
-      padding: 11px 14px; transition: transform 0.12s ease, box-shadow 0.12s ease;
-    }
-    .nav-item:nth-child(1) { background: var(--pink); }
-    .nav-item:nth-child(2) { background: var(--sky); }
-    .nav-item:nth-child(3) { background: var(--mint); }
-    .nav-item:nth-child(4) { background: var(--lav); }
-    .nav-item:hover { background: var(--yellow); color: var(--ink); transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
-    .nav-item.active { background: var(--ink); color: #fff; border-color: var(--ink); box-shadow: 4px 4px 0 var(--hot); transform: translate(-1px, -1px); }
-
-    .main-content { padding: 30px 30px 40px; }
-
-    /* ---- Kartu: kertas berpetak + selotip ---- */
-    .card {
-      position: relative;
-      background-color: var(--paper);
-      background-image:
-        linear-gradient(var(--grid) 1px, transparent 1px),
-        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-      background-size: 22px 22px;
-      border: 1px solid rgba(29, 33, 64, 0.2);
-      border-radius: 3px;
-      box-shadow: 0 10px 22px rgba(70, 50, 20, 0.18), 0 2px 4px rgba(70, 50, 20, 0.12);
-      padding: 28px 26px; margin-bottom: 36px;
-    }
-    .card::before {
-      content: ''; position: absolute; top: -11px; left: 28px; width: 92px; height: 24px;
-      background: rgba(243, 197, 59, 0.8); transform: rotate(-2deg);
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14); pointer-events: none;
-    }
-    .card:nth-child(even)::before { left: auto; right: 30px; background: rgba(255, 255, 255, 0.7); transform: rotate(2deg); }
-
-    /* ---- Judul ---- */
-    /* h2: label stabilo kuning bertepi sobek */
-    .main-content h2, #viewLogin h2 {
-      display: inline-block; max-width: 100%;
-      font-family: var(--f-head); font-weight: 900; font-size: 1.45rem; line-height: 1.3;
-      color: var(--ink); background: var(--yellow);
-      padding: 6px 22px 7px 14px; margin: 0 0 12px;
-      transform: rotate(-0.8deg);
-      clip-path: polygon(0 8%, 3% 0, 12% 6%, 25% 1%, 40% 7%, 58% 0, 75% 5%, 90% 0, 100% 7%, 99% 55%, 100% 94%, 88% 100%, 70% 94%, 50% 100%, 30% 95%, 10% 100%, 1% 92%, 0 60%);
-    }
-    /* h3: subjudul mesin tik dengan garis bergelombang merah */
-    .card h3:not(.a4-page h3) {
-      display: inline-block;
-      font-family: var(--f-type); font-weight: 400; font-size: 1.12rem; color: var(--ink);
-      text-decoration: underline wavy var(--red); text-decoration-thickness: 1.5px; text-underline-offset: 6px;
-      margin-bottom: 16px;
-    }
-    .mu { color: var(--mu); }
-    label.mu, label { font-family: var(--f-type); font-size: 0.82rem; color: var(--ink); }
-
-    /* ---- Input ---- */
-    input, select, textarea {
-      font-family: var(--f-body); font-size: 0.95rem; color: var(--ink);
-      background: var(--paper-2); border: 2px solid var(--ink); border-radius: 3px;
-      box-shadow: 2px 2px 0 rgba(29, 33, 64, 0.85);
-    }
-    input::placeholder, textarea::placeholder { color: #8d8776; }
-    input:focus, select:focus, textarea:focus { background: #fff; border-color: var(--ink); box-shadow: 3px 3px 0 var(--teal); }
-    input[type=checkbox], input[type=radio] { box-shadow: none; accent-color: var(--teal); }
-
-    /* ---- Tombol ---- */
-    button {
-      font-family: var(--f-type); font-weight: 400; font-size: 0.95rem; letter-spacing: 0.01em;
-      background: var(--teal); color: #fff;
-      border: 2px solid var(--ink); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink);
-      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
-    }
-    button:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
-    button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
-    button.alt { background: var(--paper-2); color: var(--ink); border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); }
-    button.alt:hover { background: var(--note); }
-    button.ai { background: #7a5fcc; color: #fff; box-shadow: 3px 3px 0 var(--ink); }
-    button.ok { background: var(--ok); color: #fff; box-shadow: 3px 3px 0 var(--ink); }
-    button.danger, button.alt.danger { background: var(--red); color: #fff; border-color: var(--ink); }
-    button:disabled, button:disabled:hover, button:disabled:active { opacity: 0.5; transform: none; box-shadow: 2px 2px 0 var(--ink); }
-
-    /* ---- Pemilih mode (tab kecil) ---- */
-    .mode-selector { background: transparent; padding: 0; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
-    .mode-btn {
-      font-family: var(--f-type); background: var(--sky); color: var(--ink);
-      border: 2px solid var(--ink); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink); padding: 9px 14px;
-    }
-    .mode-btn:nth-child(2) { background: var(--mint); }
-    .mode-btn:nth-child(3) { background: var(--peach); }
-    .mode-btn.active { background: var(--ink); color: #fff; box-shadow: 3px 3px 0 var(--hot); }
-    .mode-btn.active:hover { box-shadow: 4px 4px 0 var(--hot); }
-
-    /* ---- Tabel ---- */
-    table { background: var(--paper-2); border: 2px solid var(--ink); }
-    th { background: var(--kraft); color: var(--ink); font-family: var(--f-type); font-weight: 400; border-bottom: 2px solid var(--ink); }
-    td { border-bottom: 1px dashed #b9ae94; }
-    tbody tr:nth-child(even) td { background: rgba(243, 197, 59, 0.1); }
-
-    /* ---- Lencana, statistik ---- */
-    .badge { font-family: var(--f-type); font-weight: 400; background: var(--sky); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 3px; box-shadow: 1.5px 1.5px 0 var(--ink); }
-    .badge.warn { background: var(--note); color: var(--ink); border-color: var(--ink); }
-    .badge.bad  { background: #f7b0a8; color: #7a1710; border-color: var(--ink); }
-    .badge.ok   { background: var(--mint); color: #14522f; border-color: var(--ink); }
-
-    .stat-card { background: var(--note); border: 2px solid var(--ink); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink); }
-    .stat-card:nth-child(3n+2) { background: #d9f0f8; }
-    .stat-card:nth-child(3n)   { background: #fbdbe6; }
-    .stat-card .num { font-family: var(--f-head); font-weight: 900; color: var(--ink); }
-
-    /* ---- Pilihan soal ---- */
-    .quiz-option { font-family: var(--f-body); background: var(--paper-2); border: 2px solid var(--ink); border-radius: 3px; box-shadow: 2px 2px 0 var(--ink); color: var(--ink); }
-    .quiz-option:hover { background: var(--note); border-color: var(--ink); color: var(--ink); }
-    .quiz-option.sel { background: #bfe6e1; border-color: var(--ink); color: var(--ink); box-shadow: 3px 3px 0 var(--teal); }
-    .quiz-option.benar { background: #c9efd5; border-color: var(--ink); color: #14522f; }
-    .quiz-option.salah { background: #f9c9c3; border-color: var(--ink); color: #7a1710; }
-    .bs-row { background: var(--paper-2); border: 1.5px solid var(--ink); border-radius: 3px; }
-    .bs-row.benar { background: #c9efd5; border-color: var(--ink); }
-    .bs-row.salah { background: #f9c9c3; border-color: var(--ink); }
-
-    /* ---- Chip ---- */
-    .chip { font-family: var(--f-type); font-weight: 400; background: var(--paper-2); border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); }
-    .chip.on { background: var(--mint); border-color: var(--ink); color: #14522f; }
-    .chip:has(input:checked) { background: var(--note); border-color: var(--ink); color: var(--ink); }
-
-    /* ---- Daftar bank master ---- */
-    .bank-row { background: var(--paper-2); border: 2px solid var(--ink); border-radius: 3px; box-shadow: 3px 3px 0 rgba(29, 33, 64, 0.85); }
-    .bank-row.open { background: #fff; border-color: var(--ink); box-shadow: 4px 4px 0 var(--teal); }
-    .bank-head:hover { background: var(--note); }
-    .bank-body { border-top: 2px dashed #b9ae94; }
-    .bank-title b { font-family: var(--f-type); font-weight: 400; font-size: 1.02rem; }
-
-    /* ---- Panel, draf, kuis, lab ---- */
-    .pk-list, .publish-panel, .draft-card, .lab-kasus, .lab-instruksi { background: var(--paper-2); border: 2px solid var(--ink); border-radius: 3px; }
-    .draft-card { box-shadow: 3px 3px 0 var(--ink); }
-    .draft-card.warn { background: #fff5c4; border-color: var(--ink); }
-    .draft-bar, .ks-bar { background: var(--kraft); border: 2px solid var(--ink); border-radius: 3px; font-family: var(--f-type); }
-    .ks-bar { box-shadow: 3px 3px 0 var(--ink); }
-    .pk-row:has(input:checked) { background: var(--note); }
-    .pk-edit, .media-preview-box { background: #f3ecd9; border: 2px dashed #8d8776; border-radius: 3px; }
-    .ai-box { background: #e9e0fb; border: 2px dashed var(--ink); border-radius: 3px; }
-    .preview-box { background: #d9cfb9; border: 2px solid var(--ink); border-radius: 3px; }
-    .draft-warn { background: #fff5c4; border: 1.5px solid var(--ink); color: var(--ink); border-radius: 3px; }
-    .pembahasan { background: #dff1f8; border-left: 5px solid var(--ink); border-radius: 3px; }
-    .detail-opsi.kunci { background: #c9efd5; }
-    .lab-galat { background: #fbd9d4; border: 1.5px solid var(--ink); color: #7a1710; border-radius: 3px; }
-    .lab-kasus.lulus { background: #d7f1de; border-color: var(--ink); }
-    .lab-kasus.gagal { background: #fbe3df; border-color: var(--ink); }
-
-    .ks-no { font-family: var(--f-type); background: var(--paper-2); color: var(--ink); border: 2px solid var(--ink); border-radius: 3px; box-shadow: 2px 2px 0 var(--ink); }
-    .ks-no:hover { transform: none; box-shadow: 2px 2px 0 var(--ink); background: var(--note); }
-    .ks-no.done { background: #c9efd5; border-color: var(--ink); color: #14522f; }
-    .ks-no.part { background: #fff0b0; border-color: var(--ink); color: #7a4d00; }
-    .ks-no.now { outline: 3px solid var(--pink); outline-offset: 1px; }
-    .ks-angka { font-family: var(--f-head); font-weight: 900; color: var(--ink); }
-
-    .code-preview, pre.lab-out, .lab-kasus pre { background: var(--ink); color: #8fe3d6; border: 2px solid var(--ink); border-radius: 3px; }
-    #blocklyDiv, #tgEditorDiv { border: 2px solid var(--ink); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink); }
-
-    /* ---- Modal ---- */
-    .modal { background: rgba(29, 33, 64, 0.55); }
-    .modal-box { background: #d9cfb9; border: 2px solid var(--ink); border-radius: 3px; box-shadow: 8px 8px 0 var(--ink); }
-    .modal-bar { background: var(--kraft); border-bottom: 2px solid var(--ink); font-family: var(--f-type); }
-
-    /* ---- Layar kecil ---- */
-    @media (max-width: 768px) {
-      header { padding: 10px 14px; }
-      .brand { font-size: 1.05rem; padding: 3px 12px 4px; }
-      .sidebar { padding: 14px 12px 14px; gap: 10px; }
-      .nav-item { padding: 9px 12px; font-size: 0.88rem; }
-      .main-content { padding: 22px 12px 32px; }
-      .card { padding: 22px 16px; margin-bottom: 30px; }
-      .main-content h2, #viewLogin h2 { font-size: 1.2rem; }
-      header { flex-wrap: wrap; gap: 8px; }
-      #userInfo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-      #userInfo .alt { margin-left: 0 !important; }
-      .card h3:not(.a4-page h3) { line-height: 1.8; }
-      body { background-image: linear-gradient(111deg, transparent 0 78%, #f2b4c3 78% 92%, transparent 92%), radial-gradient(rgba(90, 70, 40, 0.07) 1px, transparent 1px); }
-    }
-    /* ===== AKHIR TEMA ===== */
   </style>
 </head>
 <body>
 
   <!-- TOP HEADER -->
   <header>
-    <div class="brand">⚡Informatika</div>
+    <div class="brand">⚡ LMS Informatika SMA</div>
     <div id="userInfo" class="hidden">
       <span id="userName" class="badge"></span>
       <button class="alt" onclick="logout()" style="margin-left: 10px; padding: 8px 16px;">Keluar</button>
@@ -1279,7 +1036,7 @@
         cari: p => `${p.judul || ''} ${p.jenis || ''}`,
         sub: p => escHtml(paketRingkas(p)),
         detail: p => paketDetailHTML(p),
-        aksi: p => `<button class="alt" onclick="paketLihat('${p.id}')">${paketLihatOpen.has(String(p.id)) ? '🙈 Sembunyikan soal' : '👁️ Lihat soal & kunci'}</button><button class="alt" onclick="paketHasil('${p.id}')">${paketHasilOpen.has(String(p.id)) ? '🙈 Sembunyikan hasil' : '📊 Hasil siswa'}</button><button class="alt" onclick="paketAtur('${p.id}')">${paketEditId === String(p.id) ? '✖️ Tutup pengaturan' : '⚙️ Atur'}</button>`
+        aksi: p => `<button class="alt" onclick="paketLihat('${p.id}')">${paketLihatOpen.has(String(p.id)) ? '🙈 Sembunyikan soal' : '👁️ Lihat soal & kunci'}</button><button class="alt" onclick="paketHasil('${p.id}')">${paketHasilOpen.has(String(p.id)) ? '🙈 Sembunyikan hasil' : '📊 Hasil siswa'}</button><button class="alt" onclick="paketAnalisis('${p.id}')">${paketAnalisisOpen.has(String(p.id)) ? '🙈 Sembunyikan analisis' : '📈 Analisis soal'}</button><button class="alt" onclick="paketAtur('${p.id}')">${paketEditId === String(p.id) ? '✖️ Tutup pengaturan' : '⚙️ Atur'}</button>`
       },
       tugas: {
         tabel: 'tugas', pubTabel: 'tugas_published', fk: 'tugas_id', el: 'listBankTugas', nama: 'tugas',
@@ -2358,6 +2115,7 @@
       </div>`;
       if (paketEditId === id) h += paketFormEditHTML(p);
       if (paketHasilOpen.has(id)) h += paketHasilHTML(id);
+      if (paketAnalisisOpen.has(id)) h += paketAnalisisHTML(id);
       if (paketLihatOpen.has(id)) {
         const soal = paketSoalCache[id];
         h += soal
@@ -2819,6 +2577,179 @@
           <div style="margin-top:8px;">${isi}</div>
           ${r.pembahasan ? `<div class="pembahasan">💡 <b>Pembahasan</b><div class="soal-teks">${escHtml(r.pembahasan)}</div></div>` : ''}
         </div>`;
+    }
+
+    // ================= TAHAP 3: ANALISIS BUTIR SOAL & REMEDIAL (guru) =================
+    const paketAnalisisOpen = new Set();
+    const paketAnalisisCache = {};
+    const paketAnalisisParam = {};
+
+    function anParam(id) { return paketAnalisisParam[id] || (paketAnalisisParam[id] = { kelas: '', percobaan: 'pertama', ambang: 70 }); }
+
+    async function paketAnalisis(id) {
+      id = String(id);
+      if (paketAnalisisOpen.has(id)) { paketAnalisisOpen.delete(id); return renderBank('paket'); }
+      paketAnalisisOpen.add(id);
+      await muatAnalisis(id);
+    }
+
+    async function muatAnalisis(id) {
+      id = String(id);
+      delete paketAnalisisCache[id];
+      renderBank('paket');
+      const p = anParam(id);
+      try {
+        paketAnalisisCache[id] = await kuisAPI('analisis', { paket_id: Number(id), kelas: p.kelas, percobaan: p.percobaan, ambang: p.ambang }, { timeout: 45000 });
+      } catch (e) {
+        paketAnalisisOpen.delete(id);
+        alert('Gagal memuat analisis: ' + e.message + (/Aksi tidak dikenal/.test(e.message) ? '\n\nDeploy dulu Edge Function kuis-siswa versi terbaru.' : ''));
+      }
+      renderBank('paket');
+    }
+
+    function anTerapkan(id) {
+      const p = anParam(id);
+      p.kelas = $id('an-kelas-' + id).value;
+      p.percobaan = $id('an-perc-' + id).value;
+      const a = Number($id('an-ambang-' + id).value);
+      p.ambang = isFinite(a) && a > 0 && a <= 100 ? a : 70;
+      muatAnalisis(id);
+    }
+
+    const AN_KESULITAN = { sulit: ['bad', 'Sulit'], sedang: ['ok', 'Sedang'], mudah: ['warn', 'Mudah'] };
+    const AN_DAYA = { 'sangat baik': 'ok', baik: 'ok', cukup: 'warn', rendah: 'bad', negatif: 'bad' };
+    const pctTeks = (x) => (x === null || x === undefined ? '-' : Math.round(x * 100) + '%');
+
+    function paketAnalisisHTML(id) {
+      const a = paketAnalisisCache[id];
+      if (!a) return '<p class="mu">Memuat analisis…</p>';
+      const p = anParam(id);
+      const r = a.ringkas || {};
+      const opt = (v, cur, t) => `<option value="${escHtml(v)}" ${String(v) === String(cur) ? 'selected' : ''}>${escHtml(t)}</option>`;
+      let h = `<div class="an-panel">
+        <div class="an-kontrol">
+          <div><label class="mu">Kelas</label><select id="an-kelas-${id}">${opt('', a.kelas_dipilih, 'Semua kelas')}${(a.kelas_tersedia || []).map(k => opt(k, a.kelas_dipilih, k)).join('')}</select></div>
+          <div><label class="mu">Data yang dianalisis</label><select id="an-perc-${id}">${opt('pertama', p.percobaan, 'Percobaan pertama (kemampuan awal)')}${opt('terbaik', p.percobaan, 'Percobaan terbaik')}</select></div>
+          <div><label class="mu">Ambang remedial (skor/% )</label><input type="number" id="an-ambang-${id}" min="1" max="100" value="${escHtml(p.ambang)}"></div>
+          <button class="alt" onclick="anTerapkan('${id}')">🔄 Terapkan</button>
+        </div>`;
+      if (!r.peserta) {
+        return h + `<p class="mu">Belum ada siswa yang menyelesaikan paket ini${r.dikecualikan ? ` (${r.dikecualikan} percobaan lama tidak punya rincian jawaban dan tidak bisa dianalisis)` : ''}.</p></div>`;
+      }
+      h += `<div class="ks-badges">
+          <span class="badge">${r.peserta} siswa dianalisis</span>
+          <span class="badge ok">Rata-rata skor ${r.rata}</span>
+          <span class="badge">Tertinggi ${r.tertinggi} • Terendah ${r.terendah}</span>
+          <span class="badge ${r.perlu_remedial ? 'warn' : 'ok'}">${r.perlu_remedial} siswa di bawah ${a.ambang}</span>
+        </div>`;
+      if (r.dikecualikan) h += `<p class="mu">${r.dikecualikan} percobaan lama tidak punya rincian jawaban, jadi tidak ikut dianalisis.</p>`;
+      if (!r.daya_beda_aktif) h += '<p class="mu">ℹ️ Daya beda baru dihitung bila ada minimal 10 siswa; sebelum itu hanya tingkat kesulitan dan sebaran jawaban yang tampil.</p>';
+
+      // ---- topik ----
+      h += '<h4 style="margin:14px 0 6px;">📚 Penguasaan per topik</h4>';
+      h += (a.topik || []).map((t, i) => {
+        const kelasBar = t.p === null ? '' : t.perlu_remedial ? 'bad' : t.p * 100 < a.ambang + 10 ? 'warn' : '';
+        const idxRek = (a.rekomendasi || []).findIndex(x => x.topik === t.nama);
+        return `<div class="an-topik">
+          <div class="an-topik-baris"><b>${escHtml(t.nama)}</b><span class="mu">${t.butir} soal</span><span>${pctTeks(t.p)}</span>
+            ${t.perlu_remedial ? '<span class="badge warn">Perlu remedial</span>' : ''}
+            ${idxRek >= 0 ? `<button class="alt" onclick="analisisRemedialTopik('${id}', ${idxRek})">🛟 Buat soal remedial (AI)</button>` : ''}</div>
+          <div class="an-bar"><i class="${kelasBar}" style="width:${Math.round((t.p || 0) * 100)}%"></i></div>
+        </div>`;
+      }).join('');
+
+      // ---- butir ----
+      const butir = (a.butir || []).slice().sort((x, y) => (x.p ?? 2) - (y.p ?? 2));
+      h += '<h4 style="margin:14px 0 6px;">🔬 Analisis tiap soal (terurut dari yang paling sulit)</h4>';
+      h += butir.map(b => {
+        const kes = AN_KESULITAN[b.kesulitan] || ['', '-'];
+        let isi = '';
+        if (b.tipe === 'bs') {
+          isi = (b.pernyataan || []).map((x, k) => `<div class="an-opsi"><span class="an-teks">${k + 1}. ${escHtml(x.teks)} <span class="mu">(kunci: ${x.kunci ? 'Benar' : 'Salah'})</span></span>
+            <div class="an-bar"><i class="${(x.pct_benar ?? 0) < 0.5 ? 'bad' : ''}" style="width:${Math.round((x.pct_benar || 0) * 100)}%"></i></div><span class="mu">${pctTeks(x.pct_benar)} menjawab benar</span></div>`).join('');
+        } else {
+          isi = (b.sebaran || []).map(x => `<div class="an-opsi ${b.pengecoh && b.pengecoh.i === x.i ? 'pengecoh' : ''}">
+            <span class="an-teks"><b>${HURUF[x.i] || x.i + 1}.</b> ${escHtml(x.teks)} ${x.kunci ? '<span class="badge ok">kunci</span>' : ''}${b.pengecoh && b.pengecoh.i === x.i ? ' <span class="badge warn">pengecoh terpopuler</span>' : ''}</span>
+            <div class="an-bar"><i class="${x.kunci ? '' : 'bad'}" style="width:${Math.round(x.pct * 100)}%"></i></div><span class="mu">${x.n} siswa (${pctTeks(x.pct)})</span></div>`).join('') +
+            (b.kosong ? `<div class="mu">${b.kosong} siswa tidak menjawab.</div>` : '');
+        }
+        return `<details class="an-butir">
+          <summary><b>No ${b.no}</b> ${escHtml(TIPE_LABEL[b.tipe] || b.tipe)} • ${escHtml(b.topik || '(tanpa topik)')}
+            <span class="badge ${kes[0]}">${kes[1]} ${pctTeks(b.p)}</span>
+            ${b.daya_beda !== null ? `<span class="badge ${AN_DAYA[b.daya_kategori] || ''}">Daya beda ${b.daya_beda} (${escHtml(b.daya_kategori)})</span>` : ''}
+            ${b.flags.length ? `<span class="badge warn">⚠️ ${b.flags.length} catatan</span>` : ''}
+            <div class="mu" style="margin-top:4px;">${escHtml((b.pertanyaan || '').slice(0, 110))}${(b.pertanyaan || '').length > 110 ? '…' : ''}</div></summary>
+          <div class="an-isi">
+            <div class="soal-teks">${escHtml(b.pertanyaan)}</div>
+            ${isi}
+            ${b.flags.map(f => `<div class="an-flag">⚠️ ${escHtml(f)}</div>`).join('')}
+            <div class="ks-aksi"><button class="alt" onclick="analisisRemedialSoal('${id}', ${b.no})">🛟 Buat soal serupa (AI)</button></div>
+          </div></details>`;
+      }).join('');
+
+      // ---- siswa ----
+      const sis = (a.siswa || []).filter(x => x.perlu_remedial);
+      h += `<h4 style="margin:14px 0 6px;">🧑‍🎓 Siswa yang perlu remedial (skor &lt; ${escHtml(a.ambang)})</h4>`;
+      h += sis.length
+        ? `<div class="tbl-scroll"><table><thead><tr><th>Nama</th><th>Kelas</th><th>Skor</th><th>Topik yang lemah</th></tr></thead><tbody>${sis.map(x =>
+            `<tr><td>${escHtml(x.nama)}</td><td>${escHtml(x.kelas)}</td><td><b>${x.skor}</b></td><td>${x.topik_lemah.length ? x.topik_lemah.map(t => `<span class="badge warn">${escHtml(t)}</span>`).join(' ') : '<span class="mu">-</span>'}</td></tr>`).join('')}</tbody></table></div>`
+        : '<p class="mu">Tidak ada siswa di bawah ambang. 🎉</p>';
+
+      h += `<div class="bank-actions" style="margin-top:12px;">
+        <button class="alt" onclick="unduhAnalisisButir('${id}')">📥 CSV analisis soal</button>
+        <button class="alt" onclick="unduhAnalisisSiswa('${id}')">📥 CSV siswa remedial</button></div></div>`;
+      return h;
+    }
+
+    function unduhAnalisisButir(id) {
+      const a = paketAnalisisCache[id]; if (!a || !a.butir) return;
+      const baris = [['No', 'Jenis', 'Topik', 'Tingkat', 'Peserta', 'Tingkat kesulitan (% benar)', 'Kategori', 'Daya beda', 'Kategori daya beda', 'Pengecoh terpopuler', 'Catatan']];
+      a.butir.forEach(b => baris.push([b.no, TIPE_LABEL[b.tipe] || b.tipe, b.topik, b.tingkat, b.n, b.p === null ? '' : Math.round(b.p * 100), b.kesulitan || '', b.daya_beda ?? '', b.daya_kategori || '', b.pengecoh ? b.pengecoh.teks : '', b.flags.join(' | ')]));
+      unduhCSV('analisis_soal_' + (a.paket.judul || 'paket').replace(/[^\w-]+/g, '_') + '.csv', baris);
+    }
+    function unduhAnalisisSiswa(id) {
+      const a = paketAnalisisCache[id]; if (!a || !a.siswa) return;
+      const baris = [['Nama', 'Kelas', 'Skor', 'Perlu remedial', 'Topik lemah']];
+      a.siswa.forEach(s => baris.push([s.nama, s.kelas, s.skor, s.perlu_remedial ? 'Ya' : 'Tidak', s.topik_lemah.join(' | ')]));
+      unduhCSV('siswa_remedial_' + (a.paket.judul || 'paket').replace(/[^\w-]+/g, '_') + '.csv', baris);
+    }
+
+    // ---- remedial: isi generator soal (Tahap 1) lalu langsung jalankan ----
+    function anBersih(t, n) { return String(t || '').replace(/["\n\r]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n); }
+
+    function isiGeneratorRemedial(o) {
+      const materi = o.materiId ? (bankState.materi.items || []).find(m => String(m.id) === String(o.materiId) && !m.diarsipkan) : null;
+      isiPilihanMateriAI();
+      if (materi) { $id('aiSumber').value = 'materi'; aiSumberChange(); $id('aiMateri').value = String(materi.id); }
+      else { $id('aiSumber').value = 'topik'; aiSumberChange(); $id('aiTopik').value = o.topik; }
+      $id('aiFokus').value = o.fokus;
+      $id('aiJumlah').value = '5';
+      $id('aiTingkat').value = 'sedang';
+      $id('aiJenis').value = 'pg';
+      const box = $id('aiSumber').closest('.card') || $id('aiSumber');
+      box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      generateSoalAI();
+    }
+
+    function analisisRemedialTopik(id, idx) {
+      const a = paketAnalisisCache[id]; const rek = a && a.rekomendasi && a.rekomendasi[idx];
+      if (!rek) return;
+      const contoh = rek.contoh.map(c => `soal "${anBersih(c.pertanyaan, 120)}"${c.pengecoh ? ` (siswa sering memilih: ${anBersih(c.pengecoh, 80)})` : ''}`).join('; ');
+      const nama = rek.topik === '(tanpa topik)' ? a.paket.judul : rek.topik;
+      isiGeneratorRemedial({
+        topik: nama, materiId: rek.materi_id,
+        fokus: anBersih(`Remedial untuk siswa yang belum paham. Banyak yang keliru pada ${contoh}. Buat soal BARU (bukan salinan) yang menguji konsep yang sama dan memakai pengecoh yang mirip dengan kesalahan tersebut.`, 600)
+      });
+    }
+
+    function analisisRemedialSoal(id, no) {
+      const a = paketAnalisisCache[id]; const b = a && a.butir.find(x => x.no === no);
+      if (!b) return;
+      const nama = b.topik || a.paket.judul;
+      isiGeneratorRemedial({
+        topik: nama, materiId: b.materi_id,
+        fokus: anBersih(`Remedial untuk soal "${anBersih(b.pertanyaan, 150)}"${b.pengecoh ? ` yang sering dijawab keliru dengan: ${anBersih(b.pengecoh.teks, 80)}` : ''}. Buat soal BARU yang menguji konsep yang sama dari sudut pandang berbeda.`, 600)
+      });
     }
 
     // ================= TAHAP 2B: HASIL PAKET (sisi guru) =================
