@@ -796,9 +796,14 @@
     <div class="brand">⚡ LMS Informatika SMA</div>
     <div id="userInfo" class="hidden">
       <span id="userName" class="badge"></span>
+      <button class="alt" id="btnMuatUlang" onclick="muatUlangData()" title="Muat ulang data tanpa keluar" style="margin-left: 10px; padding: 8px 12px;">🔄</button>
       <button class="alt" onclick="logout()" style="margin-left: 10px; padding: 8px 16px;">Keluar</button>
     </div>
   </header>
+
+  <div id="banMuat" class="rb-pesan warn hidden" style="margin: 10px 16px;">⚠️ Sebagian data belum termuat (koneksi lambat atau terputus). <button type="button" class="alt" onclick="muatUlangData()" style="margin-left: 8px;">🔄 Muat ulang data</button></div>
+
+  <div id="sesiPulih" class="container hidden" style="max-width: 420px; margin: 60px auto;"><div class="card"><h2>Memulihkan sesi…</h2><p class="mu">Sebentar, data akunmu sedang dimuat.</p></div></div>
 
   <!-- LOGIN CONTAINER -->
   <div id="viewLogin" class="container" style="max-width: 420px; margin: 60px auto;">
@@ -1710,6 +1715,7 @@
         const { data: dataGuru } = await db.from('guru').select('*').eq('username', u).eq('password', p).maybeSingle();
         if (dataGuru) {
           activeUser = { ...dataGuru, role: 'guru' };
+          sesiMulai();
           initDashboard();
           return;
         }
@@ -1717,6 +1723,7 @@
         const { data: dataSiswa } = await db.from('siswa').select('*').eq('username', u).eq('password', p).maybeSingle();
         if (dataSiswa) {
           activeUser = { ...dataSiswa, role: 'siswa' };
+          sesiMulai();
           initDashboard();
           return;
         }
@@ -1756,6 +1763,7 @@
         loadTugasSiswa();
         disablePasteInApp();
       }
+      jadwalCekMuatan();
     }
 
     function switchTab(tabName) {
@@ -1776,9 +1784,10 @@
         document.getElementById('navKoreksi').classList.add('active');
         document.getElementById('tabKoreksi').classList.remove('hidden');
       }
+      if (activeUser) sesiSimpan({ tab: tabName });
     }
 
-    function logout() { location.reload(); }
+    function logout() { sesiHapus(); location.reload(); }
 
     function disablePasteInApp() {
       document.addEventListener('paste', (e) => {
@@ -4455,6 +4464,7 @@
     const rbWaktu = (iso) => { try { return new Date(iso).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (_) { return String(iso || ''); } };
 
     function labModeSiswa(m) {
+      sesiSimpan({ lab: m });
       $id('labTugasWrap').classList.toggle('hidden', m === 'robot');
       $id('robotWrap').classList.toggle('hidden', m !== 'robot');
       $id('btnModeTugas').classList.toggle('active', m !== 'robot');
@@ -4745,6 +4755,7 @@
     const RG = { kelas: '', siswa: [], prog: [], sid: null, nama: '', riwayat: [], ws: null };
 
     function labModeGuru(m) {
+      sesiSimpan({ lab: m });
       $id('labGuruTugasWrap').classList.toggle('hidden', m === 'robot');
       $id('robotGuruWrap').classList.toggle('hidden', m !== 'robot');
       $id('btnGModeTugas').classList.toggle('active', m !== 'robot');
@@ -4844,6 +4855,114 @@
       RG.riwayat.slice().reverse().forEach(x => rows.push([RG.nama, x.created_at, x.level, x.aksi, x.lulus ? 'lulus' : 'belum', x.jumlah_blok ?? '', x.langkah ?? '', x.jumlah_jalankan ?? '', x.detik ?? '', x.ringkasan || '']));
       unduhCSV(`riwayat_robot_${RG.nama.replace(/\s+/g, '_')}.csv`, rows);
     }
+
+  
+    // ================= SESI LOGIN + PEMUATAN DATA ULANG =================
+    // Sesi disimpan di browser (tanpa password): username, peran, waktu aktif terakhir, tab terakhir, mode Lab.
+    // Berlaku 1 jam sejak aktivitas terakhir; setiap klik/ketukan memperpanjangnya. Keluar menghapusnya.
+    const SESI_KUNCI = 'lms_sesi_v1';
+    const SESI_MASA = 60 * 60 * 1000;
+    const SESI_TAB = { guru: ['materi', 'kuis', 'lab', 'koreksi'], siswa: ['materi', 'kuis', 'lab'] };
+    let sesiSentuhTerakhir = 0;
+
+    function sesiBaca() {
+      try { const s = JSON.parse(localStorage.getItem(SESI_KUNCI)); return s && typeof s === 'object' && !Array.isArray(s) ? s : null; } catch (_) { return null; }
+    }
+    function sesiTulis(s) { try { localStorage.setItem(SESI_KUNCI, JSON.stringify(s)); } catch (_) {} }
+    function sesiHapus() { try { localStorage.removeItem(SESI_KUNCI); } catch (_) {} }
+    function sesiMulai() {
+      if (activeUser) sesiTulis({ u: activeUser.username, r: activeUser.role, t: Date.now() });
+    }
+    function sesiSimpan(extra = {}) {
+      if (!activeUser) return;
+      const lama = sesiBaca();
+      const sama = lama && lama.u === activeUser.username && lama.r === activeUser.role;
+      sesiTulis({ ...(sama ? lama : {}), u: activeUser.username, r: activeUser.role, t: Date.now(), ...extra });
+    }
+    function sesiSentuh() {
+      const n = Date.now();
+      if (!activeUser || n - sesiSentuhTerakhir < 30000) return;
+      sesiSentuhTerakhir = n; sesiSimpan();
+    }
+    ['click', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, sesiSentuh, { passive: true, capture: true }));
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) sesiSentuh(); });
+
+    function sesiTampilkanLogin(pesan) {
+      $id('sesiPulih').classList.add('hidden');
+      $id('viewLogin').classList.remove('hidden');
+      $id('loginErr').textContent = pesan || '';
+    }
+
+    async function sesiPulihkan() {
+      const s = sesiBaca();
+      if (!s) return false;
+      if (!s.u || (s.r !== 'guru' && s.r !== 'siswa')) { sesiHapus(); return false; }
+      if (Date.now() - (Number(s.t) || 0) > SESI_MASA) { sesiHapus(); sesiTampilkanLogin('Sesi berakhir (lebih dari 1 jam tidak aktif). Silakan masuk lagi.'); return false; }
+      $id('viewLogin').classList.add('hidden');
+      $id('sesiPulih').classList.remove('hidden');
+      try {
+        const r = await db.from(s.r).select('*').eq('username', s.u).limit(1).maybeSingle();
+        if (r.error) throw r.error;
+        if (!r.data) { sesiHapus(); sesiTampilkanLogin('Akun untuk sesi tersimpan tidak ditemukan. Silakan masuk lagi.'); return false; }
+        activeUser = { ...r.data, role: s.r };
+        $id('sesiPulih').classList.add('hidden');
+        initDashboard();
+        const tab = SESI_TAB[s.r].includes(s.tab) ? s.tab : null;
+        if (tab) {
+          switchTab(tab);
+          if (tab === 'lab' && s.lab === 'robot') { if (s.r === 'guru') labModeGuru('robot'); else labModeSiswa('robot'); }
+        }
+        sesiSimpan();
+        return true;
+      } catch (e) {
+        console.warn('Sesi belum bisa dipulihkan:', e);
+        sesiTampilkanLogin('Sesi tersimpan belum bisa dipulihkan (periksa koneksi). Muat ulang halaman, atau masuk lagi.');
+        return false;
+      }
+    }
+
+    // ---------- Muat ulang data tanpa keluar ----------
+    function daftarMuat() {
+      if (!activeUser) return [];
+      return activeUser.role === 'guru'
+        ? [{ id: 'listBankMateri', fn: loadBankMateriGuru }, { id: 'listBankSoal', fn: loadBankSoalGuru }, { id: 'listPaket', fn: loadPaketGuru }, { id: 'listBankTugas', fn: loadBankTugasGuru }]
+        : [{ id: 'listMateriSiswa', fn: loadMateriSiswa }, { id: 'listKuisSiswa', fn: loadKuisSiswa }, { id: 'listTugasSiswa', fn: loadTugasSiswa }];
+    }
+    function bagianMacet() {
+      return daftarMuat().filter(m => {
+        const el = $id(m.id); if (!el) return false;
+        const t = (el.textContent || '').trim();
+        return /^Memuat/.test(t) || /Gagal memuat/.test(t);
+      });
+    }
+    function perbaruiBanner() { const b = $id('banMuat'); if (b) b.classList.toggle('hidden', bagianMacet().length === 0); }
+    const jalankanAman = (fn) => Promise.resolve().then(fn).catch(e => console.warn('Pemuatan data gagal:', e));
+
+    let sedangMuatUlang = false;
+    async function muatUlangData() {
+      if (!activeUser || sedangMuatUlang) return;
+      sedangMuatUlang = true;
+      const b = $id('btnMuatUlang'); if (b) { b.disabled = true; b.textContent = '⏳'; }
+      try {
+        await Promise.all(daftarMuat().map(m => jalankanAman(m.fn)));
+        if (activeUser.role === 'siswa') await jalankanAman(robotMuatLevel);
+      } finally {
+        sedangMuatUlang = false;
+        if (b) { b.disabled = false; b.textContent = '🔄'; }
+        perbaruiBanner();
+      }
+    }
+    // Setelah masuk: kalau ada daftar yang masih "Memuat..." atau gagal, coba lagi otomatis sekali.
+    function jadwalCekMuatan() {
+      setTimeout(async () => {
+        const m = bagianMacet(); if (!m.length || !activeUser) return;
+        await Promise.all(m.map(x => jalankanAman(x.fn)));
+        setTimeout(perbaruiBanner, 3000);
+      }, 7000);
+    }
+    window.addEventListener('online', () => { if (activeUser) muatUlangData(); });
+
+    sesiPulihkan();
 
   </script>
 </body>
