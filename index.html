@@ -977,6 +977,28 @@
             <button class="alt" onclick="tesKoneksiAI()" style="margin-left: 8px;">🩺 Tes koneksi AI</button>
             <p id="aiKuisStatus" style="font-size: 0.85rem; margin-top: 8px; color: var(--ac);"></p>
 
+            <details id="boxImpor" style="margin-top: 22px; border: 2px dashed var(--kraft); border-radius: 10px; padding: 12px 14px;">
+              <summary style="cursor: pointer; font-weight: 700;">📥 Atau impor soal yang sudah Bapak/Ibu punya</summary>
+              <p class="mu" style="margin: 10px 0;">Tempel soal dari Word/PDF apa adanya (nomor, huruf A–D, dan kunci boleh berantakan) atau pilih berkas <b>.txt</b> / <b>.csv</b>. AI hanya merapikan format, kata-kata soal tidak diubah. Hasilnya muncul sebagai draf di bawah untuk diperiksa. CSV dengan kolom <i>pertanyaan, a, b, c, d, e, kunci</i> dibaca langsung tanpa AI.</p>
+              <div class="gen-grid">
+                <div>
+                  <label class="mu">Nama kelompok soal / topik</label>
+                  <input type="text" id="impJudul" placeholder="mis. Ulangan Bab 2 Algoritma">
+                </div>
+                <div>
+                  <label class="mu">Berkas (opsional)</label>
+                  <input type="file" id="impBerkas" accept=".txt,.csv,.tsv,text/plain,text/csv" onchange="impMuatBerkas(this)">
+                  <span class="mu" id="impNamaBerkas" style="font-size: 0.8rem;"></span>
+                </div>
+              </div>
+              <label class="mu" style="display: block; margin-top: 10px;">Teks soal</label>
+              <textarea id="impTeks" rows="9" placeholder="1. Apa yang dimaksud algoritma?&#10;A. Bahasa pemrograman&#10;B. Urutan langkah menyelesaikan masalah&#10;C. Perangkat keras&#10;D. Jaringan komputer&#10;Kunci: B&#10;&#10;2. ..."></textarea>
+              <button class="ai" id="btnImpor" onclick="imporSoal()" style="margin-top: 8px;">📥 Rapikan jadi draf</button>
+              <button class="alt" onclick="impUnduhContoh()" style="margin-left: 8px;">⬇️ Contoh CSV</button>
+              <p class="mu" style="font-size: 0.8rem; margin-top: 6px;">Didukung: pilihan ganda (3–5 pilihan), PG kompleks, benar/salah. Uraian dan isian singkat dilewati dan dicantumkan di daftar. Berkas Word/Excel: salin-tempel, atau simpan Excel sebagai CSV.</p>
+              <div id="impLaporan" class="hidden draft-warn" style="margin-top: 8px;"></div>
+            </details>
+
             <div id="draftArea" class="hidden"></div>
           </div>
 
@@ -2159,6 +2181,246 @@
       renderDraft();
     }
 
+    // ================= TAHAP 4: IMPOR SOAL GURU =================
+    // Guru menempel teks (atau memilih berkas .txt/.csv). CSV berkepala standar dibaca langsung di browser
+    // (tanpa AI); selain itu teks dipotong per beberapa soal lalu dirapikan AI (mode 'impor').
+    // Hasilnya masuk ke draftSoal yang sama dengan generator Tahap 1.
+    const IMPOR_MAKS = 40000;      // karakter total
+    const IMPOR_POTONG = 4500;     // karakter per panggilan AI
+
+    function impNorm(s) { return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+
+    // Baca CSV (RFC 4180: tanda kutip ganda, baris baru di dalam sel). Pemisah ; , atau tab ditebak dari baris pertama.
+    function impBacaCSV(teks) {
+      const t = String(teks).replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+      const baris1 = t.split('\n')[0] || '';
+      const hit = { ';': 0, ',': 0, '\t': 0 };
+      let kutip = false;
+      for (const c of baris1) { if (c === '"') kutip = !kutip; else if (!kutip && c in hit) hit[c]++; }
+      const sep = Object.keys(hit).sort((a, b) => hit[b] - hit[a])[0];
+      if (!hit[sep]) return null;
+      const rows = []; let row = [], sel = '', k = false;
+      for (let i = 0; i < t.length; i++) {
+        const c = t[i];
+        if (k) {
+          if (c === '"') { if (t[i + 1] === '"') { sel += '"'; i++; } else k = false; }
+          else sel += c;
+        } else if (c === '"' && sel === '') k = true;
+        else if (c === sep) { row.push(sel); sel = ''; }
+        else if (c === '\n') { row.push(sel); rows.push(row); row = []; sel = ''; }
+        else sel += c;
+      }
+      if (sel !== '' || row.length) { row.push(sel); rows.push(row); }
+      return rows.filter(r => r.some(x => String(x).trim() !== ''));
+    }
+
+    function impKolom(header) {
+      const h = header.map(x => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, ''));
+      const cari = (...nama) => h.findIndex(x => nama.includes(x));
+      const opsi = ['a', 'b', 'c', 'd', 'e'].map(L => cari(L, 'opsi' + L, 'pilihan' + L, 'option' + L, 'jawaban' + L));
+      return {
+        tanya: cari('pertanyaan', 'soal', 'butirsoal', 'question'),
+        opsi,
+        kunci: cari('kunci', 'kuncijawaban', 'jawaban', 'jawabanbenar', 'answer', 'key'),
+        bahas: cari('pembahasan', 'penjelasan', 'explanation'),
+        topik: cari('topik', 'subtopik'),
+        tingkat: cari('tingkat', 'kesulitan'),
+        tipe: cari('tipe', 'jenis', 'jenissoal'),
+      };
+    }
+
+    function impBoolToken(x) {
+      const t = String(x || '').trim().toLowerCase();
+      if (['b', 'benar', 'true', 't', '1', 'ya', 'y'].includes(t)) return true;
+      if (['s', 'salah', 'false', 'f', '0', 'tidak', 'n'].includes(t)) return false;
+      return null;
+    }
+
+    // Mengembalikan {soal, ditolak} bila teks berupa CSV berkepala standar; selain itu null.
+    function impDariCSV(teks) {
+      const rows = impBacaCSV(teks);
+      if (!rows || rows.length < 2) return null;
+      const c = impKolom(rows[0]);
+      const nOpsi = c.opsi.filter(i => i >= 0).length;
+      if (c.tanya < 0 || nOpsi < 2 || c.kunci < 0) return null;
+
+      const soal = [], ditolak = [];
+      for (let r = 1; r < rows.length; r++) {
+        const row = rows[r];
+        const sel = i => (i >= 0 ? String(row[i] ?? '').trim() : '');
+        const pertanyaan = sel(c.tanya);
+        const cuplikan = pertanyaan.replace(/\s+/g, ' ').slice(0, 100);
+        const tolak = alasan => ditolak.push({ cuplikan: cuplikan || `(baris ${r + 1})`, alasan: `Baris ${r + 1}: ${alasan}` });
+        if (!pertanyaan) { tolak('pertanyaan kosong.'); continue; }
+
+        const opsi = c.opsi.map(sel).filter(x => x !== '');
+        const kRaw = sel(c.kunci);
+        const tipeRaw = sel(c.tipe).toLowerCase();
+        let tipe = /kompleks/.test(tipeRaw) ? 'pg_kompleks' : /^(bs|benar|b\/s)/.test(tipeRaw) || /benar.*salah/.test(tipeRaw) ? 'bs' : /^(pg|pilihan)/.test(tipeRaw) ? 'pg' : '';
+        const hurufKunci = /^[A-Ea-e]{2,5}$/.test(kRaw) ? kRaw.toUpperCase().split('') : (kRaw.toUpperCase().match(/\b[A-E]\b/g) || []);
+        if (!tipe) {
+          const tok = kRaw.split(/[\s,;|/]+/).filter(Boolean);
+          const mirip = tok.length === opsi.length && tok.length >= 2 && tok.every(x => impBoolToken(x) !== null) && tok.some(x => !/^[a-e]$/i.test(x));
+          tipe = mirip ? 'bs' : new Set(hurufKunci).size >= 2 ? 'pg_kompleks' : 'pg';
+        }
+
+        let kunci, kosong = false;
+        const catatan = [];
+        if (tipe === 'bs') {
+          if (opsi.length < 2 || opsi.length > 6) { tolak(`jumlah pernyataan ${opsi.length} (harus 2–6).`); continue; }
+          const ks = kRaw.split(/[\s,;|/]+/).filter(Boolean).map(impBoolToken);
+          if (ks.length === opsi.length && ks.every(x => x !== null)) kunci = ks;
+          else { kunci = opsi.map(() => null); kosong = true; }
+        } else {
+          if (opsi.length < 3 || opsi.length > 5) { tolak(`jumlah pilihan ${opsi.length} (harus 3–5).`); continue; }
+          if (tipe === 'pg') {
+            const m = /^\s*\(?([A-Ea-e])(?![A-Za-z0-9])/.exec(kRaw);
+            const k = m ? m[1].toUpperCase() : '';
+            if (k && HURUF.indexOf(k) < opsi.length) kunci = k; else { kunci = ''; kosong = true; }
+          } else {
+            const ks = [...new Set(hurufKunci)].filter(x => HURUF.indexOf(x) < opsi.length).sort();
+            if (ks.length) { kunci = ks; if (ks.length < 2) catatan.push('PG kompleks butuh minimal 2 jawaban benar.'); }
+            else { kunci = []; kosong = true; }
+          }
+        }
+        if (kosong) catatan.push('Kunci pada baris ini tidak terbaca. Pilih kunci sendiri.');
+
+        const tg = sel(c.tingkat).toLowerCase();
+        soal.push({
+          tipe, pertanyaan, opsi, kunci,
+          pembahasan: sel(c.bahas),
+          topik: sel(c.topik),
+          tingkat: ['mudah', 'sedang', 'sulit'].includes(tg) ? tg : 'sedang',
+          level: '',
+          peringatan: catatan.join(' '),
+        });
+      }
+      return { soal, ditolak };
+    }
+
+    // Potong teks panjang menjadi bagian-bagian ≤ ~IMPOR_POTONG karakter di batas soal bernomor (nomor berurutan),
+    // atau di baris kosong bila tidak ada nomor.
+    function impPotong(teks, maks = IMPOR_POTONG) {
+      const t = String(teks).replace(/\r\n?/g, '\n').trim();
+      if (t.length <= maks + 800) return [t];
+      const baris = t.split('\n');
+      const hasil = []; let cur = [], len = 0, nomorTerakhir = null;
+      for (let i = 0; i < baris.length; i++) {
+        const l = baris[i];
+        const m = /^\s*(?:soal\s*(?:no\.?\s*)?)?(\d{1,3})\s*[.)]/i.exec(l);
+        const batasNomor = !!m && (nomorTerakhir === null || Number(m[1]) === nomorTerakhir + 1);
+        if (batasNomor) nomorTerakhir = Number(m[1]);
+        const batasKosong = !m && l.trim() === '' && baris[i + 1] !== undefined && baris[i + 1].trim() !== '';
+        const boleh = nomorTerakhir !== null ? batasNomor : batasKosong;
+        if (len >= maks && cur.length && (boleh || len >= maks * 2)) {
+          hasil.push(cur.join('\n').trim()); cur = []; len = 0;
+        }
+        cur.push(l); len += l.length + 1;
+      }
+      if (cur.join('').trim()) hasil.push(cur.join('\n').trim());
+      return hasil;
+    }
+
+    function impLaporan(ditolak) {
+      const el = $id('impLaporan');
+      if (!el) return;
+      if (!ditolak || !ditolak.length) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+      el.classList.remove('hidden');
+      el.innerHTML = `<details open><summary><b>⚠️ ${ditolak.length} butir tidak bisa diimpor</b> (ketik ulang atau buat manual)</summary><ul style="margin:6px 0 0 18px;">` +
+        ditolak.map(x => `<li><span class="mu">${escHtml(x.cuplikan)}</span> — ${escHtml(x.alasan)}</li>`).join('') + '</ul></details>';
+    }
+
+    async function impMuatBerkas(inp) {
+      const f = inp.files && inp.files[0];
+      if (!f) return;
+      if (/\.(docx?|xlsx?|pdf|pptx?)$/i.test(f.name)) {
+        inp.value = '';
+        return alert('Berkas Word/Excel/PDF belum bisa dibaca langsung.\n\n• Word/PDF: salin isinya lalu tempel di kotak.\n• Excel: pilih Simpan sebagai → CSV, lalu pilih berkas CSV-nya.');
+      }
+      if (f.size > 400 * 1024) { inp.value = ''; return alert('Berkas terlalu besar. Bagi menjadi beberapa berkas.'); }
+      const buf = await f.arrayBuffer();
+      let teks;
+      try { teks = new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+      catch (e) { teks = new TextDecoder('windows-1252').decode(buf); }
+      $id('impTeks').value = teks.replace(/^﻿/, '');
+      if (!$id('impJudul').value.trim()) $id('impJudul').value = f.name.replace(/\.[^.]+$/, '').slice(0, 60);
+      $id('impNamaBerkas').textContent = `📄 ${f.name}`;
+      inp.value = '';
+    }
+
+    function impUnduhContoh() {
+      unduhCSV('contoh-impor-soal.csv', [
+        ['pertanyaan', 'a', 'b', 'c', 'd', 'e', 'kunci', 'pembahasan', 'topik', 'tingkat', 'tipe'],
+        ['Urutan langkah untuk menyelesaikan masalah disebut ...', 'Variabel', 'Algoritma', 'Kompilator', 'Basis data', '', 'B', 'Algoritma adalah urutan langkah berhingga.', 'Algoritma', 'mudah', 'pg'],
+        ['Pilih semua yang termasuk tipe data dasar.', 'Integer', 'Boolean', 'Monitor', 'String', '', 'A,B,D', '', 'Tipe data', 'sedang', 'pg_kompleks'],
+        ['Tentukan benar atau salah tiap pernyataan.', 'Flowchart menggambarkan alur algoritma', 'Pseudocode harus ditulis dalam bahasa Python', 'Perulangan mengulang blok instruksi', '', '', 'B;S;B', '', 'Algoritma', 'sedang', 'bs'],
+      ]);
+    }
+
+    async function imporSoal() {
+      const status = $id('aiKuisStatus');
+      const btn = $id('btnImpor');
+      const teks = String($id('impTeks').value || '').replace(/^﻿/, '');
+      if (teks.trim().length < 20) return alert('Tempel teks soal atau pilih berkas dulu.');
+      if (teks.length > IMPOR_MAKS) return alert(`Teks terlalu panjang (${teks.length.toLocaleString('id-ID')} karakter, maksimal ${IMPOR_MAKS.toLocaleString('id-ID')}). Bagi menjadi beberapa kali impor.`);
+      const judul = $id('impJudul').value.trim() || 'Soal impor';
+
+      btn.disabled = true;
+      let hasil = [], ditolak = [], semuaDiperiksa = true, galat = null, lewatAI = true;
+      try {
+        const csv = impDariCSV(teks);
+        if (csv) {
+          lewatAI = false;
+          hasil = csv.soal; ditolak = csv.ditolak;
+        } else {
+          const bagian = impPotong(teks);
+          for (let b = 0; b < bagian.length; b++) {
+            status.textContent = `🤖 AI sedang merapikan soal... bagian ${b + 1} dari ${bagian.length} (sekitar 20–60 detik)`;
+            try {
+              const data = await panggilEdge({ mode: 'impor', teks: bagian[b], topik: judul }, 110000);
+              hasil = hasil.concat(data.soal || []);
+              ditolak = ditolak.concat(data.ditolak || []);
+              if (!data.diperiksa) semuaDiperiksa = false;
+            } catch (err) {
+              galat = err;
+              if (bagian.length === 1) break;
+              ditolak.push({ cuplikan: `Bagian ${b + 1} dari ${bagian.length}`, alasan: 'gagal dirapikan: ' + err.message });
+            }
+          }
+        }
+      } catch (err) {
+        galat = err;
+      }
+      btn.disabled = false;
+      impLaporan(ditolak);
+
+      if (!hasil.length) {
+        status.textContent = '❌ ' + (galat ? 'Gagal: ' + galat.message : 'Tidak ada soal yang bisa diimpor. Lihat daftar di bawah.');
+        return;
+      }
+
+      // Tandai soal yang sudah ada di Bank Soal (atau kembar di dalam impor ini)
+      const ada = new Set((bankState.kuis.items || []).map(q => impNorm(q.pertanyaan)));
+      let kembar = 0;
+      hasil.forEach(s => {
+        const k = impNorm(s.pertanyaan);
+        if (ada.has(k)) { kembar++; s.peringatan = [s.peringatan, 'Pertanyaan yang sama sudah ada di Bank Soal (atau dobel di impor ini).'].filter(Boolean).join(' '); }
+        ada.add(k);
+        if (!s.topik) s.topik = judul;
+      });
+
+      draftCtx = { topik: judul, fokus: '', materiTeks: '', materiId: null, judulGrup: judul, impor: true };
+      draftSoal = hasil.map(s => ({ ...s, uid: uidSeq++, pilih: !s.peringatan, level: s.level || '', loading: false, impor: true }));
+      const perhatian = draftSoal.filter(d => d.peringatan).length;
+      status.textContent = `✅ ${draftSoal.length} soal siap diperiksa` + (lewatAI ? '' : ' (dibaca langsung dari CSV, tanpa AI)') + '.' +
+        (perhatian ? ` ⚠️ ${perhatian} soal perlu dicek dan tidak dicentang otomatis.` : '') +
+        (lewatAI && !semuaDiperiksa ? ' ⚠️ Pemeriksa AI tidak berjalan; cocokkan kunci sendiri.' : '') +
+        (kembar ? ` (${kembar} soal kembar dengan Bank Soal.)` : '') +
+        (galat ? ` ⚠️ ${galat.message}` : '');
+      renderDraft();
+      $id('draftArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     async function tesKoneksiAI() {
       const status = $id('aiKuisStatus');
       status.textContent = '🩺 Menguji koneksi ke AI...';
@@ -2194,6 +2456,7 @@
             <b>${k + 1}.</b>
             <input type="text" value="${escHtml(o)}" oninput="draftSetOpsi(${i}, ${k}, this.value)">
             <select onchange="draftSetKunciBS(${i}, ${k}, this.value)">
+              ${d.kunci[k] === null || d.kunci[k] === undefined ? '<option value="" selected>— pilih —</option>' : ''}
               <option value="B" ${d.kunci[k] === true ? 'selected' : ''}>Benar</option>
               <option value="S" ${d.kunci[k] === false ? 'selected' : ''}>Salah</option>
             </select>
@@ -2220,7 +2483,7 @@
           <label class="mu" style="display:block; margin-top:10px;">Pembahasan</label>
           <textarea rows="3" oninput="draftSet(${i}, 'pembahasan', this.value)">${escHtml(d.pembahasan)}</textarea>
           <div class="draft-actions">
-            <button class="alt" onclick="draftUlang(${i})">🔄 Buat ulang soal ini</button>
+            ${d.impor ? '' : `<button class="alt" onclick="draftUlang(${i})">🔄 Buat ulang soal ini</button>`}
             <button class="alt danger" onclick="draftBuang(${i})">🗑️ Buang</button>
           </div>
         </div>`;
@@ -2255,7 +2518,7 @@
       if (on) s.add(huruf); else s.delete(huruf);
       draftSoal[i].kunci = [...s].sort();
     }
-    function draftSetKunciBS(i, k, v) { draftSoal[i].kunci[k] = (v === 'B'); }
+    function draftSetKunciBS(i, k, v) { draftSoal[i].kunci[k] = v === 'B' ? true : v === 'S' ? false : null; }
     function draftBsTambah(i) { const d = draftSoal[i]; d.opsi.push(''); d.kunci.push(true); renderDraft(); }
     function draftBsHapus(i, k) { const d = draftSoal[i]; d.opsi.splice(k, 1); d.kunci.splice(k, 1); renderDraft(); }
     function draftPilih(i, on) {
@@ -2294,6 +2557,7 @@
       if (d.tipe === 'pg' && !HURUF.includes(d.kunci)) return gagal('kunci belum dipilih.');
       if (d.tipe === 'pg_kompleks' && (!Array.isArray(d.kunci) || d.kunci.length < 2)) return gagal('PG kompleks minimal 2 jawaban benar (kalau hanya 1, ubah jadi pilihan ganda).');
       if (d.tipe === 'bs' && (d.opsi.length < 2 || d.kunci.length !== d.opsi.length)) return gagal('benar/salah minimal 2 pernyataan lengkap dengan kuncinya.');
+      if (d.tipe === 'bs' && d.kunci.some(k => k !== true && k !== false)) return gagal('ada pernyataan yang kuncinya (Benar/Salah) belum dipilih.');
       return null;
     }
 
