@@ -828,13 +828,13 @@
     <!-- LEFT SIDEBAR -->
     <div class="sidebar">
       <div class="nav-item active" onclick="switchTab('materi')">
-        <span>📖</span> Bank Materi & Modul
+        <span>📖</span> <span class="nav-teks">Bank Materi & Modul</span>
       </div>
       <div class="nav-item" onclick="switchTab('kuis')">
-        <span>🤖</span> Bank Kuis AI & Soal
+        <span>🤖</span> <span class="nav-teks">Bank Kuis AI & Soal</span>
       </div>
       <div class="nav-item" onclick="switchTab('lab')">
-        <span>💻</span> Bank Lab Koding
+        <span>💻</span> <span class="nav-teks">Bank Lab Koding</span>
       </div>
       <div id="navKoreksi" class="nav-item hidden" onclick="switchTab('koreksi')">
         <span>📊</span> Koreksi Per Kelas
@@ -1777,6 +1777,9 @@
         renderModul4PerKelas();
         robotGuruInit();
       } else {
+        // Siswa tidak perlu melihat kata "Bank" (istilah untuk guru)
+        const labelSiswa = ['Materi & Modul', 'Kuis', 'Lab Koding'];
+        document.querySelectorAll('.sidebar .nav-teks').forEach((el, i) => { if (labelSiswa[i]) el.textContent = labelSiswa[i]; });
         document.getElementById('siswaMateriView').classList.remove('hidden');
         document.getElementById('siswaKuisView').classList.remove('hidden');
         document.getElementById('siswaLabView').classList.remove('hidden');
