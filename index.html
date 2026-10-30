@@ -787,6 +787,18 @@
     .rg-tabel small { font-size: 0.68rem; margin-left: 2px; }
     .rg-nama { padding: 4px 8px; font-size: 0.85rem; }
     @media (max-width: 768px) { .rb-grid { grid-template-columns: 1fr; } .rb-blockly { height: 340px; } }
+    /* ===== Tab kuis guru: sub-tab, opsi lanjutan, keranjang mengambang ===== */
+    .kt-tabs { margin-bottom: 16px; }
+    .kt-tabs .mode-btn { flex: 1 1 0; min-width: 96px; }
+    .kt-lanjut { margin: 6px 0 14px; padding: 8px 12px; border: 2px dashed var(--kraft, #cfa970); border-radius: 6px; }
+    .kt-lanjut summary { cursor: pointer; font-weight: 700; font-size: 0.88rem; }
+    #guruKuisView { padding-bottom: 72px; }
+    #keranjangFab { position: fixed; right: 14px; bottom: 16px; z-index: 60; max-width: calc(100vw - 28px); }
+    #keranjangFab button { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border: 2px solid var(--ink, #1d2140); border-radius: 3px;
+      background: var(--yellow, #f3c53b); color: var(--ink, #1d2140); box-shadow: 4px 4px 0 var(--ink, #1d2140); font-weight: 700; }
+    #keranjangFab button:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink, #1d2140); }
+    #keranjangFab b { background: var(--ink, #1d2140); color: #fff; border-radius: 999px; padding: 1px 9px; }
+    @media (max-width: 640px) { #keranjangFab { left: 14px; right: 14px; } #keranjangFab button { width: 100%; justify-content: center; } }
   </style>
 </head>
 <body>
@@ -918,10 +930,22 @@
         <!-- GURU VIEW -->
         <div id="guruKuisView" class="hidden">
           <h2>🤖 AI Quiz Generator & Bank Soal Master</h2>
-          <p class="mu" style="margin-bottom: 20px;">Generate soal AI, pratinjau & edit, lalu simpan ke Bank Soal sebelum dipublish.</p>
-          
+          <p class="mu" style="margin-bottom: 14px;">Buat atau impor soal, simpan ke Bank Soal, lalu susun menjadi paket kuis.</p>
+          <div class="mode-selector kt-tabs">
+            <button type="button" class="mode-btn active" id="btnKt-buat" onclick="ktPilih('buat')">✏️ Buat Soal</button>
+            <button type="button" class="mode-btn" id="btnKt-bank" onclick="ktPilih('bank')">🗂️ Bank Soal</button>
+            <button type="button" class="mode-btn" id="btnKt-paket" onclick="ktPilih('paket')">📦 Paket</button>
+          </div>
+
+          <div id="ktPane-buat" class="kt-pane">
           <div class="card">
-            <h3>⚡ Step 1: Generate Soal dengan AI</h3>
+            <h3>✏️ Buat Soal</h3>
+            <div class="mode-selector" style="margin: 8px 0 14px;">
+              <button type="button" class="mode-btn active" id="btnKtAI" onclick="ktMode('ai')">🤖 Buat dengan AI</button>
+              <button type="button" class="mode-btn" id="btnKtImp" onclick="ktMode('imp')">📥 Impor soal saya</button>
+            </div>
+
+            <div id="ktModeAI">
             <p class="mu" style="margin-bottom: 14px;">Pilih materi dari Bank Materi (soal dibuat sesuai isinya) atau ketik topik bebas. Hasilnya berupa draf yang bisa kamu periksa dulu sebelum masuk Bank Soal.</p>
 
             <div class="gen-grid">
@@ -941,10 +965,6 @@
                 <input type="text" id="aiTopik" placeholder="mis. Logika Percabangan IF ELSE">
               </div>
               <div>
-                <label class="mu">Fokus subtopik (opsional)</label>
-                <input type="text" id="aiFokus" placeholder="mis. operator perbandingan">
-              </div>
-              <div>
                 <label class="mu">Jumlah soal</label>
                 <select id="aiJumlah">
                   <option value="5">5 soal</option>
@@ -952,6 +972,15 @@
                   <option value="15">15 soal</option>
                   <option value="20">20 soal</option>
                 </select>
+              </div>
+            </div>
+
+            <details class="kt-lanjut">
+              <summary>⚙️ Opsi lanjutan (fokus subtopik, tingkat, jenis soal)</summary>
+              <div class="gen-grid" style="margin-top: 10px;">
+              <div>
+                <label class="mu">Fokus subtopik (opsional)</label>
+                <input type="text" id="aiFokus" placeholder="mis. operator perbandingan">
               </div>
               <div>
                 <label class="mu">Tingkat kesulitan</label>
@@ -971,15 +1000,14 @@
                   <option value="campuran">Campuran</option>
                 </select>
               </div>
-            </div>
+              </div>
+            </details>
 
             <button class="ai" id="btnGenSoalAI" onclick="generateSoalAI()">🤖 Generate Soal</button>
             <button class="alt" onclick="tesKoneksiAI()" style="margin-left: 8px;">🩺 Tes koneksi AI</button>
-            <p id="aiKuisStatus" style="font-size: 0.85rem; margin-top: 8px; color: var(--ac);"></p>
+            </div>
 
-            <details id="boxImpor" style="margin-top: 22px; border: 2px dashed var(--kraft); border-radius: 10px; padding: 12px 14px;">
-              <summary style="cursor: pointer; font-weight: 700;">📥 Atau impor soal yang sudah Bapak/Ibu punya</summary>
-              <p class="mu" style="margin: 10px 0;">Tempel soal dari Word/PDF apa adanya (nomor, huruf A–D, dan kunci boleh berantakan) atau pilih berkas <b>.txt</b> / <b>.csv</b>. AI hanya merapikan format, kata-kata soal tidak diubah. Hasilnya muncul sebagai draf di bawah untuk diperiksa. CSV dengan kolom <i>pertanyaan, a, b, c, d, e, kunci</i> dibaca langsung tanpa AI.</p>
+            <div id="boxImpor" class="hidden">              <p class="mu" style="margin: 10px 0;">Tempel soal dari Word/PDF apa adanya (nomor, huruf A–D, dan kunci boleh berantakan) atau pilih berkas <b>.txt</b> / <b>.csv</b>. AI hanya merapikan format, kata-kata soal tidak diubah. Hasilnya muncul sebagai draf di bawah untuk diperiksa. CSV dengan kolom <i>pertanyaan, a, b, c, d, e, kunci</i> dibaca langsung tanpa AI.</p>
               <div class="gen-grid">
                 <div>
                   <label class="mu">Nama kelompok soal / topik</label>
@@ -997,17 +1025,24 @@
               <button class="alt" onclick="impUnduhContoh()" style="margin-left: 8px;">⬇️ Contoh CSV</button>
               <p class="mu" style="font-size: 0.8rem; margin-top: 6px;">Didukung: pilihan ganda (3–5 pilihan), PG kompleks, benar/salah. Uraian dan isian singkat dilewati dan dicantumkan di daftar. Berkas Word/Excel: salin-tempel, atau simpan Excel sebagai CSV.</p>
               <div id="impLaporan" class="hidden draft-warn" style="margin-top: 8px;"></div>
-            </details>
+            </div>
+
+            <p id="aiKuisStatus" style="font-size: 0.85rem; margin-top: 8px; color: var(--ac);"></p>
 
             <div id="draftArea" class="hidden"></div>
           </div>
+          </div>
 
+          <div id="ktPane-bank" class="kt-pane hidden">
           <div class="card">
             <h3>🗂️ Koleksi Bank Soal & Publish Multi-Kelas</h3>
             <p class="mu" style="margin-bottom: 10px;">Tombol <b>➕ Tambah ke paket</b> memasukkan soal ke keranjang paket di bawah. Publish per butir di sini hanya untuk tampilan siswa yang lama; paket menggantikannya.</p>
             <div id="listBankSoal">Memuat Bank Soal...</div>
           </div>
 
+          </div>
+
+          <div id="ktPane-paket" class="kt-pane hidden">
           <div class="card">
             <h3>📦 Buat Paket Kuis</h3>
             <p class="mu" style="margin-bottom: 14px;">Paket = kumpulan soal dengan satu skor, satu timer, dan aturan sendiri. Soal disalin dan dibekukan saat paket dibuat, jadi mengedit soal di Bank Soal tidak mengubah paket yang sudah ada. Siswa baru bisa mengerjakan paket setelah sesi siswa (Pengiriman B) dipasang.</p>
@@ -1112,6 +1147,8 @@
             <h3>📚 Daftar Paket Kuis & Publish ke Kelas</h3>
             <div id="listPaket">Memuat paket...</div>
           </div>
+          </div>
+
         </div>
       </div>
 
@@ -1809,6 +1846,7 @@
         document.getElementById('navKoreksi').classList.add('active');
         document.getElementById('tabKoreksi').classList.remove('hidden');
       }
+      keranjangUpdate();
       if (activeUser) sesiSimpan({ tab: tabName });
     }
 
@@ -2496,6 +2534,7 @@
       const area = $id('draftArea');
       if (!draftSoal.length) { area.classList.add('hidden'); area.innerHTML = ''; return; }
       area.classList.remove('hidden');
+      if (ktAktif !== 'buat') ktPilih('buat');   // draf (mis. dari remedial) selalu ditampilkan di sub-tab Buat Soal
       const n = draftSoal.filter(d => d.pilih).length;
       area.innerHTML = `
         <div class="draft-bar">
@@ -2683,6 +2722,7 @@
     function pkUpdateCount(tampil) {
       const el = $id('pkCount');
       if (el) el.textContent = `${paketSel.length} soal terpilih` + (tampil !== undefined ? ` • ${tampil} tampil` : '');
+      keranjangUpdate();
     }
 
     function paketToggle(id, on) {
@@ -2718,6 +2758,47 @@
       pkRenderList();
       renderBank('kuis');
       $id('pkStatus').textContent = `🎲 ${paketSel.length} soal diacak dari ${daftar.length} soal yang tampil (pilihan sebelumnya diganti).`;
+    }
+
+    // ================= TAB KUIS GURU: sub-tab, mode kartu, keranjang mengambang =================
+    const KT_PANE = ['buat', 'bank', 'paket'];
+    let ktAktif = 'buat';
+
+    function ktPilih(nama, simpan = true) {
+      if (!KT_PANE.includes(nama)) nama = 'buat';
+      ktAktif = nama;
+      KT_PANE.forEach(k => {
+        const pane = $id('ktPane-' + k), btn = $id('btnKt-' + k);
+        if (pane) pane.classList.toggle('hidden', k !== nama);
+        if (btn) btn.classList.toggle('active', k === nama);
+      });
+      keranjangUpdate();
+      if (simpan && activeUser) sesiSimpan({ kt: nama });
+    }
+
+    function ktMode(m) {
+      const imp = m === 'imp';
+      $id('ktModeAI').classList.toggle('hidden', imp);
+      $id('boxImpor').classList.toggle('hidden', !imp);
+      $id('btnKtAI').classList.toggle('active', !imp);
+      $id('btnKtImp').classList.toggle('active', imp);
+    }
+
+    // Keranjang mengambang: tampil di sub-tab Buat Soal / Bank Soal bila ada soal yang dipilih untuk paket
+    function keranjangUpdate() {
+      const fab = $id('keranjangFab');
+      if (!fab) return;
+      const n = paketSel.length;
+      const tabKuisAktif = $id('tabKuis') && !$id('tabKuis').classList.contains('hidden');
+      const tampil = !!(activeUser && activeUser.role === 'guru' && tabKuisAktif && ktAktif !== 'paket' && n > 0);
+      fab.classList.toggle('hidden', !tampil);
+      const el = $id('keranjangN'); if (el) el.textContent = n;
+    }
+
+    function keranjangBuka() {
+      ktPilih('paket');
+      const judul = $id('pkJudul');
+      if (judul && judul.scrollIntoView) judul.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     function paketTambah(id) {
@@ -5177,6 +5258,7 @@
         const tab = SESI_TAB[s.r].includes(s.tab) ? s.tab : null;
         if (tab) {
           switchTab(tab);
+          if (tab === 'kuis' && s.r === 'guru' && KT_PANE.includes(s.kt)) ktPilih(s.kt, false);
           if (tab === 'lab' && s.lab === 'robot') { if (s.r === 'guru') labModeGuru('robot'); else labModeSiswa('robot'); }
         }
         sesiSimpan();
@@ -5232,5 +5314,6 @@
     sesiPulihkan();
 
   </script>
+  <div id="keranjangFab" class="hidden"><button type="button" onclick="keranjangBuka()">🛒 <b id="keranjangN">0</b> soal dipilih · Buat paket →</button></div>
 </body>
 </html>
