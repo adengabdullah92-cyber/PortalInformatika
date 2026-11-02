@@ -799,6 +799,38 @@
     #keranjangFab button:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink, #1d2140); }
     #keranjangFab b { background: var(--ink, #1d2140); color: #fff; border-radius: 999px; padding: 1px 9px; }
     @media (max-width: 640px) { #keranjangFab { left: 14px; right: 14px; } #keranjangFab button { width: 100%; justify-content: center; } }
+
+    /* ===== CHATBOT (C1): tombol mengambang + panel Tutor ===== */
+    #chatFab { position: fixed; right: 14px; bottom: 16px; z-index: 61; }
+    #chatFab button { display: flex; align-items: center; gap: 8px; padding: 11px 15px; border: 2px solid var(--ink, #1d2140); border-radius: 3px;
+      background: var(--sky, #93d3ee); color: var(--ink, #1d2140); box-shadow: 4px 4px 0 var(--ink, #1d2140); font-weight: 700; font-family: inherit; cursor: pointer; }
+    #chatFab button:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink, #1d2140); }
+    #chatFab b { background: var(--hot, #e8456b); color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 0.8rem; }
+    #chatPanel { position: fixed; right: 14px; bottom: 16px; z-index: 70; width: min(400px, calc(100vw - 28px)); height: min(620px, calc(100vh - 32px));
+      display: flex; flex-direction: column; background: var(--paper, #f7f3e9); color: var(--ink, #1d2140);
+      border: 2px solid var(--ink, #1d2140); border-radius: 3px; box-shadow: 6px 6px 0 var(--ink, #1d2140); }
+    #chatPanel.hidden, #chatFab.hidden { display: none; }
+    .chat-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px;
+      background: var(--yellow, #f3c53b); border-bottom: 2px solid var(--ink, #1d2140); font-family: var(--f-type, inherit); }
+    .chat-head button { border: 2px solid var(--ink, #1d2140); background: var(--paper-2, #fff); color: var(--ink, #1d2140); border-radius: 3px;
+      width: 34px; height: 34px; font-weight: 700; cursor: pointer; }
+    .chat-info { padding: 6px 12px; font-size: 0.78rem; background: var(--note, #fbf3b8); border-bottom: 1px dashed var(--bd, #d2c8b0); }
+    .chat-isi { flex: 1; overflow-y: auto; padding: 12px; -webkit-overflow-scrolling: touch; }
+    .chat-bubble { background: var(--paper-2, #fff); border: 2px solid var(--ink, #1d2140); border-radius: 3px; padding: 10px 12px; margin-bottom: 10px;
+      box-shadow: 3px 3px 0 var(--ink, #1d2140); line-height: 1.5; }
+    .chat-bubble h4 { margin: 0 0 6px; font-size: 0.92rem; }
+    .chat-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 0; border-top: 1px dashed var(--bd, #d2c8b0); }
+    .chat-item:first-of-type { border-top: 0; }
+    .chat-item span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+    .chat-item small { display: block; color: var(--mu, #6a6455); }
+    .chat-item button { flex: none; padding: 5px 10px; font-size: 0.8rem; }
+    .chat-kunci { background: var(--peach, #f8b98a); }
+    .chat-kaki { display: flex; gap: 8px; padding: 10px 12px; border-top: 2px solid var(--ink, #1d2140); background: var(--paper-2, #fff); }
+    .chat-kaki input { flex: 1; min-width: 0; font-size: 16px; }
+    .chat-kaki button { flex: none; }
+    @media (max-width: 640px) {
+      #chatPanel { inset: 0; width: 100%; height: 100%; height: 100dvh; border: 0; box-shadow: none; border-radius: 0; }
+    }
   </style>
 </head>
 <body>
@@ -1863,6 +1895,7 @@
         loadKuisSiswa();
         loadTugasSiswa();
         disablePasteInApp();
+        setTimeout(chatMuat, 1500);
       }
       jadwalCekMuatan();
     }
@@ -5252,6 +5285,101 @@
     }
 
   
+
+    // ================= CHATBOT C1: PANEL TUTOR + PENGINGAT SISWA =================
+    // Pengingat dihitung server (fungsi SQL siswa_pengingat, chatbot_c1.sql), tanpa AI.
+    // Tanya-jawab dengan AI menyusul di tahap C2.
+    let chatData = null;
+    let chatMemuat = false;
+
+    function chatAktif() { return !!(activeUser && activeUser.role === 'siswa'); }
+
+    // Tombol disembunyikan saat siswa sedang mengerjakan kuis atau tugas Lab (supaya tidak menutupi tombol Blockly)
+    function chatFabCek() {
+      const fab = $id('chatFab'); if (!fab) return;
+      const sibuk = (typeof sesi !== 'undefined' && sesi) || (typeof labS !== 'undefined' && labS && labS.ws);
+      fab.classList.toggle('hidden', !chatAktif() || !!sibuk || !$id('chatPanel').classList.contains('hidden'));
+    }
+    setInterval(chatFabCek, 1000);
+
+    function chatBadge() {
+      const b = $id('chatBadge'); if (!b) return;
+      const n = chatData ? (chatData.kuis.length + chatData.tugas.length + chatData.materi.length) : 0;
+      b.textContent = n > 99 ? '99+' : String(n);
+      b.classList.toggle('hidden', n === 0);
+    }
+
+    async function chatMuat() {
+      if (!chatAktif() || chatMemuat) return;
+      chatMemuat = true;
+      try {
+        const r = await db.rpc('siswa_pengingat', { p_token: sesiToken });
+        if (r.error) {
+          if (galatSesi(r.error.message)) return sesiHabis();
+          throw r.error;
+        }
+        chatData = { kuis: [], tugas: [], materi: [], ...(r.data || {}) };
+      } catch (e) {
+        chatData = null;
+        if (!$id('chatPanel').classList.contains('hidden')) {
+          $id('chatIsi').innerHTML = `<div class="chat-bubble">Pengingat belum bisa dimuat: ${escHtml(e.message || e)}${/function|schema cache|does not exist/i.test(e.message || '') ? '<br><small>Beri tahu gurumu: chatbot_c1.sql belum dijalankan.</small>' : ''}</div>`;
+        }
+        return;
+      } finally { chatMemuat = false; }
+      chatBadge();
+      if (!$id('chatPanel').classList.contains('hidden')) chatRender();
+    }
+
+    function chatRender() {
+      const box = $id('chatIsi'); if (!box || !chatData) return;
+      const d = chatData;
+      const nama = String(d.nama || activeUser.nama || '').split(' ')[0];
+      const daftar = (judul, items, isi) => items.length
+        ? `<div class="chat-bubble"><h4>${judul}</h4>${items.map(isi).join('')}</div>` : '';
+      const total = d.kuis.length + d.tugas.length + d.materi.length;
+
+      let h = `<div class="chat-bubble">Halo, <b>${escHtml(nama)}</b>! 👋 ${total
+        ? `Ini yang masih menunggumu:` : `Semua kuis, tugas Lab, dan materi untuk kelasmu sudah beres. Mantap! 🎉`}</div>`;
+      if (d.terkunci) h += `<div class="chat-bubble chat-kunci">⏳ Kamu sedang mengerjakan kuis. Selesaikan dan kirim dulu ya. Tanya-jawab dengan Tutor ditutup selama kuis berlangsung.</div>`;
+
+      h += daftar('📝 Kuis yang perlu dikerjakan', d.kuis, k => `
+        <div class="chat-item"><span>${escHtml(k.judul)}${k.jenis === 'ulangan' ? ' <span class="badge warn">Ulangan</span>' : ''}
+          <small>${k.aktif ? 'Sedang dikerjakan' : (k.tutup_at ? 'Tutup ' + escHtml(tglPendek(k.tutup_at)) : 'Tanpa batas waktu')}</small></span>
+          <button type="button" class="alt" onclick="chatKe('kuis')">${k.aktif ? 'Lanjutkan' : 'Buka'}</button></div>`);
+      h += daftar('🧩 Tugas Lab belum dikirim', d.tugas, t => `
+        <div class="chat-item"><span>${escHtml(t.judul)}${t.topik ? `<small>${escHtml(t.topik)}</small>` : ''}</span>
+          <button type="button" class="alt" onclick="chatKe('lab', '${escHtml(String(t.id))}')">Kerjakan</button></div>`);
+      h += daftar('📖 Materi belum ditandai dibaca', d.materi, m => `
+        <div class="chat-item"><span>${escHtml(m.judul)}</span>
+          <button type="button" class="alt" onclick="chatKe('materi', '${escHtml(String(m.id))}')">Baca</button></div>`);
+
+      h += `<div class="chat-bubble"><small class="mu">💡 Sebentar lagi kamu bisa bertanya tentang materi di sini. Tutor akan membantumu berpikir lewat petunjuk, bukan memberi jawaban jadi.</small></div>`;
+      box.innerHTML = h;
+    }
+
+    function chatBuka() {
+      if (!chatAktif()) return;
+      $id('chatPanel').classList.remove('hidden');
+      chatFabCek();
+      if (chatData) chatRender(); else $id('chatIsi').innerHTML = '<p class="mu">Memuat…</p>';
+      chatMuat();
+    }
+    function chatTutup() { $id('chatPanel').classList.add('hidden'); chatFabCek(); }
+
+    function chatKe(tujuan, id) {
+      chatTutup();
+      if (tujuan === 'kuis') { switchTab('kuis'); return; }
+      if (tujuan === 'materi') {
+        switchTab('materi');
+        if (id && typeof materiCache !== 'undefined' && materiCache[id] && materiCache[id].konten) bukaModul(id);
+        return;
+      }
+      if (tujuan === 'lab') {
+        switchTab('lab'); labModeSiswa('tugas');
+        if (id && labTugasCache[String(id)]) bukaLab(id);
+      }
+    }
+
     // ================= SESI LOGIN + PEMUATAN DATA ULANG =================
     // Sesi disimpan di browser (tanpa password): token sesi server, username, peran, waktu aktif terakhir, tab terakhir, mode Lab.
     // Berlaku 1 jam sejak aktivitas terakhir; setiap klik/ketukan memperpanjangnya. Keluar menghapusnya.
@@ -5347,7 +5475,7 @@
       const b = $id('btnMuatUlang'); if (b) { b.disabled = true; b.textContent = '⏳'; }
       try {
         await Promise.all(daftarMuat().map(m => jalankanAman(m.fn)));
-        if (activeUser.role === 'siswa') await jalankanAman(robotMuatLevel);
+        if (activeUser.role === 'siswa') { await jalankanAman(robotMuatLevel); await jalankanAman(chatMuat); }
       } finally {
         sedangMuatUlang = false;
         if (b) { b.disabled = false; b.textContent = '🔄'; }
@@ -5367,6 +5495,13 @@
     sesiPulihkan();
 
   </script>
+  <div id="chatFab" class="hidden"><button type="button" onclick="chatBuka()" aria-label="Buka Tutor">💬 Tutor <b id="chatBadge" class="hidden">0</b></button></div>
+  <div id="chatPanel" class="hidden" role="dialog" aria-label="Tutor Informatika">
+    <div class="chat-head"><b>💬 Tutor Informatika</b><button type="button" onclick="chatTutup()" aria-label="Tutup">✕</button></div>
+    <div class="chat-info">🔒 Percakapan dengan Tutor bisa dibaca oleh gurumu.</div>
+    <div id="chatIsi" class="chat-isi"><p class="mu">Memuat…</p></div>
+    <div class="chat-kaki"><input id="chatInput" type="text" disabled placeholder="Tanya jawab dengan Tutor segera hadir…"><button type="button" disabled>Kirim</button></div>
+  </div>
   <div id="keranjangFab" class="hidden"><button type="button" onclick="keranjangBuka()">🛒 <b id="keranjangN">0</b> soal dipilih · Buat paket →</button></div>
 </body>
 </html>
