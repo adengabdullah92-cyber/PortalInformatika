@@ -830,6 +830,20 @@
     .chat-ai code { background: var(--paper, #f7f3e9); border: 1px solid var(--bd, #d2c8b0); padding: 0 4px; border-radius: 3px; }
     .chat-sumber { display: block; margin-top: 6px; color: var(--mu, #6a6455); font-size: 0.75rem; }
     .chat-mengetik { color: var(--mu, #6a6455); font-style: italic; }
+    .chat-alat { padding: 8px 12px; border-bottom: 2px solid var(--ink, #1d2140); background: var(--paper-2, #fff); display: grid; gap: 8px; }
+    .chat-alat.hidden, .chat-pilih.hidden, .chat-kaki.hidden { display: none; }
+    .chat-tab { display: flex; gap: 6px; }
+    .chat-tab button { flex: 1; padding: 6px 8px; font-size: 0.82rem; border: 2px solid var(--ink, #1d2140); border-radius: 3px;
+      background: var(--paper, #f7f3e9); color: var(--ink, #1d2140); font-family: inherit; cursor: pointer; }
+    .chat-tab button.aktif { background: var(--ink, #1d2140); color: #fff; }
+    .chat-pilih { display: flex; gap: 6px; }
+    .chat-pilih select { flex: 1; min-width: 0; font-size: 16px; padding: 4px; }
+    .chat-cepat { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .chat-cepat button { padding: 4px 8px; font-size: 0.78rem; }
+    .chat-siswa summary { cursor: pointer; display: flex; justify-content: space-between; gap: 8px; }
+    .chat-siswa .chat-bubble { box-shadow: none; margin: 8px 0 0; font-size: 0.85rem; }
+    #chatFab.guru { right: auto; left: 14px; }
+    #chatFab.naik { bottom: 84px; }
     .chat-kaki { display: flex; gap: 8px; padding: 10px 12px; border-top: 2px solid var(--ink, #1d2140); background: var(--paper-2, #fff); }
     .chat-kaki input { flex: 1; min-width: 0; font-size: 16px; }
     .chat-kaki button { flex: none; }
@@ -5291,37 +5305,69 @@
 
   
 
-    // ================= CHATBOT: PANEL TUTOR SISWA =================
-    // C1: pengingat dihitung server (fungsi SQL siswa_pengingat, chatbot_c1.sql), tanpa AI.
-    // C2: tanya-jawab dengan Tutor AI lewat Edge Function "chatbot" (kuota, kunci saat kuis, log dicek server).
+    // ================= CHATBOT: TUTOR SISWA + ASISTEN GURU =================
+    // C1: pengingat siswa dihitung server (fungsi SQL siswa_pengingat, chatbot_c1.sql), tanpa AI.
+    // C2: tanya-jawab siswa dengan Tutor AI lewat Edge Function "chatbot" (kuota, kunci saat kuis, log dicek server).
+    // C3: Asisten AI untuk guru (data kelas dianonimkan sebelum dikirim ke AI) + riwayat chat siswa per kelas.
     const CHAT_URL = `${SUPABASE_URL}/functions/v1/chatbot`;
-    let chatData = null;            // pengingat
+    let chatData = null;            // pengingat siswa
     let chatMemuat = false;
     let chatPesan = [];             // percakapan: {dari: 'pengguna'|'ai'|'galat', isi, sumber}
     let chatInfo = null;            // {sisa, batas, terkunci}
     let chatRiwayatSiap = false;
     let chatMengirim = false;
+    let chatMode = 'asisten';       // guru: 'asisten' | 'siswa'
+    let chatSiswaData = null;       // guru: hasil guru_chat_siswa
 
-    function chatAktif() { return !!(activeUser && activeUser.role === 'siswa'); }
+    function chatAktif() { return !!(activeUser && (activeUser.role === 'siswa' || activeUser.role === 'guru')); }
+    function chatGuru() { return !!(activeUser && activeUser.role === 'guru'); }
     function chatTerbuka() { return !$id('chatPanel').classList.contains('hidden'); }
 
-    // Tombol disembunyikan saat siswa sedang mengerjakan kuis atau tugas Lab (supaya tidak menutupi tombol Blockly)
+    // Tombol disembunyikan saat siswa mengerjakan kuis/Lab (supaya tidak menutupi tombol Blockly).
+    // Guru: tombol di kiri bawah; naik bila tombol keranjang paket tampil di HP.
     function chatFabCek() {
       const fab = $id('chatFab'); if (!fab) return;
       const sibuk = (typeof sesi !== 'undefined' && sesi) || (typeof labS !== 'undefined' && labS && labS.ws);
       fab.classList.toggle('hidden', !chatAktif() || !!sibuk || chatTerbuka());
+      fab.classList.toggle('guru', chatGuru());
+      const lbl = $id('chatFabLabel'); if (lbl) lbl.textContent = chatGuru() ? 'Asisten' : 'Tutor';
+      const kj = $id('keranjangFab');
+      fab.classList.toggle('naik', chatGuru() && kj && !kj.classList.contains('hidden') && window.innerWidth <= 640);
     }
     setInterval(chatFabCek, 1000);
 
+    function chatSiapkanPanel() {
+      const g = chatGuru();
+      $id('chatFabLabel').textContent = g ? 'Asisten' : 'Tutor';
+      $id('chatJudul').textContent = g ? '💬 Asisten Guru' : '💬 Tutor Informatika';
+      $id('chatInfoTeks').textContent = g
+        ? '🔒 Data siswa dikirim ke AI tanpa nama. Asisten hanya membaca data, tidak mengubah apa pun.'
+        : '🔒 Percakapan dengan Tutor bisa dibaca oleh gurumu.';
+      $id('chatAlat').classList.toggle('hidden', !g);
+      $id('chatInput').maxLength = g ? 2000 : 500;
+      if (g) {
+        const kelasOpsi = DAFTAR_KELAS.map(k => `<option value="${k}">Kelas ${k}</option>`).join('');
+        const kSel = $id('chatKelas'), kLama = kSel.value;
+        kSel.innerHTML = '<option value="">Tanpa data kelas</option>' + kelasOpsi;
+        kSel.value = kLama;
+        const ksSel = $id('chatKelasSiswa'), ksLama = ksSel.value;
+        ksSel.innerHTML = kelasOpsi; if (ksLama) ksSel.value = ksLama;
+        const pSel = $id('chatPaket'), pLama = pSel.value;
+        const pakets = ((bankState.paket && bankState.paket.items) || []).filter(x => !x.diarsipkan);
+        pSel.innerHTML = '<option value="">Tanpa paket kuis</option>' + pakets.map(x => `<option value="${escHtml(String(x.id))}">${escHtml(x.judul || 'Paket ' + x.id)}</option>`).join('');
+        pSel.value = pLama;
+      }
+    }
+
     function chatBadge() {
       const b = $id('chatBadge'); if (!b) return;
-      const n = chatData ? (chatData.kuis.length + chatData.tugas.length + chatData.materi.length) : 0;
+      const n = !chatGuru() && chatData ? (chatData.kuis.length + chatData.tugas.length + chatData.materi.length) : 0;
       b.textContent = n > 99 ? '99+' : String(n);
       b.classList.toggle('hidden', n === 0);
     }
 
     async function chatMuat() {
-      if (!chatAktif() || chatMemuat) return;
+      if (!activeUser || activeUser.role !== 'siswa' || chatMemuat) return;
       chatMemuat = true;
       try {
         const r = await db.rpc('siswa_pengingat', { p_token: sesiToken });
@@ -5339,7 +5385,7 @@
 
     async function chatAPI(aksi, extra = {}) {
       const ctrl = new AbortController();
-      const tm = setTimeout(() => ctrl.abort(), 60000);
+      const tm = setTimeout(() => ctrl.abort(), 70000);
       try {
         const res = await fetch(CHAT_URL, {
           method: 'POST',
@@ -5348,12 +5394,15 @@
           signal: ctrl.signal
         });
         let data;
-        try { data = await res.json(); } catch (_) { throw new Error('Tutor belum aktif di server (HTTP ' + res.status + '). Beri tahu gurumu.'); }
+        try { data = await res.json(); } catch (_) { throw new Error('Chat belum aktif di server (HTTP ' + res.status + ').'); }
         if (res.status === 401) sesiHabis(data.error);
-        if (!res.ok || data.error) { const e = new Error(data.error || ('HTTP ' + res.status)); e.status = res.status; throw e; }
+        if (!res.ok || data.error) {
+          const e = new Error((data.error || ('HTTP ' + res.status)) + (/Aksi tidak dikenal/.test(data.error || '') ? ' (deploy ulang Edge Function chatbot versi terbaru)' : ''));
+          e.status = res.status; throw e;
+        }
         return data;
       } catch (e) {
-        if (e.name === 'AbortError') throw new Error('Tutor tidak merespons. Periksa internet lalu coba lagi.');
+        if (e.name === 'AbortError') throw new Error('Server tidak merespons. Periksa internet lalu coba lagi.');
         if (/Load failed|Failed to fetch|NetworkError/i.test(e.message || '')) throw new Error('Koneksi terputus. Periksa internet lalu coba lagi.');
         throw e;
       } finally { clearTimeout(tm); }
@@ -5361,7 +5410,7 @@
 
     async function chatMuatRiwayat() {
       try {
-        const d = await chatAPI('riwayat');
+        const d = await chatAPI(chatGuru() ? 'guru_riwayat' : 'riwayat');
         chatPesan = (d.pesan || []).map(p => ({ dari: p.dari, isi: p.isi, sumber: p.sumber || [] }));
         chatInfo = { sisa: d.sisa, batas: d.batas, terkunci: !!d.terkunci };
         chatRiwayatSiap = true;
@@ -5401,21 +5450,62 @@
       return h;
     }
 
-    function chatRender() {
-      const box = $id('chatIsi'); if (!box) return;
-      let h = chatPengingatHTML();
-      const terkunci = !!((chatInfo && chatInfo.terkunci) || (chatData && chatData.terkunci));
+    const CHAT_CEPAT = [
+      ['Ringkas kondisi kelas', 'Ringkas kondisi kelas ini: apa yang sudah baik, apa yang perlu segera ditindaklanjuti.'],
+      ['Rencana remedial', 'Susun rencana remedial singkat untuk topik yang paling lemah, termasuk aktivitas 1 pertemuan.'],
+      ['Yang bikin bingung siswa', 'Dari pertanyaan siswa ke Tutor, konsep apa yang paling sering membingungkan? Beri saran cara menjelaskannya.'],
+      ['Draf pengingat', 'Buat draf pesan singkat untuk grup kelas yang mengingatkan kuis dan tugas Lab yang belum dikerjakan.']
+    ];
 
-      if (!chatPesan.length) {
-        h += `<div class="chat-bubble chat-ai">💡 Bingung soal materi? Tanyakan di bawah. Aku akan membantumu berpikir lewat petunjuk dan contoh, bukan memberi jawaban jadi untuk tugas atau kuis.</div>`;
-      }
-      h += chatPesan.map(p => {
+    function chatPercakapanHTML() {
+      return chatPesan.map(p => {
         if (p.dari === 'pengguna') return `<div class="chat-bubble chat-saya">${escHtml(p.isi)}</div>`;
         if (p.dari === 'galat') return `<div class="chat-bubble chat-kunci">⚠️ ${escHtml(p.isi)}</div>`;
         const sumber = (p.sumber || []).length ? `<small class="chat-sumber">📚 ${p.sumber.map(escHtml).join(' • ')}</small>` : '';
         return `<div class="chat-bubble chat-ai">${chatFormat(p.isi)}${sumber}</div>`;
-      }).join('');
-      if (chatMengirim) h += `<div class="chat-bubble chat-ai chat-mengetik">Tutor sedang berpikir…</div>`;
+      }).join('') + (chatMengirim ? `<div class="chat-bubble chat-ai chat-mengetik">${chatGuru() ? 'Asisten' : 'Tutor'} sedang berpikir…</div>` : '');
+    }
+
+    function chatGuruSiswaHTML() {
+      const d = chatSiswaData;
+      if (!d) return '<p class="mu">Memuat chat siswa…</p>';
+      if (d.galat) return `<div class="chat-bubble chat-kunci">⚠️ ${escHtml(d.galat)}</div>`;
+      if (!d.siswa.length) return `<div class="chat-bubble">Belum ada siswa kelas ${escHtml(d.kelas)} yang bertanya ke Tutor dalam ${d.hari} hari terakhir.</div>`;
+      return `<div class="chat-bubble"><b>${d.total_tanya}</b> pertanyaan dari <b>${d.siswa.length}</b> siswa kelas ${escHtml(d.kelas)} (${d.hari} hari terakhir).</div>` +
+        d.siswa.map(x => `<details class="chat-bubble chat-siswa"><summary><span>${escHtml(x.nama)}</span><span class="mu">${x.jumlah_tanya} tanya • ${escHtml(tglPendek(x.terakhir))}</span></summary>
+          ${x.pesan.map(p => p.dari === 'pengguna'
+            ? `<div class="chat-bubble chat-saya">${escHtml(p.isi)}<small class="chat-sumber">${escHtml(tglPendek(p.waktu))}</small></div>`
+            : `<div class="chat-bubble chat-ai">${chatFormat(p.isi)}${(p.sumber || []).length ? `<small class="chat-sumber">📚 ${p.sumber.map(escHtml).join(' • ')}</small>` : ''}</div>`).join('')}
+        </details>`).join('');
+    }
+
+    function chatRender() {
+      const box = $id('chatIsi'); if (!box) return;
+      const g = chatGuru();
+      const form = $id('chatInput').closest('form');
+      let h = '';
+
+      if (g && chatMode === 'siswa') {
+        form.classList.add('hidden');
+        box.innerHTML = chatGuruSiswaHTML();
+        return;
+      }
+      form.classList.remove('hidden');
+
+      let terkunci = false;
+      if (g) {
+        if (!chatPesan.length) {
+          h += `<div class="chat-bubble chat-ai">Halo, <b>${escHtml(String(activeUser.nama || '').split(' ')[0])}</b>! Pilih kelas (dan paket kuis bila perlu) di atas supaya saya bisa membaca datanya, lalu tanyakan apa saja.
+            <div class="chat-cepat">${CHAT_CEPAT.map((c, i) => `<button type="button" class="alt" onclick="chatCepat(${i})">${escHtml(c[0])}</button>`).join('')}</div></div>`;
+        }
+      } else {
+        h += chatPengingatHTML();
+        terkunci = !!((chatInfo && chatInfo.terkunci) || (chatData && chatData.terkunci));
+        if (!chatPesan.length) {
+          h += `<div class="chat-bubble chat-ai">💡 Bingung soal materi? Tanyakan di bawah. Aku akan membantumu berpikir lewat petunjuk dan contoh, bukan memberi jawaban jadi untuk tugas atau kuis.</div>`;
+        }
+      }
+      h += chatPercakapanHTML();
       if (terkunci) h += `<div class="chat-bubble chat-kunci">⏳ Kamu sedang mengerjakan kuis. Tanya-jawab dengan Tutor dibuka lagi setelah kuismu dikirim.</div>`;
       box.innerHTML = h;
       box.scrollTop = box.scrollHeight;
@@ -5424,38 +5514,70 @@
       const habis = chatInfo && !chatInfo.galat && chatInfo.sisa <= 0;
       const siap = chatRiwayatSiap && !terkunci && !habis && !chatMengirim;
       inp.disabled = !siap; btn.disabled = !siap;
-      inp.placeholder = !chatRiwayatSiap ? (chatInfo && chatInfo.galat ? chatInfo.galat : 'Memuat Tutor…')
+      inp.placeholder = !chatRiwayatSiap ? (chatInfo && chatInfo.galat ? chatInfo.galat : 'Memuat…')
         : terkunci ? 'Tutor ditutup selama kuis'
         : habis ? 'Jatah pertanyaan hari ini habis'
-        : `Tulis pertanyaanmu… (sisa ${chatInfo.sisa} hari ini)`;
+        : g ? 'Tanya Asisten…' : `Tulis pertanyaanmu… (sisa ${chatInfo.sisa} hari ini)`;
     }
 
     async function chatKirim() {
       const inp = $id('chatInput');
       const isi = (inp.value || '').trim();
+      const g = chatGuru();
       if (!isi || chatMengirim) return;
-      if (isi.length > 500) return alert('Pertanyaan terlalu panjang (maksimal 500 karakter).');
+      if (isi.length > (g ? 2000 : 500)) return alert(`Pertanyaan terlalu panjang (maksimal ${g ? 2000 : 500} karakter).`);
       chatPesan.push({ dari: 'pengguna', isi });
       inp.value = '';
       chatMengirim = true; chatRender();
       try {
-        const d = await chatAPI('kirim', { pesan: isi });
+        const d = g
+          ? await chatAPI('guru_kirim', { pesan: isi, kelas: $id('chatKelas').value || null, paket_id: Number($id('chatPaket').value) || null })
+          : await chatAPI('kirim', { pesan: isi });
         chatPesan.push({ dari: 'ai', isi: d.balasan, sumber: d.sumber || [] });
         chatInfo = { ...(chatInfo || {}), sisa: d.sisa, batas: d.batas };
       } catch (e) {
         chatPesan.push({ dari: 'galat', isi: e.message || String(e) });
         if (e.status === 423) chatInfo = { ...(chatInfo || {}), terkunci: true };
-        if (e.status === 429 && /habis/.test(e.message || '')) chatInfo = { ...(chatInfo || {}), sisa: 0 };
+        if (e.status === 429 && /habis|tercapai/.test(e.message || '')) chatInfo = { ...(chatInfo || {}), sisa: 0 };
       } finally {
         chatMengirim = false; chatRender();
         if (!$id('chatInput').disabled) $id('chatInput').focus();
       }
     }
 
+    function chatCepat(i) {
+      const c = CHAT_CEPAT[i]; if (!c || chatMengirim) return;
+      if (i !== 3 && !$id('chatKelas').value) { $id('chatKelas').focus(); return alert('Pilih kelas dulu supaya Asisten bisa membaca datanya.'); }
+      $id('chatInput').value = c[1];
+      chatKirim();
+    }
+
+    function chatGuruMode(m) {
+      chatMode = m === 'siswa' ? 'siswa' : 'asisten';
+      $id('chatTabAsisten').classList.toggle('aktif', chatMode === 'asisten');
+      $id('chatTabSiswa').classList.toggle('aktif', chatMode === 'siswa');
+      $id('chatPilihAsisten').classList.toggle('hidden', chatMode !== 'asisten');
+      $id('chatPilihSiswa').classList.toggle('hidden', chatMode !== 'siswa');
+      if (chatMode === 'siswa') {
+        if ($id('chatKelas').value) $id('chatKelasSiswa').value = $id('chatKelas').value;
+        chatGuruMuatSiswa();
+      } else chatRender();
+    }
+
+    async function chatGuruMuatSiswa() {
+      chatSiswaData = null; chatRender();
+      try {
+        chatSiswaData = await chatAPI('guru_chat_siswa', { kelas: $id('chatKelasSiswa').value, hari: Number($id('chatHari').value) || 14 });
+      } catch (e) { chatSiswaData = { galat: e.message || String(e) }; }
+      if (chatMode === 'siswa') chatRender();
+    }
+
     function chatBuka() {
       if (!chatAktif()) return;
+      chatSiapkanPanel();
       $id('chatPanel').classList.remove('hidden');
       chatFabCek();
+      if (chatGuru()) { chatGuruMode(chatMode); if (!chatRiwayatSiap) chatMuatRiwayat(); return; }
       chatRender();
       chatMuat();
       chatMuatRiwayat();
@@ -5591,10 +5713,21 @@
     sesiPulihkan();
 
   </script>
-  <div id="chatFab" class="hidden"><button type="button" onclick="chatBuka()" aria-label="Buka Tutor">💬 Tutor <b id="chatBadge" class="hidden">0</b></button></div>
-  <div id="chatPanel" class="hidden" role="dialog" aria-label="Tutor Informatika">
-    <div class="chat-head"><b>💬 Tutor Informatika</b><button type="button" onclick="chatTutup()" aria-label="Tutup">✕</button></div>
-    <div class="chat-info">🔒 Percakapan dengan Tutor bisa dibaca oleh gurumu.</div>
+  <div id="chatFab" class="hidden"><button type="button" onclick="chatBuka()" aria-label="Buka chat">💬 <span id="chatFabLabel">Tutor</span> <b id="chatBadge" class="hidden">0</b></button></div>
+  <div id="chatPanel" class="hidden" role="dialog" aria-label="Chat">
+    <div class="chat-head"><b id="chatJudul">💬 Tutor Informatika</b><button type="button" onclick="chatTutup()" aria-label="Tutup">✕</button></div>
+    <div class="chat-info" id="chatInfoTeks">🔒 Percakapan dengan Tutor bisa dibaca oleh gurumu.</div>
+    <div class="chat-alat hidden" id="chatAlat">
+      <div class="chat-tab"><button type="button" id="chatTabAsisten" class="aktif" onclick="chatGuruMode('asisten')">🤖 Asisten</button><button type="button" id="chatTabSiswa" onclick="chatGuruMode('siswa')">🧑‍🎓 Chat siswa</button></div>
+      <div class="chat-pilih" id="chatPilihAsisten">
+        <select id="chatKelas" aria-label="Kelas"></select>
+        <select id="chatPaket" aria-label="Paket kuis"></select>
+      </div>
+      <div class="chat-pilih hidden" id="chatPilihSiswa">
+        <select id="chatKelasSiswa" aria-label="Kelas" onchange="chatGuruMuatSiswa()"></select>
+        <select id="chatHari" aria-label="Rentang" onchange="chatGuruMuatSiswa()"><option value="7">7 hari</option><option value="14" selected>14 hari</option><option value="30">30 hari</option></select>
+      </div>
+    </div>
     <div id="chatIsi" class="chat-isi"><p class="mu">Memuat…</p></div>
     <form class="chat-kaki" onsubmit="event.preventDefault(); chatKirim();"><input id="chatInput" type="text" maxlength="500" autocomplete="off" disabled placeholder="Memuat Tutor…"><button type="submit" id="chatKirimBtn" disabled>Kirim</button></form>
   </div>
