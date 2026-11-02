@@ -1684,11 +1684,21 @@
     function bankMode(key, v) { bankState[key].arsip = (v === 'arsip'); bankState[key].page = 1; renderBank(key); }
     function bankHal(key, d) { bankState[key].page += d; renderBank(key); }
 
+    // Semua tulisan guru lewat fungsi server bertoken (keamanan_4c.sql). Hasil: { data, error }.
+    async function guruRPC(nama, params = {}) {
+      const r = await db.rpc(nama, { p_user: activeUser.username, p_pass: sesiToken, ...params });
+      if (r.error) {
+        if (galatSesi(r.error.message)) sesiHabis();
+        else if (/function|schema cache|does not exist/i.test(r.error.message || '')) r.error.message += ' (jalankan keamanan_4c.sql di Supabase)';
+      }
+      return r;
+    }
+
     async function bankArsip(key, id, flag) {
       const cfg = BANK[key];
       const item = bankState[key].items.find(x => String(x.id) === String(id));
       if (flag && !confirm(`Arsipkan "${item ? cfg.judul(item) : ''}"?\n\nTidak lagi terlihat siswa. Data & status publish tetap tersimpan dan bisa dipulihkan.`)) return;
-      const { error } = await db.from(cfg.tabel).update({ diarsipkan: flag }).eq('id', id);
+      const { error } = await guruRPC('guru_simpan', { p_tabel: cfg.tabel, p_data: { diarsipkan: flag }, p_id: String(id) });
       if (error) {
         return alert('Gagal: ' + error.message + (/diarsipkan/.test(error.message) ? '\n\nKolom "diarsipkan" belum ada. Jalankan SQL penambahan kolom di Supabase dulu.' : ''));
       }
@@ -1701,11 +1711,8 @@
       const item = bankState[key].items.find(x => String(x.id) === String(id));
       if (!item) return;
       if (!confirm(`Hapus PERMANEN "${cfg.judul(item)}"?\n\nIkut terhapus: status publish${cfg.dampak}.\nTidak bisa dibatalkan.`)) return;
-      for (const [tbl, col] of [[cfg.pubTabel, cfg.fk], ...cfg.anak]) {
-        const { error } = await db.from(tbl).delete().eq(col, id);
-        if (error) return alert(`Gagal menghapus (${tbl}): ${error.message}`);
-      }
-      const { error } = await db.from(cfg.tabel).delete().eq('id', id);
+      // Server menghapus status publish & data turunannya (lihat guru_hapus di keamanan_4c.sql)
+      const { error } = await guruRPC('guru_hapus', { p_bank: key, p_id: String(id) });
       if (error) return alert('Gagal menghapus: ' + error.message);
       bankState[key].open.delete(String(id));
       await loadBank(key);
@@ -1746,7 +1753,7 @@
       const baru = dipilih.filter(k => !sudah.has(k));
       if (baru.length === 0) return alert('Semua kelas yang dipilih sudah tayang.');
 
-      const { error } = await db.from(cfg.pubTabel).insert(baru.map(k => ({ [cfg.fk]: id, kelas: k })));
+      const { error } = await guruRPC('guru_publish', { p_bank: key, p_id: String(id), p_kelas: baru });
       if (error) return alert('Gagal publish: ' + error.message);
       await loadBank(key);
     }
@@ -1760,7 +1767,7 @@
       if (tarik.length === 0) return alert('Centang kelas yang sudah tayang (hijau ✓) untuk ditarik.');
       if (!confirm(`Tarik dari kelas: ${tarik.join(', ')}?\n\nSiswa di kelas itu tidak akan melihatnya lagi.`)) return;
 
-      const { error } = await db.from(cfg.pubTabel).delete().eq(cfg.fk, id).in('kelas', tarik);
+      const { error } = await guruRPC('guru_tarik', { p_bank: key, p_id: String(id), p_kelas: tarik });
       if (error) return alert('Gagal menarik: ' + error.message);
       await loadBank(key);
     }
@@ -2054,9 +2061,7 @@
 
       if (!judul) return alert('Isi judul materi!');
 
-      const { error } = await db.from('materi').insert({
-        judul, konten, tipe_media, url_media
-      });
+      const { error } = await guruRPC('guru_simpan', { p_tabel: 'materi', p_data: { judul, konten, tipe_media, url_media } });
       if (error) return alert('Gagal menyimpan materi: ' + error.message);
 
       alert('Materi tersimpan ke Bank Master!');
@@ -2071,7 +2076,8 @@
     async function loadBankMateriGuru() { return loadBank('materi'); }
 
     async function publishMateriMulti(materiId, targetKelas) {
-      await db.from('materi_published').insert({ materi_id: materiId, kelas: targetKelas });
+      const { error } = await guruRPC('guru_publish', { p_bank: 'materi', p_id: String(materiId), p_kelas: [targetKelas] });
+      if (error) return alert('Gagal publish: ' + error.message);
       alert(`Materi berhasil dipublish ke Kelas ${targetKelas}!`);
     }
 
@@ -2131,8 +2137,9 @@
     }
 
     async function tandaiMateriDibaca(materiId) {
-      const { error } = await db.from('materi_read_log').insert({ materi_id: materiId, siswa_id: activeUser.id });
-      if (error) return alert('Gagal menyimpan: ' + error.message);
+      // Ditulis lewat server (keamanan_4b.sql): siswa_id diambil dari token, bukan dari browser.
+      const { error } = await db.rpc('siswa_tandai_dibaca', { p_token: sesiToken, p_materi_id: String(materiId) });
+      if (error) { if (galatSesi(error.message)) return sesiHabis(); return alert('Gagal menyimpan: ' + error.message); }
       alert('Materi ditandai sudah dibaca! 🎉');
       await loadMateriSiswa();
     }
@@ -2671,7 +2678,7 @@
         };
       });
 
-      const { error } = await db.from('kuis').insert(rows);
+      const { error } = await guruRPC('guru_simpan_banyak', { p_tabel: 'kuis', p_rows: rows });
       if (error) {
         return alert('Gagal menyimpan soal: ' + error.message +
           (/column|schema cache|constraint/i.test(error.message) ? '\n\nKemungkinan migrasi SQL Tahap 1 belum dijalankan di Supabase.' : ''));
@@ -3019,7 +3026,7 @@
         buka_at: buka,
         tutup_at: tutup
       };
-      const { error } = await db.from('paket').update(upd).eq('id', id);
+      const { error } = await guruRPC('guru_simpan', { p_tabel: 'paket', p_data: upd, p_id: String(id) });
       if (error) return alert('Gagal menyimpan pengaturan: ' + error.message);
       paketEditId = null;
       await loadPaketGuru();
@@ -3035,7 +3042,8 @@
     }
 
     async function publishKuisMulti(kuisId, targetKelas) {
-      await db.from('kuis_published').insert({ kuis_id: kuisId, kelas: targetKelas });
+      const { error } = await guruRPC('guru_publish', { p_bank: 'kuis', p_id: String(kuisId), p_kelas: [targetKelas] });
+      if (error) return alert('Gagal publish: ' + error.message);
       alert(`Kuis berhasil dipublish ke Kelas ${targetKelas}!`);
     }
 
@@ -4048,8 +4056,7 @@
         pseudokode: $id('tgPseudo').value.trim() || null,
         rubrik: $id('tgRubrik').value.trim() || null, starter
       };
-      const q = tgEditId ? db.from('tugas').update(baris).eq('id', tgEditId) : db.from('tugas').insert(baris);
-      const { error } = await q;
+      const { error } = await guruRPC('guru_simpan', { p_tabel: 'tugas', p_data: baris, p_id: tgEditId ? String(tgEditId) : null });
       if (error) return alert('Gagal menyimpan: ' + error.message + (/column|schema/i.test(error.message) ? '\n\nJalankan lab_b.sql di Supabase SQL Editor dulu.' : ''));
       alert(tgEditId ? 'Perubahan tugas tersimpan!' : 'Tugas tersimpan ke Bank Master!');
       tgReset();
@@ -4079,7 +4086,8 @@
     async function loadBankTugasGuru() { return loadBank('tugas'); }
 
     async function publishTugasMulti(tugasId, targetKelas) {
-      await db.from('tugas_published').insert({ tugas_id: tugasId, kelas: targetKelas });
+      const { error } = await guruRPC('guru_publish', { p_bank: 'tugas', p_id: String(tugasId), p_kelas: [targetKelas] });
+      if (error) return alert('Gagal publish: ' + error.message);
       alert(`Tugas Koding dipublish ke Kelas ${targetKelas}!`);
     }
 
@@ -4231,9 +4239,12 @@
       const v = $id('kumNilai').value;
       const nilai = v === '' ? null : Math.max(0, Math.min(100, Number(v)));
       if (v !== '' && !isFinite(nilai)) return alert('Nilai harus berupa angka 0–100.');
-      const { error } = await db.from('pengumpulan').update({ nilai_guru: nilai, komentar_guru: $id('kumKomentar').value.trim() || null })
-        .eq('tugas_id', kumDilihat.tugasId).eq('siswa_id', kumDilihat.siswaId);
-      if (error) return alert('Gagal menyimpan: ' + error.message);
+      const { error } = await db.rpc('guru_nilai_tugas', {
+        p_user: activeUser.username, p_pass: sesiToken,
+        p_tugas_id: String(kumDilihat.tugasId), p_siswa_id: String(kumDilihat.siswaId),
+        p_nilai: nilai, p_komentar: $id('kumKomentar').value.trim() || null
+      });
+      if (error) { if (galatSesi(error.message)) return sesiHabis(); return alert('Gagal menyimpan: ' + error.message); }
       const id = kumDilihat.tugasId;
       tutupModalLab();
       await muatKumTugas(id);
@@ -4417,19 +4428,15 @@
         jawaban_kode: kode || '# (tebakan) ' + $id('labTebak').value, jawaban_blok: jenis === 'tebak' ? null : labSimpanState(labS.ws),
         durasi_detik: durasiDetik, total_aksi: labS.aksi, status_indikasi: statusIndikasi,
         hasil_uji: hasil.length ? { lulus, total: hasil.length, detail: hasil.map(h => ({ no: h.no, lulus: h.lulus })) } : null,
-        jumlah_jalankan: labS.jalankan + labS.periksa, petunjuk_dibuka: labS.petunjuk, dikirim_at: new Date().toISOString()
+        jumlah_jalankan: labS.jalankan + labS.periksa, petunjuk_dibuka: labS.petunjuk
       };
 
-      const ada = await db.from('pengumpulan').select('*').eq('tugas_id', t.id).eq('siswa_id', activeUser.id);
-      if (ada.error) return alert('Gagal mengirim: ' + ada.error.message);
-      let err;
-      if ((ada.data || []).length) {
-        const kirimKe = Math.max(...ada.data.map(x => Number(x.kirim_ke) || 1)) + 1;
-        ({ error: err } = await db.from('pengumpulan').update({ ...baris, kirim_ke: kirimKe }).eq('tugas_id', t.id).eq('siswa_id', activeUser.id));
-      } else {
-        ({ error: err } = await db.from('pengumpulan').insert({ tugas_id: t.id, siswa_id: activeUser.id, kirim_ke: 1, ...baris }));
+      // Dikirim lewat server (keamanan_4b.sql): siswa_id dari token, waktu kirim & kirim_ke dihitung server.
+      const { error: err } = await db.rpc('siswa_kirim_tugas', { p_token: sesiToken, p_tugas_id: String(t.id), p_data: baris });
+      if (err) {
+        if (galatSesi(err.message)) return sesiHabis();
+        return alert('Gagal mengirim: ' + err.message + (/function|schema cache|does not exist/i.test(err.message) ? '\n\nBeritahu gurumu: SQL keamanan_4b.sql belum dijalankan.' : ''));
       }
-      if (err) return alert('Gagal mengirim: ' + err.message + (/column|schema/i.test(err.message) ? '\n\nBeritahu gurumu: SQL lab_b.sql belum dijalankan.' : ''));
 
       try { localStorage.removeItem(labS.kunci); } catch (_) {}
       clearInterval(labS.timer);
@@ -5099,31 +5106,14 @@
     async function robotCatat(lulus, ringkas, jumlahBlok) {
       const S = robotS; const sid = String(activeUser.id); const no = S.no;
       const blok = labSimpanState(S.ws);
-      const sekarang = new Date().toISOString();
-      const ins = await db.from('robot_riwayat').insert({
-        siswa_id: sid, level: no, aksi: 'periksa', lulus, jumlah_blok: jumlahBlok, langkah: ringkas.langkah,
-        jumlah_jalankan: S.jalankan, detik: Math.round((Date.now() - S.mulai) / 1000), ringkasan: ringkas.teks, blok, created_at: sekarang
-      });
-      if (ins.error) { robotPeringatan(ins.error); return false; }
+      // Riwayat + progres level dicatat & dihitung di server (keamanan_4b.sql); siswa_id dari token.
+      const w = await db.rpc('siswa_robot_catat', { p_token: sesiToken, p_data: {
+        level: no, lulus, jumlah_blok: jumlahBlok, langkah: ringkas.langkah,
+        jumlah_jalankan: S.jalankan, detik: Math.round((Date.now() - S.mulai) / 1000), ringkasan: ringkas.teks, blok
+      } });
+      if (w.error) { if (galatSesi(w.error.message)) { sesiHabis(); return false; } robotPeringatan(w.error); return false; }
       S.jalankan = 0;
-      const ada = await db.from('robot_progres').select('*').eq('siswa_id', sid).eq('level', no).maybeSingle();
-      if (ada.error) { robotPeringatan(ada.error); return false; }
-      const p = ada.data;
-      const minNull = (a, b) => (a === null || a === undefined) ? b : (b === null || b === undefined) ? a : Math.min(a, b);
-      const baru = {
-        selesai: !!(p && p.selesai) || lulus,
-        jumlah_coba: ((p && p.jumlah_coba) || 0) + 1,
-        jumlah_lulus: ((p && p.jumlah_lulus) || 0) + (lulus ? 1 : 0),
-        blok_terbaik: lulus ? minNull(p && p.blok_terbaik, jumlahBlok) : (p ? p.blok_terbaik : null),
-        langkah_terbaik: lulus ? minNull(p && p.langkah_terbaik, ringkas.langkah) : (p ? p.langkah_terbaik : null),
-        blok_terakhir: blok,
-        pertama_selesai_at: (p && p.pertama_selesai_at) || (lulus ? sekarang : null),
-        updated_at: sekarang
-      };
-      const w = p ? await db.from('robot_progres').update(baru).eq('id', p.id).select().maybeSingle()
-                  : await db.from('robot_progres').insert({ siswa_id: sid, level: no, ...baru }).select().maybeSingle();
-      if (w.error) { robotPeringatan(w.error); return false; }
-      ROBOT_PROG[no] = w.data || { ...(p || {}), ...baru, siswa_id: sid, level: no };
+      ROBOT_PROG[no] = w.data || { ...(ROBOT_PROG[no] || {}), siswa_id: sid, level: no };
       $id('robotCatatan').innerHTML = '';
       robotRenderLevel();
       if (robotS === S) robotRiwayatSiswa();
