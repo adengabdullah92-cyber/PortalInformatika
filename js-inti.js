@@ -507,3 +507,87 @@
       return arr;
     }
 
+
+    // ================= UNDUH EXCEL (.xlsx) =================
+    // Semua tombol "Unduh" memakai ini (lewat unduhCSV). Pustaka ExcelJS baru dimuat saat pertama kali mengunduh.
+    // opsi: header (indeks baris judul kolom), warnaStatus (warnai sel H/T/S/I/D/A), bekuKolom, sheet (nama sheet)
+    const EXCELJS_URL = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    let _excelJsJanji = null;
+    function muatExcelJS() {
+      if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+      if (!_excelJsJanji) {
+        _excelJsJanji = new Promise((ok, gagal) => {
+          const sc = document.createElement('script');
+          sc.src = EXCELJS_URL;
+          sc.onload = () => (window.ExcelJS ? ok(window.ExcelJS) : gagal(new Error('Pustaka Excel tidak termuat')));
+          sc.onerror = () => { _excelJsJanji = null; gagal(new Error('Gagal memuat pustaka Excel (periksa internet)')); };
+          setTimeout(() => { if (!window.ExcelJS) { _excelJsJanji = null; gagal(new Error('Pustaka Excel terlalu lama dimuat')); } }, 20000);
+          document.head.appendChild(sc);
+        });
+      }
+      return _excelJsJanji;
+    }
+
+    const XL_WARNA = { H: 'FFA5E2AB', T: 'FFF3C53B', S: 'FF93D3EE', I: 'FFC9B8F3', D: 'FFF8B98A', A: 'FFD63A2D' };
+    const xlAngka = (v) => (typeof v === 'string' && /^-?(0|[1-9]\d*)([.,]\d+)?$/.test(v.trim()) ? Number(v.trim().replace(',', '.')) : v);
+
+    async function buatWorkbookExcel(ExcelJS, baris, opsi = {}) {
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'LMS Informatika SMA'; wb.created = new Date();
+      const ws = wb.addWorksheet(String(opsi.sheet || 'Data').replace(/[\\/*?:\[\]]/g, ' ').slice(0, 31));
+      const maks = Math.max(1, ...baris.map(r => (r || []).length));
+      const hIdx = Number.isInteger(opsi.header) ? opsi.header : Math.max(0, baris.findIndex(r => (r || []).length === maks));
+      let akhirTabel = baris.length - 1;
+      for (let i = hIdx + 1; i < baris.length; i++) { if (!baris[i] || !baris[i].length) { akhirTabel = i - 1; break; } }
+      const garis = { style: 'thin', color: { argb: 'FF8A8270' } };
+      const kotak = { top: garis, left: garis, bottom: garis, right: garis };
+
+      baris.forEach((r, i) => {
+        const row = ws.addRow((r || []).map(v => (v === null || v === undefined ? '' : xlAngka(v))));
+        if (i < hIdx) { row.font = { bold: true, size: i === 0 ? 13 : 11 }; return; }
+        if (i === hIdx) {
+          row.eachCell(c => {
+            c.font = { bold: true }; c.border = kotak;
+            c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFBF3B8' } };
+            c.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+          });
+          return;
+        }
+        if (i > akhirTabel) { row.font = { italic: true, color: { argb: 'FF6A6455' } }; return; }
+        for (let k = 1; k <= maks; k++) {
+          const c = row.getCell(k);
+          c.border = kotak;
+          c.alignment = { vertical: 'top', wrapText: true };
+          if (opsi.warnaStatus && typeof c.value === 'string' && XL_WARNA[c.value]) {
+            c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XL_WARNA[c.value] } };
+            c.alignment = { vertical: 'top', horizontal: 'center' };
+            if (c.value === 'A') c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          }
+        }
+      });
+
+      // Lebar kolom menyesuaikan isi tabel (judul di atas tabel tidak ikut dihitung)
+      for (let k = 1; k <= maks; k++) {
+        let lebar = 4;
+        for (let i = hIdx; i <= akhirTabel && i < baris.length; i++) {
+          const v = (baris[i] || [])[k - 1];
+          const t = v === null || v === undefined ? '' : String(v);
+          lebar = Math.max(lebar, ...t.split('\n').map(x => x.length));
+        }
+        ws.getColumn(k).width = Math.min(lebar + 2, 60);
+      }
+      ws.views = [{ state: 'frozen', ySplit: hIdx + 1, xSplit: opsi.bekuKolom || 0 }];
+      return wb;
+    }
+
+    async function unduhExcel(namaFile, baris, opsi = {}) {
+      const ExcelJS = await muatExcelJS();
+      const wb = await buatWorkbookExcel(ExcelJS, baris, opsi);
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = String(namaFile).replace(/\.(csv|xlsx)$/i, '') + '.xlsx';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    }

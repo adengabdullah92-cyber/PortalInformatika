@@ -543,7 +543,7 @@
                 <div><label class="mu">Kelas</label><select id="rgKelas"></select></div>
                 <div style="align-self:flex-end;">
                   <button type="button" onclick="robotGuruMuat()">📊 Tampilkan</button>
-                  <button type="button" class="alt" onclick="robotGuruCSV()">📥 CSV progres</button>
+                  <button type="button" class="alt" onclick="robotGuruCSV()">📥 Excel progres</button>
                 </div>
               </div>
               <div id="rgTabel" class="tbl-scroll"><p class="mu">Pilih kelas lalu tekan Tampilkan.</p></div>
@@ -552,7 +552,7 @@
               <h3 id="rgRiwayatJudul" style="margin-top:0;">Riwayat Robot</h3>
               <div class="tg-baris">
                 <div><label class="mu">Level</label><select id="rgLevel" onchange="robotGuruRiwayatRender()"></select></div>
-                <div style="align-self:flex-end;"><button type="button" class="alt" onclick="robotGuruCSVRiwayat()">📥 CSV riwayat</button></div>
+                <div style="align-self:flex-end;"><button type="button" class="alt" onclick="robotGuruCSVRiwayat()">📥 Excel riwayat</button></div>
               </div>
               <div id="rgRiwayat" class="tbl-scroll"></div>
               <div id="rgBlokWrap" class="hidden"><b id="rgBlokJudul">Balok</b><div id="rgBlokDiv" class="rb-blokview"></div></div>
@@ -651,7 +651,7 @@
             <select id="filterKelasGroup" onchange="renderModul4PerKelas()">
               </select>
           </div>
-          <button class="alt" onclick="exportKeExcel()" style="margin-top: 16px;">📥 Unduh Rekap Nilai CSV/Excel</button>
+          <button class="alt" onclick="exportKeExcel()" style="margin-top: 16px;">📥 Unduh Rekap Nilai (Excel)</button>
         </div>
 
         <!-- CLASS SUMMARY STATS -->
@@ -727,16 +727,16 @@
        SETIAP MEMPERBARUI satu file: unggah file itu + index.html, dan naikkan ?v=... pada baris file itu
        supaya Safari tidak memakai versi lama.
        ==================================================================== -->
-  <script src="js-inti.js?v=20261102c"></script>
+  <script src="js-inti.js?v=20261102d"></script>
   <script src="js-materi.js?v=20261102a"></script>
-  <script src="js-kuis-guru.js?v=20261102a"></script>
+  <script src="js-kuis-guru.js?v=20261102d"></script>
   <script src="js-kuis-siswa.js?v=20261102a"></script>
-  <script src="js-analisis.js?v=20261102a"></script>
-  <script src="js-lab.js?v=20261102a"></script>
+  <script src="js-analisis.js?v=20261102d"></script>
+  <script src="js-lab.js?v=20261102d"></script>
   <script src="js-koreksi.js?v=20261102a"></script>
   <script src="js-robot.js?v=20261102a"></script>
   <script src="js-chatbot.js?v=20261102a"></script>
-  <script src="js-jadwal.js?v=20261102c"></script>
+  <script src="js-jadwal.js?v=20261102d"></script>
   <script>
     // Pemeriksa: kalau ada file js-*.js yang belum terunggah / gagal dimuat, tampilkan peringatan jelas.
     (function () {

@@ -298,7 +298,7 @@
         ['Urutan langkah untuk menyelesaikan masalah disebut ...', 'Variabel', 'Algoritma', 'Kompilator', 'Basis data', '', 'B', 'Algoritma adalah urutan langkah berhingga.', 'Algoritma', 'mudah', 'pg'],
         ['Pilih semua yang termasuk tipe data dasar.', 'Integer', 'Boolean', 'Monitor', 'String', '', 'A,B,D', '', 'Tipe data', 'sedang', 'pg_kompleks'],
         ['Tentukan benar atau salah tiap pernyataan.', 'Flowchart menggambarkan alur algoritma', 'Pseudocode harus ditulis dalam bahasa Python', 'Perulangan mengulang blok instruksi', '', '', 'B;S;B', '', 'Algoritma', 'sedang', 'bs'],
-      ]);
+      ], { csv: true });
     }
 
     async function imporSoal() {

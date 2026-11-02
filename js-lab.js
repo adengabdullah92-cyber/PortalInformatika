@@ -510,7 +510,7 @@
       if (!c) return '<p class="mu">Memuat pengumpulan…</p>';
       let out = `<div class="bank-actions">
         <button class="alt" onclick="muatKumTugas('${id}')">🔄 Muat ulang</button>
-        <button class="alt" onclick="unduhKumTugas('${id}')">📥 Unduh CSV</button></div>`;
+        <button class="alt" onclick="unduhKumTugas('${id}')">📥 Unduh Excel</button></div>`;
       if (!c.kelas.length) return out + '<p class="mu">Tugas ini belum dipublish ke kelas mana pun.</p>';
       out += c.kelas.map(kls => {
         const murid = c.siswa.filter(s => s.kelas === kls).sort((a, b) => String(a.nama).localeCompare(String(b.nama)));

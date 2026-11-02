@@ -415,8 +415,8 @@
         S.map(x => `<tr><td>${escHtml(x.nama)}</td>${HD_KODE.map(([k]) => `<td>${x[k] || 0}</td>`).join('')}<td><b class="${x.persen !== null && x.persen < 80 ? 'hd-rendah' : ''}">${x.persen === null ? '-' : x.persen}</b></td></tr>`).join('') +
         `</tbody></table></div>`;
       h += `<div class="bank-actions" style="margin-top:10px;">
-        <button type="button" class="alt" onclick="rekapUnduh()">📥 Unduh rekap (Excel)</button>
-        <button type="button" class="alt" onclick="rekapUnduhJurnal()">📥 Unduh jurnal (Excel)</button></div>
+        <button type="button" class="alt" onclick="rekapUnduh()">📥 Unduh rekap (.xlsx)</button>
+        <button type="button" class="alt" onclick="rekapUnduhJurnal()">📥 Unduh jurnal (.xlsx)</button></div>
         <p class="mu" style="font-size:0.78rem;">% = (H + T) ÷ (H + T + S + I + A). Dispensasi tidak dihitung. Merah bila di bawah 80%.</p>`;
       box.innerHTML = h;
     }
@@ -433,14 +433,14 @@
       ];
       (d.siswa || []).forEach((x, i) => baris.push([i + 1, x.nama, ...P.map(p => (x.status || {})[String(p.id)] || ''), x.H, x.T, x.S, x.I, x.D, x.A, x.persen === null ? '' : x.persen]));
       baris.push([], ['Keterangan: H hadir, T terlambat (dihitung hadir), S sakit, I izin, D dispensasi (tidak dihitung), A alpa']);
-      unduhCSV(`rekap_hadir_${d.kelas}_${d.dari}_${d.sampai}.csv`, baris);
+      unduhCSV(`rekap_hadir_${d.kelas}_${d.dari}_${d.sampai}.csv`, baris, { header: 3, warnaStatus: true, bekuKolom: 2, sheet: 'Rekap ' + d.kelas });
     }
 
     function rekapUnduhJurnal() {
       const d = rkData; if (!d) return;
       const baris = [[`Jurnal mengajar Informatika — Kelas ${d.kelas}`], [], ['Pertemuan ke', 'Hari, tanggal', 'Jam', 'Jurnal']];
       (d.pertemuan || []).forEach((p, i) => baris.push([i + 1, hdTglPanjang(p.tanggal), p.jam, p.jurnal || '']));
-      unduhCSV(`jurnal_${d.kelas}_${d.dari}_${d.sampai}.csv`, baris);
+      unduhCSV(`jurnal_${d.kelas}_${d.dari}_${d.sampai}.csv`, baris, { header: 2, sheet: 'Jurnal ' + d.kelas });
     }
 
     // ================= H2: KEHADIRANKU (siswa) =================

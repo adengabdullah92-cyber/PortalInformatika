@@ -117,8 +117,8 @@
         : '<p class="mu">Tidak ada siswa di bawah ambang. 🎉</p>';
 
       h += `<div class="bank-actions" style="margin-top:12px;">
-        <button class="alt" onclick="unduhAnalisisButir('${id}')">📥 CSV analisis soal</button>
-        <button class="alt" onclick="unduhAnalisisSiswa('${id}')">📥 CSV siswa remedial</button></div></div>`;
+        <button class="alt" onclick="unduhAnalisisButir('${id}')">📥 Excel analisis soal</button>
+        <button class="alt" onclick="unduhAnalisisSiswa('${id}')">📥 Excel siswa remedial</button></div></div>`;
       return h;
     }
 
@@ -203,7 +203,7 @@
       if (!h) return '<p class="mu">Memuat hasil…</p>';
       let out = `<div class="bank-actions">
           <button class="alt" onclick="muatHasilPaket('${id}')">🔄 Muat ulang</button>
-          <button class="alt" onclick="unduhHasilPaket('${id}')">📥 Unduh CSV</button>
+          <button class="alt" onclick="unduhHasilPaket('${id}')">📥 Unduh Excel</button>
         </div>`;
       if (!h.kelas.length) return out + '<p class="mu">Paket ini belum dipublish ke kelas mana pun.</p>';
       out += h.kelas.map(k => `
@@ -245,7 +245,17 @@
     }
 
     // CSV dengan pemisah titik koma + BOM (terbaca benar di Excel berlokal Indonesia & Google Sheets)
-    function unduhCSV(namaFile, baris) {
+    // Semua unduhan kini berbentuk Excel (.xlsx). CSV hanya bila opsi.csv (mis. contoh format impor soal)
+    // atau bila pustaka Excel gagal dimuat (cadangan).
+    function unduhCSV(namaFile, baris, opsi = {}) {
+      if (!opsi.csv && typeof unduhExcel === 'function') {
+        unduhExcel(namaFile, baris, opsi).catch(e => {
+          console.warn('Excel gagal, beralih ke CSV:', e);
+          alert('File Excel gagal dibuat (' + (e.message || e) + '). Diunduh sebagai CSV, tetap bisa dibuka di Excel.');
+          unduhCSV(namaFile, baris, { ...opsi, csv: true });
+        });
+        return;
+      }
       const esc = v => { const s = String(v ?? ''); return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
       const isi = '\ufeff' + baris.map(r => r.map(esc).join(';')).join('\r\n');
       const blob = new Blob([isi], { type: 'text/csv;charset=utf-8' });
