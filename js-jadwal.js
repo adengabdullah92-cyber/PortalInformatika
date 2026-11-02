@@ -42,6 +42,25 @@
       jadwalMuatData();
       jadwalMuatHariIni();
       jadwalMuatStrip();
+      tgMuatStatus();
+      jadwalCekParamURL();
+    }
+
+    // Tautan dari Telegram: ?absen=KELAS|YYYY-MM-DD|HH:MM  atau  ?tab=jadwal
+    async function jadwalCekParamURL() {
+      let p; try { p = new URLSearchParams(location.search); } catch (_) { return; }
+      const absen = p.get('absen'), tab = p.get('tab');
+      if (!absen && tab !== 'jadwal') return;
+      try { history.replaceState(null, '', location.pathname + location.hash); } catch (_) {}
+      switchTab('jadwal');
+      if (!absen) return;
+      const [kelas, tanggal, jam] = String(absen).split('|');
+      if (!kelas || !/^\d{4}-\d{2}-\d{2}$/.test(tanggal || '') || !/^\d{2}:\d{2}$/.test(jam || '')) return;
+      $id('jdTanggal').value = tanggal;
+      await jadwalMuatHariIni();
+      const i = hdHari ? hdHari.kelas.findIndex(k => k.kelas === kelas && k.jam_mulai === jam) : -1;
+      if (i >= 0) jadwalBukaIdx(i);
+      else jadwalBukaAbsen({ kelas, tanggal, jam_mulai: jam, jam_selesai: null, jadwal_id: null });
     }
 
     async function jadwalMuatData() {
@@ -487,4 +506,77 @@
           `</tbody></table></div>`;
       }
       box.innerHTML = h;
+    }
+
+    // ================= T1: NOTIFIKASI TELEGRAM (guru) =================
+    // Edge Function "telegram" (telegram_t1.sql + telegram_cron.sql). Bot hanya melayani akun Telegram yang dihubungkan di sini.
+    const TG_URL = `${SUPABASE_URL}/functions/v1/telegram`;
+    let tgStatus = null, tgSambung = null;
+
+    async function tgAPI(aksi, extra = {}) {
+      const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 30000);
+      try {
+        const res = await fetch(TG_URL, {
+          method: 'POST', signal: ctrl.signal,
+          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          body: JSON.stringify({ aksi, token: sesiToken, ...extra })
+        });
+        let data; try { data = await res.json(); } catch (_) { throw new Error('Function "telegram" belum aktif (HTTP ' + res.status + ').'); }
+        if (res.status === 401) sesiHabis(data.error);
+        if (!res.ok || data.error) throw new Error(data.error || ('HTTP ' + res.status));
+        return data;
+      } catch (e) {
+        if (e.name === 'AbortError') throw new Error('Server tidak merespons.');
+        if (/Load failed|Failed to fetch|NetworkError/i.test(e.message || '')) throw new Error('Function "telegram" belum di-deploy atau koneksi terputus.');
+        throw e;
+      } finally { clearTimeout(tm); }
+    }
+
+    async function tgMuatStatus() {
+      const box = $id('tgIsi'); if (!box) return;
+      try { tgStatus = await tgAPI('status'); }
+      catch (e) { tgStatus = { galat: e.message }; }
+      tgRender();
+    }
+
+    function tgRender() {
+      const box = $id('tgIsi'); if (!box) return;
+      const s = tgStatus;
+      const info = '<p class="mu" style="font-size:0.8rem;">Ringkasan pagi 06.30 setiap hari • pengingat 30 menit sebelum mengajar • pengingat absen 15 menit sebelum pelajaran selesai. Pesan hanya berisi angka & nama kelas, tanpa nama siswa.</p>';
+      if (!s) { box.innerHTML = '<p class="mu">Memuat…</p>'; return; }
+      if (s.galat) { box.innerHTML = `<p class="mu">⚠️ ${escHtml(s.galat)}</p>${info}`; return; }
+      if (!s.token_ada) { box.innerHTML = `<p class="mu">⚠️ Token bot belum diisi: tambahkan secret <b>TELEGRAM_BOT_TOKEN</b> di Supabase.</p>${info}`; return; }
+      if (s.terhubung) {
+        box.innerHTML = `<p>✅ Terhubung${s.bot ? ' dengan <b>@' + escHtml(s.bot) + '</b>' : ''}${s.terhubung_at ? ' sejak ' + escHtml(tglPendek(s.terhubung_at)) : ''}.</p>${info}
+          <div class="bank-actions"><button type="button" class="alt" onclick="tgTes(this)">🔔 Kirim pesan uji</button>
+          <button type="button" class="alt danger" onclick="tgPutus()">Putuskan</button></div>`;
+        return;
+      }
+      let h = `<p>Belum terhubung.</p>${info}`;
+      if (tgSambung) {
+        h += `<div class="hd-catatan">1. Ketuk tombol di bawah untuk membuka <b>@${escHtml(tgSambung.bot)}</b> di Telegram, lalu tekan <b>Start</b>.<br>
+          2. Kembali ke sini dan ketuk "Periksa".<br><small class="mu">Kode berlaku ${tgSambung.berlaku_menit} menit: <b>${escHtml(tgSambung.kode)}</b></small></div>
+          <div class="bank-actions"><a class="btn-link" href="${escHtml(tgSambung.link)}" target="_blank" rel="noopener">📲 Buka @${escHtml(tgSambung.bot)}</a>
+          <button type="button" class="alt" onclick="tgMuatStatus()">✔️ Periksa</button></div>`;
+      } else {
+        h += `<div class="bank-actions"><button type="button" onclick="tgHubungkan(this)">🔗 Hubungkan Telegram</button></div>`;
+      }
+      box.innerHTML = h;
+    }
+
+    async function tgHubungkan(btn) {
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyiapkan…'; }
+      try { tgSambung = await tgAPI('hubungkan', { lms_url: location.origin + location.pathname }); }
+      catch (e) { alert('Gagal menghubungkan: ' + e.message); }
+      tgRender();
+    }
+    async function tgTes(btn) {
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Mengirim…'; }
+      try { await tgAPI('tes'); if (btn) btn.textContent = '✅ Terkirim, cek Telegram'; }
+      catch (e) { alert('Gagal mengirim: ' + e.message); if (btn) { btn.disabled = false; btn.textContent = '🔔 Kirim pesan uji'; } }
+    }
+    async function tgPutus() {
+      if (!confirm('Hentikan notifikasi Telegram untuk akun ini?')) return;
+      try { await tgAPI('putus'); tgSambung = null; } catch (e) { return alert('Gagal: ' + e.message); }
+      tgMuatStatus();
     }

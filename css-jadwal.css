@@ -60,3 +60,7 @@
     .sh-persen { font-family: var(--f-head, Georgia, serif); font-size: 3rem; font-weight: 900; line-height: 1; min-width: 110px; }
     .sh-persen small { font-size: 1.2rem; }
     @media (max-width: 640px) { .sh-atas { flex-direction: column; align-items: flex-start; gap: 6px; } }
+
+    /* ---- T1: tautan bergaya tombol (buka bot Telegram) ---- */
+    .btn-link { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border: 2px solid var(--ink, #1d2140); border-radius: 3px;
+      background: var(--sky, #93d3ee); color: var(--ink, #1d2140); font-weight: 700; text-decoration: none; box-shadow: 3px 3px 0 var(--ink, #1d2140); }
