@@ -1,0 +1,106 @@
+/* LMS Informatika SMA — css-tambahan.css: Robot, keranjang, chatbot. Dipecah dari index.html (2 Nov 2026), isi tidak diubah. */
+
+    /* ===== Robot penjelajah (Lab Koding) ===== */
+    .rb-levels { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 10px; margin: 12px 0; }
+    .rb-lv { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; background: var(--paper-2, #fff); color: var(--ink, #1d2140); border: 2px solid var(--ink, #1d2140); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink, #1d2140); font-family: var(--f-type, inherit); cursor: pointer; }
+    .rb-lv:hover { background: var(--note, #fbf3b8); }
+    .rb-lv.selesai { background: var(--mint, #c9efd5); }
+    .rb-lv.berikut { background: var(--yellow, #f3c53b); outline: 3px dashed var(--hot, #e8456b); outline-offset: 2px; }
+    .rb-lv-no { font-family: var(--f-head, inherit); font-weight: 900; font-size: 1.2rem; }
+    .rb-lv-ikon { font-size: 1.3rem; }
+    .rb-lv-nama { font-size: 0.78rem; line-height: 1.15; text-align: center; }
+    .rb-lv-st { font-size: 0.7rem; color: var(--mu, #6a6455); }
+    .rb-grid { display: grid; grid-template-columns: minmax(250px, 400px) 1fr; gap: 14px; align-items: start; margin-top: 10px; }
+    #robotPapanWrap { width: 100%; display: flex; justify-content: center; }
+    .rb-papan { position: relative; display: grid; border: 2px solid var(--ink, #1d2140); box-shadow: 4px 4px 0 var(--ink, #1d2140); background: var(--paper-2, #fbf9f3); margin: 6px 4px 10px 0; }
+    .rb-sel { box-sizing: border-box; display: flex; align-items: center; justify-content: center; width: var(--sel); height: var(--sel); font-size: calc(var(--sel) * 0.55); line-height: 1; }
+    .rb-f { background: var(--paper-2, #fbf9f3); border: 1px solid var(--grid, #e4dcc8); }
+    .rb-w { background: repeating-linear-gradient(45deg, var(--kraft, #cfa970) 0 6px, #c19a60 6px 12px); border: 1px solid rgba(29, 33, 64, 0.45); }
+    .rb-g { background: #fbdbe6; border: 1px solid var(--grid, #e4dcc8); }
+    .rb-bendera { display: inline-block; transform-origin: 20% 90%; animation: rbKibar 1.6s ease-in-out infinite; }
+    @keyframes rbKibar { 50% { transform: rotate(8deg); } }
+    .rb-bt { transition: transform 0.25s, opacity 0.25s; }
+    .rb-bt.rb-ambil { transform: scale(2) translateY(-10px); opacity: 0; }
+    .rb-robot { position: absolute; z-index: 3; transition: left var(--dur, 260ms) linear, top var(--dur, 260ms) linear; pointer-events: none; }
+    .rb-robot-in { width: 100%; height: 100%; transition: transform calc(var(--dur, 260ms) * 0.8) ease; filter: drop-shadow(2px 2px 0 rgba(29, 33, 64, 0.35)); }
+    .rb-robot-in svg { width: 100%; height: 100%; display: block; }
+    .rb-robot.rb-tabrak { animation: rbGoyang 0.35s linear 2; }
+    @keyframes rbGoyang { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+    .rb-bubble { position: absolute; z-index: 5; background: #fff; border: 2px solid var(--ink, #1d2140); border-radius: 6px; padding: 2px 8px; font-family: var(--f-type, monospace); font-weight: 700; white-space: nowrap; }
+    .rb-blockly, .rb-blokview { height: 400px; border: 2px solid var(--ink, #1d2140); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink, #1d2140); }
+    .rb-blokview { height: 320px; margin-top: 8px; }
+    .rb-pesan { padding: 8px 12px; border: 2px solid var(--ink, #1d2140); border-radius: 3px; margin: 10px 0; background: var(--note, #fbf3b8); color: var(--ink, #1d2140); }
+    .rb-pesan.ok { background: #c9efd5; }
+    .rb-pesan.bad { background: #f9c9c3; }
+    .rb-skor { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+    .rg-tabel td, .rg-tabel th { text-align: center; padding: 4px 6px; }
+    .rg-tabel td:first-child { text-align: left; }
+    .rg-ok { background: #c9efd5; font-weight: 700; }
+    .rg-coba { background: var(--note, #fbf3b8); }
+    .rg-kosong { color: var(--mu, #6a6455); }
+    .rg-tabel small { font-size: 0.68rem; margin-left: 2px; }
+    .rg-nama { padding: 4px 8px; font-size: 0.85rem; }
+    @media (max-width: 768px) { .rb-grid { grid-template-columns: 1fr; } .rb-blockly { height: 340px; } }
+    /* ===== Tab kuis guru: sub-tab, opsi lanjutan, keranjang mengambang ===== */
+    .kt-tabs { margin-bottom: 16px; }
+    .kt-tabs .mode-btn { flex: 1 1 0; min-width: 96px; }
+    .kt-lanjut { margin: 6px 0 14px; padding: 8px 12px; border: 2px dashed var(--kraft, #cfa970); border-radius: 6px; }
+    .kt-lanjut summary { cursor: pointer; font-weight: 700; font-size: 0.88rem; }
+    #guruKuisView { padding-bottom: 72px; }
+    #keranjangFab { position: fixed; right: 14px; bottom: 16px; z-index: 60; max-width: calc(100vw - 28px); }
+    #keranjangFab button { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border: 2px solid var(--ink, #1d2140); border-radius: 3px;
+      background: var(--yellow, #f3c53b); color: var(--ink, #1d2140); box-shadow: 4px 4px 0 var(--ink, #1d2140); font-weight: 700; }
+    #keranjangFab button:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink, #1d2140); }
+    #keranjangFab b { background: var(--ink, #1d2140); color: #fff; border-radius: 999px; padding: 1px 9px; }
+    @media (max-width: 640px) { #keranjangFab { left: 14px; right: 14px; } #keranjangFab button { width: 100%; justify-content: center; } }
+
+    /* ===== CHATBOT (C1): tombol mengambang + panel Tutor ===== */
+    #chatFab { position: fixed; right: 14px; bottom: 16px; z-index: 61; }
+    #chatFab button { display: flex; align-items: center; gap: 8px; padding: 11px 15px; border: 2px solid var(--ink, #1d2140); border-radius: 3px;
+      background: var(--sky, #93d3ee); color: var(--ink, #1d2140); box-shadow: 4px 4px 0 var(--ink, #1d2140); font-weight: 700; font-family: inherit; cursor: pointer; }
+    #chatFab button:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink, #1d2140); }
+    #chatFab b { background: var(--hot, #e8456b); color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 0.8rem; }
+    #chatPanel { position: fixed; right: 14px; bottom: 16px; z-index: 70; width: min(400px, calc(100vw - 28px)); height: min(620px, calc(100vh - 32px));
+      display: flex; flex-direction: column; background: var(--paper, #f7f3e9); color: var(--ink, #1d2140);
+      border: 2px solid var(--ink, #1d2140); border-radius: 3px; box-shadow: 6px 6px 0 var(--ink, #1d2140); }
+    #chatPanel.hidden, #chatFab.hidden { display: none; }
+    .chat-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px;
+      background: var(--yellow, #f3c53b); border-bottom: 2px solid var(--ink, #1d2140); font-family: var(--f-type, inherit); }
+    .chat-head button { border: 2px solid var(--ink, #1d2140); background: var(--paper-2, #fff); color: var(--ink, #1d2140); border-radius: 3px;
+      width: 34px; height: 34px; font-weight: 700; cursor: pointer; }
+    .chat-info { padding: 6px 12px; font-size: 0.78rem; background: var(--note, #fbf3b8); border-bottom: 1px dashed var(--bd, #d2c8b0); }
+    .chat-isi { flex: 1; overflow-y: auto; padding: 12px; -webkit-overflow-scrolling: touch; }
+    .chat-bubble { background: var(--paper-2, #fff); border: 2px solid var(--ink, #1d2140); border-radius: 3px; padding: 10px 12px; margin-bottom: 10px;
+      box-shadow: 3px 3px 0 var(--ink, #1d2140); line-height: 1.5; }
+    .chat-bubble h4 { margin: 0 0 6px; font-size: 0.92rem; }
+    .chat-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 0; border-top: 1px dashed var(--bd, #d2c8b0); }
+    .chat-item:first-of-type { border-top: 0; }
+    .chat-item span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+    .chat-item small { display: block; color: var(--mu, #6a6455); }
+    .chat-item button { flex: none; padding: 5px 10px; font-size: 0.8rem; }
+    .chat-kunci { background: var(--peach, #f8b98a); }
+    .chat-saya { margin-left: 14%; background: var(--note, #fbf3b8); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .chat-ai { margin-right: 6%; overflow-wrap: anywhere; }
+    .chat-ai code { background: var(--paper, #f7f3e9); border: 1px solid var(--bd, #d2c8b0); padding: 0 4px; border-radius: 3px; }
+    .chat-sumber { display: block; margin-top: 6px; color: var(--mu, #6a6455); font-size: 0.75rem; }
+    .chat-mengetik { color: var(--mu, #6a6455); font-style: italic; }
+    .chat-alat { padding: 8px 12px; border-bottom: 2px solid var(--ink, #1d2140); background: var(--paper-2, #fff); display: grid; gap: 8px; }
+    .chat-alat.hidden, .chat-pilih.hidden, .chat-kaki.hidden { display: none; }
+    .chat-tab { display: flex; gap: 6px; }
+    .chat-tab button { flex: 1; padding: 6px 8px; font-size: 0.82rem; border: 2px solid var(--ink, #1d2140); border-radius: 3px;
+      background: var(--paper, #f7f3e9); color: var(--ink, #1d2140); font-family: inherit; cursor: pointer; }
+    .chat-tab button.aktif { background: var(--ink, #1d2140); color: #fff; }
+    .chat-pilih { display: flex; gap: 6px; }
+    .chat-pilih select { flex: 1; min-width: 0; font-size: 16px; padding: 4px; }
+    .chat-cepat { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .chat-cepat button { padding: 4px 8px; font-size: 0.78rem; }
+    .chat-siswa summary { cursor: pointer; display: flex; justify-content: space-between; gap: 8px; }
+    .chat-siswa .chat-bubble { box-shadow: none; margin: 8px 0 0; font-size: 0.85rem; }
+    #chatFab.guru { right: auto; left: 14px; }
+    #chatFab.naik { bottom: 84px; }
+    .chat-kaki { display: flex; gap: 8px; padding: 10px 12px; border-top: 2px solid var(--ink, #1d2140); background: var(--paper-2, #fff); }
+    .chat-kaki input { flex: 1; min-width: 0; font-size: 16px; }
+    .chat-kaki button { flex: none; }
+    @media (max-width: 640px) {
+      #chatPanel { inset: 0; width: 100%; height: 100%; height: 100dvh; border: 0; box-shadow: none; border-radius: 0; }
+    }
