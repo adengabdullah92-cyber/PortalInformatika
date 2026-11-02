@@ -438,6 +438,7 @@
         loadKuisSiswa();
         loadTugasSiswa();
         disablePasteInApp();
+        if (typeof jadwalInitSiswa === 'function') jadwalInitSiswa();
         setTimeout(chatMuat, 1500);
       }
       jadwalCekMuatan();
@@ -463,6 +464,7 @@
       } else if (tabName === 'jadwal') {
         document.getElementById('navJadwal').classList.add('active');
         document.getElementById('tabJadwal').classList.remove('hidden');
+        if (typeof jadwalTabDibuka === 'function') jadwalTabDibuka();
       }
       keranjangUpdate();
       if (activeUser) sesiSimpan({ tab: tabName });

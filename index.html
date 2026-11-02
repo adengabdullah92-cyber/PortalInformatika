@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="css-dasar.css?v=20261102a">
   <link rel="stylesheet" href="css-tema.css?v=20261102a">
   <link rel="stylesheet" href="css-tambahan.css?v=20261102a">
-  <link rel="stylesheet" href="css-jadwal.css?v=20261102b">
+  <link rel="stylesheet" href="css-jadwal.css?v=20261102c">
 </head>
 <body>
 
@@ -67,7 +67,7 @@
         <span>📊</span> Koreksi Per Kelas
       </div>
       <div id="navJadwal" class="nav-item hidden" onclick="switchTab('jadwal')">
-        <span>📅</span> Jadwal & Hadir
+        <span>📅</span> <span id="navJadwalTeks">Jadwal & Hadir</span>
       </div>
     </div>
 
@@ -564,6 +564,15 @@
       <!-- MODUL 4: KOREKSI & ANALISIS PER KELAS (KHUSUS GURU) -->
       <!-- JADWAL & DAFTAR HADIR (guru) — logika di js-jadwal.js -->
       <div id="tabJadwal" class="tab-content hidden">
+        <!-- SISWA: kehadiranku -->
+        <div id="siswaHadirView" class="hidden">
+          <h2>📅 Kehadiranku</h2>
+          <p class="mu" style="margin-bottom: 20px;">Rekap kehadiranmu di pelajaran Informatika. T (terlambat) dihitung hadir; D (dispensasi) tidak mengurangi persentase.</p>
+          <div id="shIsi" class="card"><p class="mu">Memuat…</p></div>
+        </div>
+
+        <!-- GURU -->
+        <div id="guruJadwalView" class="hidden">
         <h2>📅 Jadwal & Daftar Hadir</h2>
         <p class="mu" style="margin-bottom: 20px;">Isi jadwal mingguan sekali, lalu absen tiap pertemuan dari daftar di bawah atau dari pita "Hari ini" di atas.</p>
 
@@ -586,6 +595,19 @@
         </div>
 
         <div id="jdAbsen" class="card hidden"></div>
+
+        <div class="card">
+          <h3>📊 Rekap kehadiran</h3>
+          <div class="hd-pilih">
+            <div><label class="mu">Kelas</label><select id="rkKelas"></select></div>
+            <div><label class="mu">Periode</label><select id="rkPeriode" onchange="rekapPeriodeUbah()">
+              <option value="semester">Semester aktif</option><option value="bulan">Bulan ini</option><option value="bulanlalu">Bulan lalu</option><option value="pilih">Pilih tanggal…</option></select></div>
+            <div class="rk-tgl hidden"><label class="mu">Dari</label><input type="date" id="rkDari"></div>
+            <div class="rk-tgl hidden"><label class="mu">Sampai</label><input type="date" id="rkSampai"></div>
+            <button type="button" onclick="rekapMuat()">Tampilkan</button>
+          </div>
+          <div id="rkIsi" style="margin-top:12px;"></div>
+        </div>
 
         <div class="card">
           <h3>📆 Jadwal mingguan</h3>
@@ -615,6 +637,7 @@
             <div style="flex:1; min-width:160px;"><label class="mu">Keterangan</label><input type="text" id="jdLiburKet" placeholder="Libur nasional, PTS, …"></div>
             <button type="button" class="alt" onclick="jadwalTambahLibur()">➕ Tambah</button>
           </div>
+        </div>
         </div>
       </div>
       <div id="tabKoreksi" class="tab-content hidden">
@@ -704,7 +727,7 @@
        SETIAP MEMPERBARUI satu file: unggah file itu + index.html, dan naikkan ?v=... pada baris file itu
        supaya Safari tidak memakai versi lama.
        ==================================================================== -->
-  <script src="js-inti.js?v=20261102b"></script>
+  <script src="js-inti.js?v=20261102c"></script>
   <script src="js-materi.js?v=20261102a"></script>
   <script src="js-kuis-guru.js?v=20261102a"></script>
   <script src="js-kuis-siswa.js?v=20261102a"></script>
@@ -713,7 +736,7 @@
   <script src="js-koreksi.js?v=20261102a"></script>
   <script src="js-robot.js?v=20261102a"></script>
   <script src="js-chatbot.js?v=20261102a"></script>
-  <script src="js-jadwal.js?v=20261102b"></script>
+  <script src="js-jadwal.js?v=20261102c"></script>
   <script>
     // Pemeriksa: kalau ada file js-*.js yang belum terunggah / gagal dimuat, tampilkan peringatan jelas.
     (function () {
@@ -726,7 +749,7 @@
       }
     })();
   </script>
-  <script src="js-mulai.js?v=20261102b"></script>
+  <script src="js-mulai.js?v=20261102c"></script>
   <div id="chatFab" class="hidden"><button type="button" onclick="chatBuka()" aria-label="Buka chat">💬 <span id="chatFabLabel">Tutor</span> <b id="chatBadge" class="hidden">0</b></button></div>
   <div id="chatPanel" class="hidden" role="dialog" aria-label="Chat">
     <div class="chat-head"><b id="chatJudul">💬 Tutor Informatika</b><button type="button" onclick="chatTutup()" aria-label="Tutup">✕</button></div>
