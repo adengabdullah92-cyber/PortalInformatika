@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css-dasar.css?v=20261102a">
   <link rel="stylesheet" href="css-tema.css?v=20261102a">
   <link rel="stylesheet" href="css-tambahan.css?v=20261102a">
+  <link rel="stylesheet" href="css-jadwal.css?v=20261102b">
 </head>
 <body>
 
@@ -65,10 +66,14 @@
       <div id="navKoreksi" class="nav-item hidden" onclick="switchTab('koreksi')">
         <span>📊</span> Koreksi Per Kelas
       </div>
+      <div id="navJadwal" class="nav-item hidden" onclick="switchTab('jadwal')">
+        <span>📅</span> Jadwal & Hadir
+      </div>
     </div>
 
     <!-- RIGHT MAIN CONTENT -->
     <div class="main-content">
+      <div id="hariIniStrip" class="hidden"></div>
 
       <!-- MODUL 1: BANK MATERI & MODUL -->
       <div id="tabMateri" class="tab-content">
@@ -557,6 +562,61 @@
       </div>
 
       <!-- MODUL 4: KOREKSI & ANALISIS PER KELAS (KHUSUS GURU) -->
+      <!-- JADWAL & DAFTAR HADIR (guru) — logika di js-jadwal.js -->
+      <div id="tabJadwal" class="tab-content hidden">
+        <h2>📅 Jadwal & Daftar Hadir</h2>
+        <p class="mu" style="margin-bottom: 20px;">Isi jadwal mingguan sekali, lalu absen tiap pertemuan dari daftar di bawah atau dari pita "Hari ini" di atas.</p>
+
+        <div class="card">
+          <h3>🗓️ Pertemuan</h3>
+          <div class="hd-pilih" style="margin-bottom:10px;">
+            <div><label class="mu">Tanggal</label><input type="date" id="jdTanggal" onchange="jadwalMuatHariIni()"></div>
+            <button type="button" class="alt" onclick="$id('jdTanggal').value = hdTanggalHariIni(); jadwalMuatHariIni()">Hari ini</button>
+          </div>
+          <div id="jdHariIniList"><p class="mu">Memuat…</p></div>
+          <details style="margin-top:12px;">
+            <summary class="mu" style="cursor:pointer;">➕ Pertemuan di luar jadwal (jam pengganti, tambahan)</summary>
+            <div class="hd-pilih" style="margin-top:8px;">
+              <div><label class="mu">Kelas</label><select id="jdLuarKelas"></select></div>
+              <div><label class="mu">Mulai</label><input type="time" id="jdLuarMulai"></div>
+              <div><label class="mu">Selesai</label><input type="time" id="jdLuarSelesai"></div>
+              <button type="button" onclick="jadwalLuarJadwal()">📋 Absen</button>
+            </div>
+          </details>
+        </div>
+
+        <div id="jdAbsen" class="card hidden"></div>
+
+        <div class="card">
+          <h3>📆 Jadwal mingguan</h3>
+          <div id="jdMingguan"><p class="mu">Memuat…</p></div>
+          <div class="hd-pilih" style="margin-top:12px;">
+            <div><label class="mu">Hari</label><select id="jdHari"></select></div>
+            <div><label class="mu">Mulai</label><input type="time" id="jdMulai"></div>
+            <div><label class="mu">Selesai</label><input type="time" id="jdSelesai"></div>
+            <div><label class="mu">Kelas</label><select id="jdKelas"></select></div>
+            <button type="button" onclick="jadwalTambah()">➕ Tambah</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>🏫 Semester & hari libur</h3>
+          <p class="mu" id="jdSemesterInfo">Memuat…</p>
+          <div class="hd-pilih">
+            <div><label class="mu">Nama semester</label><input type="text" id="jdSemNama" placeholder="Ganjil 2026/2027"></div>
+            <div><label class="mu">Mulai</label><input type="date" id="jdSemMulai"></div>
+            <div><label class="mu">Selesai</label><input type="date" id="jdSemSelesai"></div>
+            <button type="button" class="alt" onclick="jadwalSimpanSemester()">💾 Simpan semester</button>
+          </div>
+          <h4 style="margin:16px 0 6px;">Hari libur / tidak efektif</h4>
+          <div id="jdLiburList"></div>
+          <div class="hd-pilih" style="margin-top:8px;">
+            <div><label class="mu">Tanggal</label><input type="date" id="jdLiburTgl"></div>
+            <div style="flex:1; min-width:160px;"><label class="mu">Keterangan</label><input type="text" id="jdLiburKet" placeholder="Libur nasional, PTS, …"></div>
+            <button type="button" class="alt" onclick="jadwalTambahLibur()">➕ Tambah</button>
+          </div>
+        </div>
+      </div>
       <div id="tabKoreksi" class="tab-content hidden">
         <h2>📊 Koreksi & Analisis Anti-Contek Per Kelas</h2>
         <p class="mu" style="margin-bottom: 20px;">Pilih kelas untuk memantau rekap nilai, checklist materi, dan indikasi kecurangan.</p>
@@ -644,7 +704,7 @@
        SETIAP MEMPERBARUI satu file: unggah file itu + index.html, dan naikkan ?v=... pada baris file itu
        supaya Safari tidak memakai versi lama.
        ==================================================================== -->
-  <script src="js-inti.js?v=20261102a"></script>
+  <script src="js-inti.js?v=20261102b"></script>
   <script src="js-materi.js?v=20261102a"></script>
   <script src="js-kuis-guru.js?v=20261102a"></script>
   <script src="js-kuis-siswa.js?v=20261102a"></script>
@@ -653,10 +713,11 @@
   <script src="js-koreksi.js?v=20261102a"></script>
   <script src="js-robot.js?v=20261102a"></script>
   <script src="js-chatbot.js?v=20261102a"></script>
+  <script src="js-jadwal.js?v=20261102b"></script>
   <script>
     // Pemeriksa: kalau ada file js-*.js yang belum terunggah / gagal dimuat, tampilkan peringatan jelas.
     (function () {
-      const wajib = { 'js-inti.js': 'handleLogin', 'js-materi.js': 'simpanBankMateri', 'js-kuis-guru.js': 'generateSoalAI', 'js-kuis-siswa.js': 'kuisAPI', 'js-analisis.js': 'paketAnalisis', 'js-lab.js': 'submitTugas', 'js-koreksi.js': 'renderModul4PerKelas', 'js-robot.js': 'robotCatat', 'js-chatbot.js': 'chatBuka', 'js-mulai.js': null };
+      const wajib = { 'js-inti.js': 'handleLogin', 'js-materi.js': 'simpanBankMateri', 'js-kuis-guru.js': 'generateSoalAI', 'js-kuis-siswa.js': 'kuisAPI', 'js-analisis.js': 'paketAnalisis', 'js-lab.js': 'submitTugas', 'js-koreksi.js': 'renderModul4PerKelas', 'js-robot.js': 'robotCatat', 'js-chatbot.js': 'chatBuka', 'js-jadwal.js': 'jadwalInit', 'js-mulai.js': null };
       const hilang = Object.keys(wajib).filter(f => wajib[f] && typeof window[wajib[f]] !== 'function');
       if (hilang.length) {
         document.addEventListener('DOMContentLoaded', function () {
@@ -665,7 +726,7 @@
       }
     })();
   </script>
-  <script src="js-mulai.js?v=20261102a"></script>
+  <script src="js-mulai.js?v=20261102b"></script>
   <div id="chatFab" class="hidden"><button type="button" onclick="chatBuka()" aria-label="Buka chat">💬 <span id="chatFabLabel">Tutor</span> <b id="chatBadge" class="hidden">0</b></button></div>
   <div id="chatPanel" class="hidden" role="dialog" aria-label="Chat">
     <div class="chat-head"><b id="chatJudul">💬 Tutor Informatika</b><button type="button" onclick="chatTutup()" aria-label="Tutup">✕</button></div>

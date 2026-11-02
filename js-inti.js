@@ -426,6 +426,7 @@
         document.getElementById('filterKelasGroup').innerHTML = DAFTAR_KELAS.map(k => `<option value="${k}">Kelas ${k}</option>`).join('');
         renderModul4PerKelas();
         robotGuruInit();
+        if (typeof jadwalInit === 'function') jadwalInit();
       } else {
         // Siswa tidak perlu melihat kata "Bank" (istilah untuk guru)
         const labelSiswa = ['Materi & Modul', 'Kuis', 'Lab Koding'];
@@ -459,6 +460,9 @@
       } else if (tabName === 'koreksi') {
         document.getElementById('navKoreksi').classList.add('active');
         document.getElementById('tabKoreksi').classList.remove('hidden');
+      } else if (tabName === 'jadwal') {
+        document.getElementById('navJadwal').classList.add('active');
+        document.getElementById('tabJadwal').classList.remove('hidden');
       }
       keranjangUpdate();
       if (activeUser) sesiSimpan({ tab: tabName });

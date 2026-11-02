@@ -1,0 +1,50 @@
+/* LMS Informatika SMA — css-jadwal.css: Jadwal & Daftar Hadir (H1), mengikuti tema scrapbook. */
+    .nav-item:nth-child(5) { background: var(--peach, #f8b98a); }
+    .nav-item:nth-child(5).active { background: var(--ink, #1d2140); }
+
+    #hariIniStrip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 18px; padding: 10px 12px;
+      background: var(--note, #fbf3b8); border: 2px solid var(--ink, #1d2140); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink, #1d2140); }
+    #hariIniStrip.hidden { display: none; }
+    .hd-chip { padding: 5px 10px; font-size: 0.85rem; border: 2px solid var(--ink, #1d2140); border-radius: 3px; background: var(--paper-2, #fff);
+      color: var(--ink, #1d2140); font-family: inherit; cursor: pointer; box-shadow: 2px 2px 0 var(--ink, #1d2140); }
+    .hd-chip.sudah { background: var(--mint, #a5e2ab); }
+
+    .hd-catatan { background: var(--note, #fbf3b8); border: 1.5px dashed var(--ink, #1d2140); border-radius: 3px; padding: 8px 10px; margin: 8px 0; }
+    .hd-kelas { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px dashed var(--bd, #d2c8b0); }
+    .hd-kelas:first-of-type { border-top: 0; }
+    .hd-kelas button { flex: none; }
+    .hd-pilih { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+    .hd-pilih > div { display: flex; flex-direction: column; gap: 3px; }
+    .hd-pilih input, .hd-pilih select { font-size: 16px; }
+
+    .hd-absen-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+    .hd-ringkas { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0 12px; }
+    .hd-tag { padding: 2px 8px; border: 1.5px solid var(--ink, #1d2140); border-radius: 3px; font-size: 0.82rem; font-weight: 700; }
+    .hd-daftar { display: grid; gap: 2px; }
+    .hd-siswa { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; padding: 8px 0; border-top: 1px dashed var(--bd, #d2c8b0); }
+    .hd-nama { min-width: 0; overflow-wrap: anywhere; }
+    .hd-ket { grid-column: 1 / -1; font-size: 16px; }
+    .hd-seg { display: flex; gap: 4px; }
+    .hd-seg button { width: 38px; height: 38px; padding: 0; font-weight: 700; font-family: inherit; border: 2px solid var(--ink, #1d2140); border-radius: 3px;
+      background: var(--paper-2, #fff); color: var(--ink, #1d2140); opacity: 0.55; cursor: pointer; box-shadow: none; }
+    .hd-seg button.on { opacity: 1; box-shadow: 2px 2px 0 var(--ink, #1d2140); transform: translate(-1px, -1px); }
+    .hd-H, .hd-seg button.hd-H.on { background: var(--mint, #a5e2ab); }
+    .hd-T, .hd-seg button.hd-T.on { background: var(--yellow, #f3c53b); }
+    .hd-S, .hd-seg button.hd-S.on { background: var(--sky, #93d3ee); }
+    .hd-I, .hd-seg button.hd-I.on { background: var(--lav, #c9b8f3); }
+    .hd-D, .hd-seg button.hd-D.on { background: var(--peach, #f8b98a); }
+    .hd-A, .hd-seg button.hd-A.on { background: var(--red, #d63a2d); color: #fff; }
+    .hd-seg button.hd-H, .hd-seg button.hd-T, .hd-seg button.hd-S, .hd-seg button.hd-I, .hd-seg button.hd-D, .hd-seg button.hd-A { background: var(--paper-2, #fff); color: var(--ink, #1d2140); }
+    .hd-seg button.hd-A.on { color: #fff; }
+
+    .hd-hari { padding: 8px 0; border-top: 1px dashed var(--bd, #d2c8b0); }
+    .hd-hari:first-child { border-top: 0; }
+    .hd-jadwal-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; }
+    .hd-jadwal-row button { padding: 3px 9px; flex: none; }
+
+    @media (max-width: 640px) {
+      .hd-siswa { grid-template-columns: 1fr; }
+      .hd-seg { justify-content: space-between; }
+      .hd-seg button { flex: 1; width: auto; }
+      .hd-kelas { flex-direction: column; align-items: stretch; }
+    }

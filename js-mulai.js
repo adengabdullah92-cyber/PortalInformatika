@@ -5,7 +5,7 @@
     // Berlaku 1 jam sejak aktivitas terakhir; setiap klik/ketukan memperpanjangnya. Keluar menghapusnya.
     const SESI_KUNCI = 'lms_sesi_v1';
     const SESI_MASA = 60 * 60 * 1000;
-    const SESI_TAB = { guru: ['materi', 'kuis', 'lab', 'koreksi'], siswa: ['materi', 'kuis', 'lab'] };
+    const SESI_TAB = { guru: ['materi', 'kuis', 'lab', 'koreksi', 'jadwal'], siswa: ['materi', 'kuis', 'lab'] };
     let sesiSentuhTerakhir = 0;
 
     function sesiBaca() {
