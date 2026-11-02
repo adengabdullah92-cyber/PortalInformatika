@@ -1550,8 +1550,9 @@
     // Soal (beserta kunci) dibaca guru lewat RPC yang memeriksa akun guru, supaya browser siswa
     // tidak bisa membaca kunci langsung dari tabel. Bila SQL penutup akses belum dijalankan, pakai cara lama.
     async function ambilSoalGuru() {
-      const r = await db.rpc('guru_daftar_soal', { p_user: activeUser.username, p_pass: activeUser.password });
+      const r = await db.rpc('guru_daftar_soal', { p_user: activeUser.username, p_pass: sesiToken });
       if (!r.error) return { data: r.data || [], error: null };
+      if (galatSesi(r.error.message)) { sesiHabis(); return { data: [], error: r.error }; }
       if (/function|schema cache|does not exist/i.test(r.error.message || '')) return db.from('kuis').select('*');
       return r;
     }
@@ -1750,6 +1751,9 @@
     }
 
     let activeUser = null;
+    // Token sesi dari fungsi SQL "masuk" (keamanan_1.sql). Dipakai menggantikan password
+    // untuk RPC guru (parameter p_pass) dan Edge Function kuis-siswa. Password tidak disimpan di browser.
+    let sesiToken = null;
     let workspace = null;
     let selectedTugasId = null;
     let activeMateriMode = 'ai';
@@ -1771,17 +1775,18 @@
       err.textContent = 'Memeriksa akun...';
 
       try {
-        const { data: dataGuru } = await db.from('guru').select('*').eq('username', u).eq('password', p).maybeSingle();
-        if (dataGuru) {
-          activeUser = { ...dataGuru, role: 'guru' };
-          sesiMulai();
-          initDashboard();
+        // Login diperiksa di server (password tersimpan sebagai hash). Hasilnya token sesi + data akun tanpa password.
+        const { data, error } = await db.rpc('masuk', { p_user: u, p_pass: p });
+        if (error) {
+          err.textContent = /function|schema cache|does not exist/i.test(error.message || '')
+            ? 'Server belum diperbarui (keamanan_1.sql belum dijalankan).'
+            : 'Gagal terhubung ke database.';
+          console.error(error);
           return;
         }
-
-        const { data: dataSiswa } = await db.from('siswa').select('*').eq('username', u).eq('password', p).maybeSingle();
-        if (dataSiswa) {
-          activeUser = { ...dataSiswa, role: 'siswa' };
+        if (data && data.token && data.akun && (data.peran === 'guru' || data.peran === 'siswa')) {
+          sesiToken = data.token;
+          activeUser = { ...data.akun, role: data.peran };
           sesiMulai();
           initDashboard();
           return;
@@ -1850,7 +1855,25 @@
       if (activeUser) sesiSimpan({ tab: tabName });
     }
 
-    function logout() { sesiHapus(); location.reload(); }
+    function logout() {
+      const t = sesiToken;
+      sesiHapus();
+      const pulang = () => location.reload();
+      if (!t) return pulang();
+      // Hapus token di server (maksimal tunggu 3 detik), lalu muat ulang.
+      Promise.race([db.rpc('keluar', { p_token: t }), new Promise(r => setTimeout(r, 3000))]).finally(pulang);
+    }
+
+    // Dipanggil bila server menolak token (kedaluwarsa 12 jam, sudah keluar di perangkat lain, dsb.)
+    let sesiHabisJalan = false;
+    function sesiHabis(pesan) {
+      if (sesiHabisJalan) return;
+      sesiHabisJalan = true;
+      sesiHapus();
+      try { sessionStorage.setItem('lms_pesan_login', pesan || 'Sesi berakhir. Silakan masuk lagi.'); } catch (_) {}
+      location.reload();
+    }
+    const galatSesi = (msg) => /sesi guru tidak berlaku|Sesi berakhir|Belum login/i.test(String(msg || ''));
 
     function disablePasteInApp() {
       document.addEventListener('paste', (e) => {
@@ -2838,7 +2861,7 @@
       btn.disabled = true;
       const { error } = await db.rpc('guru_buat_paket', {
         p_user: activeUser.username,
-        p_pass: activeUser.password,
+        p_pass: sesiToken,
         p_judul: judul,
         p_jenis: jenis,
         p_durasi: durasi,
@@ -2854,6 +2877,7 @@
       btn.disabled = false;
 
       if (error) {
+        if (galatSesi(error.message)) return sesiHabis();
         return alert('Gagal membuat paket: ' + error.message +
           (/function|schema cache|does not exist|relation/i.test(error.message) ? '\n\nKemungkinan SQL migrasi Tahap 2A belum dijalankan di Supabase.' : ''));
       }
@@ -2904,9 +2928,10 @@
       renderBank('paket');
       if (!paketSoalCache[id]) {
         const { data, error } = await db.rpc('guru_detail_paket', {
-          p_user: activeUser.username, p_pass: activeUser.password, p_id: Number(id)
+          p_user: activeUser.username, p_pass: sesiToken, p_id: Number(id)
         });
         if (error) {
+          if (galatSesi(error.message)) return sesiHabis();
           paketLihatOpen.delete(id);
           renderBank('paket');
           return alert('Gagal memuat soal paket: ' + error.message);
@@ -3012,11 +3037,12 @@
           method: 'POST',
           keepalive: !!opsi.keepalive,
           headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-          body: JSON.stringify({ aksi, user: activeUser.username, pass: activeUser.password, ...extra }),
+          body: JSON.stringify({ aksi, token: sesiToken, ...extra }),
           signal: ctrl.signal
         });
         let data;
         try { data = await res.json(); } catch (_) { throw new Error('Respons server tidak terbaca (HTTP ' + res.status + ')'); }
+        if (res.status === 401) sesiHabis(data.error || 'Sesi berakhir. Silakan masuk lagi.');
         if (!res.ok || data.error) { const e = new Error(data.error || ('HTTP ' + res.status)); e.status = res.status; throw e; }
         return data;
       } catch (e) {
@@ -4417,7 +4443,7 @@
     async function renderModul4PerKelas() {
       const targetKelas = document.getElementById('filterKelasGroup').value;
 
-      const { data: siswaList } = await db.from('siswa').select('*').eq('kelas', targetKelas);
+      const { data: siswaList } = await db.from('siswa').select('id,nama,kelas').eq('kelas', targetKelas);
       const tbody = document.getElementById('tbodyRekapKelas');
       rekapBaris = [];
 
@@ -5206,7 +5232,7 @@
 
   
     // ================= SESI LOGIN + PEMUATAN DATA ULANG =================
-    // Sesi disimpan di browser (tanpa password): username, peran, waktu aktif terakhir, tab terakhir, mode Lab.
+    // Sesi disimpan di browser (tanpa password): token sesi server, username, peran, waktu aktif terakhir, tab terakhir, mode Lab.
     // Berlaku 1 jam sejak aktivitas terakhir; setiap klik/ketukan memperpanjangnya. Keluar menghapusnya.
     const SESI_KUNCI = 'lms_sesi_v1';
     const SESI_MASA = 60 * 60 * 1000;
@@ -5219,13 +5245,13 @@
     function sesiTulis(s) { try { localStorage.setItem(SESI_KUNCI, JSON.stringify(s)); } catch (_) {} }
     function sesiHapus() { try { localStorage.removeItem(SESI_KUNCI); } catch (_) {} }
     function sesiMulai() {
-      if (activeUser) sesiTulis({ u: activeUser.username, r: activeUser.role, t: Date.now() });
+      if (activeUser) sesiTulis({ u: activeUser.username, r: activeUser.role, k: sesiToken, t: Date.now() });
     }
     function sesiSimpan(extra = {}) {
       if (!activeUser) return;
       const lama = sesiBaca();
       const sama = lama && lama.u === activeUser.username && lama.r === activeUser.role;
-      sesiTulis({ ...(sama ? lama : {}), u: activeUser.username, r: activeUser.role, t: Date.now(), ...extra });
+      sesiTulis({ ...(sama ? lama : {}), u: activeUser.username, r: activeUser.role, k: sesiToken, t: Date.now(), ...extra });
     }
     function sesiSentuh() {
       const n = Date.now();
@@ -5242,17 +5268,23 @@
     }
 
     async function sesiPulihkan() {
+      let pesan = '';
+      try { pesan = sessionStorage.getItem('lms_pesan_login') || ''; sessionStorage.removeItem('lms_pesan_login'); } catch (_) {}
+      if (pesan) $id('loginErr').textContent = pesan;
       const s = sesiBaca();
       if (!s) return false;
       if (!s.u || (s.r !== 'guru' && s.r !== 'siswa')) { sesiHapus(); return false; }
+      // Sesi lama (sebelum pembaruan keamanan) tidak punya token: wajib masuk ulang sekali.
+      if (!s.k) { sesiHapus(); sesiTampilkanLogin('LMS diperbarui. Silakan masuk lagi.'); return false; }
       if (Date.now() - (Number(s.t) || 0) > SESI_MASA) { sesiHapus(); sesiTampilkanLogin('Sesi berakhir (lebih dari 1 jam tidak aktif). Silakan masuk lagi.'); return false; }
       $id('viewLogin').classList.add('hidden');
       $id('sesiPulih').classList.remove('hidden');
       try {
-        const r = await db.from(s.r).select('*').eq('username', s.u).limit(1).maybeSingle();
+        const r = await db.rpc('sesi_cek', { p_token: s.k });
         if (r.error) throw r.error;
-        if (!r.data) { sesiHapus(); sesiTampilkanLogin('Akun untuk sesi tersimpan tidak ditemukan. Silakan masuk lagi.'); return false; }
-        activeUser = { ...r.data, role: s.r };
+        if (!r.data || !r.data.akun || r.data.peran !== s.r) { sesiHapus(); sesiTampilkanLogin('Sesi berakhir. Silakan masuk lagi.'); return false; }
+        sesiToken = s.k;
+        activeUser = { ...r.data.akun, role: s.r };
         $id('sesiPulih').classList.add('hidden');
         initDashboard();
         const tab = SESI_TAB[s.r].includes(s.tab) ? s.tab : null;
