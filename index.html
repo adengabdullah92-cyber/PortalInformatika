@@ -1694,6 +1694,18 @@
       return r;
     }
 
+    // Baca hasil kerja siswa lewat server (keamanan_5.sql). Hasil: { data: [...], error }.
+    // Siswa hanya menerima data miliknya sendiri; guru memakai token guru.
+    async function siswaBaca(tabel, opsi = {}) {
+      const r = await db.rpc('siswa_baca', { p_token: sesiToken, p_tabel: tabel, p_level: opsi.level ?? null, p_limit: opsi.limit ?? 500 });
+      if (r.error && galatSesi(r.error.message)) sesiHabis();
+      return { data: r.error ? null : (r.data || []), error: r.error };
+    }
+    async function guruBaca(tabel, kolom = null, nilai = null, limit = 5000) {
+      const r = await guruRPC('guru_baca', { p_tabel: tabel, p_kolom: kolom, p_nilai: nilai ? nilai.map(String) : null, p_limit: limit });
+      return { data: r.error ? null : (r.data || []), error: r.error };
+    }
+
     async function bankArsip(key, id, flag) {
       const cfg = BANK[key];
       const item = bankState[key].items.find(x => String(x.id) === String(id));
@@ -2097,7 +2109,7 @@
         return;
       }
 
-      const { data: readLog } = await db.from('materi_read_log').select('materi_id').eq('siswa_id', activeUser.id);
+      const { data: readLog } = await siswaBaca('materi_read_log');
       materiReadSet = new Set((readLog || []).map(r => r.materi_id));
 
       container.innerHTML = rows.map(p => {
@@ -4131,7 +4143,7 @@
       renderBank('tugas');
       try {
         const pub = await db.from('tugas_published').select('kelas').eq('tugas_id', id);
-        const kum = await db.from('pengumpulan').select('*').eq('tugas_id', id);
+        const kum = await guruBaca('pengumpulan', 'tugas_id', [id]);
         if (pub.error) throw pub.error;
         if (kum.error) throw kum.error;
         const kelas = [...new Set((pub.data || []).map(p => p.kelas))].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
@@ -4257,7 +4269,7 @@
     async function loadTugasSiswa() {
       const container = $id('listTugasSiswa');
       const pub = await db.from('tugas_published').select('*, tugas(*)').eq('kelas', activeUser.kelas);
-      const kum = await db.from('pengumpulan').select('*').eq('siswa_id', activeUser.id);
+      const kum = await siswaBaca('pengumpulan');
       if (pub.error) { container.innerHTML = `<p class="mu">Gagal memuat tugas: ${escHtml(pub.error.message)}</p>`; return; }
       const rowsT = (pub.data || []).filter(d => d.tugas && !d.tugas.diarsipkan);
       if (rowsT.length === 0) {
@@ -4479,9 +4491,12 @@
         return;
       }
 
-      const { data: nilaiKuis } = await db.from('nilai_kuis').select('*');
-      const { data: pengumpulan } = await db.from('pengumpulan').select('*');
-      const { data: readLogs } = await db.from('materi_read_log').select('*');
+      const idKelas = siswaList.map(x => String(x.id));
+      const [{ data: nilaiKuis }, { data: pengumpulan }, { data: readLogs }] = await Promise.all([
+        guruBaca('nilai_kuis', 'siswa_id', idKelas),
+        guruBaca('pengumpulan', 'siswa_id', idKelas),
+        guruBaca('materi_read_log', 'siswa_id', idKelas)
+      ]);
 
       // Nilai paket kuis (dihitung server): rata-rata skor terbaik per paket
       let paketNilai = {}, paketGalat = '';
@@ -4892,7 +4907,7 @@
     async function robotMuatLevel() {
       robotRenderLevel();
       if (!activeUser || activeUser.role !== 'siswa') return;
-      const r = await db.from('robot_progres').select('*').eq('siswa_id', String(activeUser.id));
+      const r = await siswaBaca('robot_progres');
       if (r.error) { robotPeringatan(r.error); return; }
       $id('robotCatatan').innerHTML = '';
       ROBOT_PROG = {};
@@ -5122,8 +5137,7 @@
 
     async function robotRiwayatSiswa() {
       const S = robotS; const box = $id('robotRiwayat'); if (!S || !box) return;
-      const r = await db.from('robot_riwayat').select('id, aksi, lulus, jumlah_blok, langkah, jumlah_jalankan, ringkasan, created_at')
-        .eq('siswa_id', String(activeUser.id)).eq('level', S.no).order('created_at', { ascending: false }).limit(8);
+      const r = await siswaBaca('robot_riwayat', { level: S.no, limit: 8 });
       if (robotS !== S) return;
       if (r.error) { box.innerHTML = `<p class="mu">Riwayat belum bisa dimuat: ${escHtml(r.error.message)}</p>`; return; }
       const d = r.data || [];
@@ -5157,7 +5171,7 @@
       const ids = (s.data || []).map(x => String(x.id));
       let prog = [];
       if (ids.length) {
-        const p = await db.from('robot_progres').select('*').in('siswa_id', ids);
+        const p = await guruBaca('robot_progres', 'siswa_id', ids);
         if (p.error) { box.innerHTML = `<p class="mu">Gagal memuat progres: ${escHtml(p.error.message)}. Pastikan robot.sql sudah dijalankan.</p>`; return; }
         prog = p.data || [];
       }
@@ -5200,7 +5214,7 @@
     async function robotGuruRiwayat(sid) {
       const sw = RG.siswa.find(x => String(x.id) === String(sid));
       RG.sid = String(sid); RG.nama = sw ? sw.nama : String(sid);
-      const r = await db.from('robot_riwayat').select('*').eq('siswa_id', RG.sid).order('created_at', { ascending: false }).limit(300);
+      const r = await guruBaca('robot_riwayat', 'siswa_id', [RG.sid], 300);
       if (r.error) { alert('Gagal memuat riwayat: ' + r.error.message); return; }
       RG.riwayat = r.data || [];
       $id('rgRiwayatCard').classList.remove('hidden');
