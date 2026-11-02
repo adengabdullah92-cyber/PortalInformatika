@@ -1,0 +1,13 @@
+/* LMS Informatika SMA — css-rpp.css: halaman RPP (R1), mengikuti tema scrapbook. */
+    .nav-item:nth-child(6) { background: var(--mint, #a5e2ab); }
+    .nav-item:nth-child(6).active { background: var(--ink, #1d2140); }
+    .rpp-setelan { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 12px; }
+    .rpp-setelan > div { display: flex; flex-direction: column; gap: 3px; }
+    .rpp-setelan input, #tabRpp textarea, #tabRpp input[type=text], #tabRpp select { font-size: 16px; width: 100%; }
+    .rpp-lbl { display: block; margin: 12px 0 4px; }
+    .rpp-judul { margin-bottom: 8px; }
+    .rpp-dpl { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 12px; }
+    .rpp-dpl label { display: flex; gap: 6px; align-items: flex-start; font-size: 0.9rem; }
+    .rpp-tahap { display: grid; gap: 4px; margin: 8px 0; padding: 8px; border: 1.5px dashed var(--ink, #1d2140); border-radius: 3px; background: var(--paper-2, #fff); }
+    .rpp-tahap input { font-weight: 700; text-decoration: underline; font-style: italic; }
+    #rppAksi.hidden { display: none; }

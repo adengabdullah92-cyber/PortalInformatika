@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="css-tema.css?v=20261102a">
   <link rel="stylesheet" href="css-tambahan.css?v=20261102a">
   <link rel="stylesheet" href="css-jadwal.css?v=20261102f">
+  <link rel="stylesheet" href="css-rpp.css?v=20261102r1">
 </head>
 <body>
 
@@ -68,6 +69,9 @@
       </div>
       <div id="navJadwal" class="nav-item hidden" onclick="switchTab('jadwal')">
         <span>📅</span> <span id="navJadwalTeks">Jadwal & Hadir</span>
+      </div>
+      <div id="navRpp" class="nav-item hidden" onclick="switchTab('rpp')">
+        <span>📝</span> RPP
       </div>
     </div>
 
@@ -562,6 +566,63 @@
       </div>
 
       <!-- MODUL 4: KOREKSI & ANALISIS PER KELAS (KHUSUS GURU) -->
+      <!-- RPP (guru) — logika di js-rpp.js, template rpp-template.docx -->
+      <div id="tabRpp" class="tab-content hidden">
+        <h2>📝 RPP</h2>
+        <p class="mu" style="margin-bottom: 20px;">Susun RPP per materi dengan bantuan AI, sunting, lalu unduh sebagai Word berformat sekolah. Hasil AI tetap perlu Anda periksa.</p>
+
+        <div class="card">
+          <details id="rppSetelanDetail">
+            <summary style="cursor:pointer;"><b>⚙️ Pengaturan RPP</b> <span class="mu" id="rppSetelanInfo">Memuat…</span></summary>
+            <div class="rpp-setelan">
+              <div><label class="mu">Nama guru (di tanda tangan)</label><input type="text" id="rs_nama_guru"></div>
+              <div><label class="mu">NIP guru</label><input type="text" id="rs_nip_guru" placeholder="boleh dikosongkan"></div>
+              <div><label class="mu">Nama sekolah</label><input type="text" id="rs_sekolah"></div>
+              <div><label class="mu">Kota (tempat tanda tangan)</label><input type="text" id="rs_kota"></div>
+              <div><label class="mu">Nama kepala sekolah</label><input type="text" id="rs_kepsek"></div>
+              <div><label class="mu">NIP kepala sekolah</label><input type="text" id="rs_nip_kepsek" placeholder="boleh dikosongkan"></div>
+              <div><label class="mu">Mata pelajaran</label><input type="text" id="rs_mapel"></div>
+              <div><label class="mu">Profil kelas: minat</label><input type="text" id="rs_minat" placeholder="mis. suka kuis, praktik langsung"></div>
+              <div><label class="mu">Profil kelas: cara belajar</label><input type="text" id="rs_cara_belajar" placeholder="mis. belajar sambil mencoba"></div>
+              <div><label class="mu">Profil kelas: lingkungan tempat tinggal</label><input type="text" id="rs_lingkungan" placeholder="mis. perkotaan"></div>
+            </div>
+            <label class="mu rpp-lbl">Capaian Pembelajaran Informatika Fase E <small>(tempel dari dokumen resmi; dipakai apa adanya)</small></label>
+            <textarea id="rs_cp" rows="4"></textarea>
+            <label style="display:flex; gap:8px; align-items:center; margin-top:10px;"><input type="checkbox" id="rs_fokus"> Sertakan dialog <b>Fokus Perilaku 1–3</b> (kesepakatan kelas) di setiap RPP</label>
+            <div class="bank-actions" style="margin-top:10px;"><button type="button" onclick="rppSimpanSetelan()">💾 Simpan pengaturan</button></div>
+          </details>
+        </div>
+
+        <div class="card">
+          <h3>📚 RPP tersimpan</h3>
+          <div id="rppDaftar"><p class="mu">Memuat…</p></div>
+        </div>
+
+        <div class="card" id="rppEditorCard">
+          <h3>✏️ Buat / sunting RPP</h3>
+          <div class="hd-pilih">
+            <div style="flex:2; min-width:220px;"><label class="mu">Materi (Bank Materi)</label><select id="rppMateri"></select></div>
+            <div style="flex:2; min-width:200px;"><label class="mu">Materi pokok</label><input type="text" id="rppPokok" placeholder="mis. Algoritma dan Pemrograman"></div>
+            <div style="flex:1; min-width:180px;"><label class="mu">Model pembelajaran</label><select id="rppModel"></select></div>
+            <div style="width:90px;"><label class="mu">JP (x 45')</label><input type="number" id="rppJP" min="1" max="8" value="2"></div>
+          </div>
+          <div class="bank-actions" style="margin-top:10px;">
+            <button type="button" id="rppAIBtn" onclick="rppSusunAI()">✨ Susun dengan AI</button>
+            <button type="button" class="alt" onclick="rppBaru()">➕ RPP baru (kosongkan)</button>
+          </div>
+          <div id="rppEditor" style="margin-top:14px;"></div>
+          <div id="rppAksi" class="hidden" style="margin-top:14px; border-top: 2px dashed var(--ink, #1d2140); padding-top: 12px;">
+            <div class="hd-pilih">
+              <button type="button" id="rppSimpanBtn" onclick="rppSimpan()">💾 Simpan RPP</button>
+              <div><label class="mu">Kelas di dokumen</label><select id="rppKelas"></select></div>
+              <div><label class="mu">Tanggal tanda tangan</label><input type="date" id="rppTanggal"></div>
+              <button type="button" class="alt" id="rppUnduhBtn" onclick="rppUnduh()">📥 Unduh Word</button>
+            </div>
+            <p class="mu" style="font-size:0.78rem; margin-top:6px;">Gambar (mis. foto stimulus) tambahkan sendiri di Word setelah diunduh.</p>
+          </div>
+        </div>
+      </div>
+
       <!-- JADWAL & DAFTAR HADIR (guru) — logika di js-jadwal.js -->
       <div id="tabJadwal" class="tab-content hidden">
         <!-- SISWA: kehadiranku -->
@@ -733,7 +794,7 @@
        SETIAP MEMPERBARUI satu file: unggah file itu + index.html, dan naikkan ?v=... pada baris file itu
        supaya Safari tidak memakai versi lama.
        ==================================================================== -->
-  <script src="js-inti.js?v=20261102d"></script>
+  <script src="js-inti.js?v=20261102r1"></script>
   <script src="js-materi.js?v=20261102a"></script>
   <script src="js-kuis-guru.js?v=20261102d"></script>
   <script src="js-kuis-siswa.js?v=20261102a"></script>
@@ -743,10 +804,11 @@
   <script src="js-robot.js?v=20261102a"></script>
   <script src="js-chatbot.js?v=20261102a"></script>
   <script src="js-jadwal.js?v=20261102f"></script>
+  <script src="js-rpp.js?v=20261102r1"></script>
   <script>
     // Pemeriksa: kalau ada file js-*.js yang belum terunggah / gagal dimuat, tampilkan peringatan jelas.
     (function () {
-      const wajib = { 'js-inti.js': 'handleLogin', 'js-materi.js': 'simpanBankMateri', 'js-kuis-guru.js': 'generateSoalAI', 'js-kuis-siswa.js': 'kuisAPI', 'js-analisis.js': 'paketAnalisis', 'js-lab.js': 'submitTugas', 'js-koreksi.js': 'renderModul4PerKelas', 'js-robot.js': 'robotCatat', 'js-chatbot.js': 'chatBuka', 'js-jadwal.js': 'jadwalInit', 'js-mulai.js': null };
+      const wajib = { 'js-inti.js': 'handleLogin', 'js-materi.js': 'simpanBankMateri', 'js-kuis-guru.js': 'generateSoalAI', 'js-kuis-siswa.js': 'kuisAPI', 'js-analisis.js': 'paketAnalisis', 'js-lab.js': 'submitTugas', 'js-koreksi.js': 'renderModul4PerKelas', 'js-robot.js': 'robotCatat', 'js-chatbot.js': 'chatBuka', 'js-jadwal.js': 'jadwalInit', 'js-rpp.js': 'rppInit', 'js-mulai.js': null };
       const hilang = Object.keys(wajib).filter(f => wajib[f] && typeof window[wajib[f]] !== 'function');
       if (hilang.length) {
         document.addEventListener('DOMContentLoaded', function () {
@@ -755,7 +817,7 @@
       }
     })();
   </script>
-  <script src="js-mulai.js?v=20261102c"></script>
+  <script src="js-mulai.js?v=20261102r1"></script>
   <div id="chatFab" class="hidden"><button type="button" onclick="chatBuka()" aria-label="Buka chat">💬 <span id="chatFabLabel">Tutor</span> <b id="chatBadge" class="hidden">0</b></button></div>
   <div id="chatPanel" class="hidden" role="dialog" aria-label="Chat">
     <div class="chat-head"><b id="chatJudul">💬 Tutor Informatika</b><button type="button" onclick="chatTutup()" aria-label="Tutup">✕</button></div>

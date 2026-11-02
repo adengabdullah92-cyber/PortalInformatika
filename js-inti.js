@@ -427,6 +427,7 @@
         renderModul4PerKelas();
         robotGuruInit();
         if (typeof jadwalInit === 'function') jadwalInit();
+        if (typeof rppInit === 'function') rppInit();
       } else {
         // Siswa tidak perlu melihat kata "Bank" (istilah untuk guru)
         const labelSiswa = ['Materi & Modul', 'Kuis', 'Lab Koding'];
@@ -465,6 +466,10 @@
         document.getElementById('navJadwal').classList.add('active');
         document.getElementById('tabJadwal').classList.remove('hidden');
         if (typeof jadwalTabDibuka === 'function') jadwalTabDibuka();
+      } else if (tabName === 'rpp') {
+        document.getElementById('navRpp').classList.add('active');
+        document.getElementById('tabRpp').classList.remove('hidden');
+        if (typeof rppTabDibuka === 'function') rppTabDibuka();
       }
       keranjangUpdate();
       if (activeUser) sesiSimpan({ tab: tabName });
