@@ -7,7 +7,7 @@
       'https://cdn.jsdelivr.net/npm/pizzip@3.3.0/dist/pizzip.min.js',
       'https://cdn.jsdelivr.net/npm/docxtemplater@3.71.1/build/docxtemplater.min.js'
     ];
-    const RPP_TEMPLATE = 'rpp-template.docx?v=20261102r1';
+    const RPP_TEMPLATE = 'rpp-template.docx?v=20261102k1';
     const RPP_MODEL = { otomatis: 'Otomatis (AI pilih yang sesuai)', discovery: 'Discovery Learning', pbl: 'Problem Based Learning', pjbl: 'Project Based Learning' };
     const RPP_DPL = ['', 'Keimanan dan Ketakwaan terhadap Tuhan YME', 'Kewargaan', 'Penalaran Kritis', 'Kreativitas', 'Kolaborasi', 'Kemandirian', 'Kesehatan', 'Komunikasi'];
     const RPP_DAFTAR = [
