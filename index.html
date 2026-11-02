@@ -1440,9 +1440,10 @@
           'apikey': SUPABASE_KEY,
           'Authorization': `Bearer ${SUPABASE_KEY}`
         },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ prompt, token: sesiToken })
       });
       const data = await response.json();
+      if (response.status === 401) sesiHabis(data.error);
       if (!response.ok) throw new Error('HTTP ' + response.status + ' - ' + (data.error?.message || data.error || data.message || JSON.stringify(data)));
       return data.text ?? data.result ?? data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     }
@@ -1555,6 +1556,20 @@
       if (galatSesi(r.error.message)) { sesiHabis(); return { data: [], error: r.error }; }
       if (/function|schema cache|does not exist/i.test(r.error.message || '')) return db.from('kuis').select('*');
       return r;
+    }
+
+    // Daftar siswa per kelas untuk guru. Tabel siswa tertutup dari browser (keamanan_4a.sql),
+    // jadi dibaca lewat RPC bertoken. Hasil: { data: [{id, nama, kelas}], error }
+    async function ambilSiswaKelas(kelas) {
+      const daftar = (Array.isArray(kelas) ? kelas : [kelas]).filter(Boolean).map(String);
+      if (!daftar.length) return { data: [], error: null };
+      const r = await db.rpc('guru_daftar_siswa', { p_user: activeUser.username, p_pass: sesiToken, p_kelas: daftar });
+      if (r.error) {
+        if (galatSesi(r.error.message)) sesiHabis();
+        else if (/function|schema cache|does not exist/i.test(r.error.message || '')) r.error.message += ' (jalankan keamanan_4a.sql)';
+        return { data: null, error: r.error };
+      }
+      return { data: r.data || [], error: null };
     }
 
     async function loadBank(key) {
@@ -2011,10 +2026,11 @@
             'apikey': SUPABASE_KEY,
             'Authorization': `Bearer ${SUPABASE_KEY}`
           },
-          body: JSON.stringify({ prompt: topik, mode: 'materi' })
+          body: JSON.stringify({ prompt: topik, mode: 'materi', token: sesiToken })
         });
 
         const data = await response.json();
+        if (response.status === 401) return sesiHabis(data.error);
         if (data.htmlA4) {
           document.getElementById('matKonten').value = data.htmlA4;
           updateMatPreview();
@@ -2146,11 +2162,12 @@
         const res = await fetch(`${SUPABASE_URL}/functions/v1/generate-ai`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-          body: JSON.stringify(body),
+          body: JSON.stringify({ ...body, token: sesiToken }),
           signal: ctrl.signal
         });
         let data;
         try { data = await res.json(); } catch (_) { throw new Error('Respons server tidak terbaca (HTTP ' + res.status + ')'); }
+        if (res.status === 401) sesiHabis(data.error);
         if (!res.ok || data.error) throw new Error(data.error || ('HTTP ' + res.status));
         return data;
       } catch (e) {
@@ -4112,7 +4129,7 @@
         const kelas = [...new Set((pub.data || []).map(p => p.kelas))].sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
         let siswa = [];
         if (kelas.length) {
-          const s = await db.from('siswa').select('id,nama,kelas').in('kelas', kelas);
+          const s = await ambilSiswaKelas(kelas);
           if (s.error) throw s.error;
           siswa = s.data || [];
         }
@@ -4443,7 +4460,7 @@
     async function renderModul4PerKelas() {
       const targetKelas = document.getElementById('filterKelasGroup').value;
 
-      const { data: siswaList } = await db.from('siswa').select('id,nama,kelas').eq('kelas', targetKelas);
+      const { data: siswaList } = await ambilSiswaKelas(targetKelas);
       const tbody = document.getElementById('tbodyRekapKelas');
       rekapBaris = [];
 
@@ -5145,7 +5162,7 @@
     async function robotGuruMuat() {
       const kelas = $id('rgKelas').value; const box = $id('rgTabel');
       box.innerHTML = 'Memuat…';
-      const s = await db.from('siswa').select('id, nama, kelas').eq('kelas', kelas).order('nama', { ascending: true });
+      const s = await ambilSiswaKelas(kelas);
       if (s.error) { box.innerHTML = `<p class="mu">Gagal memuat siswa: ${escHtml(s.error.message)}</p>`; return; }
       const ids = (s.data || []).map(x => String(x.id));
       let prog = [];
