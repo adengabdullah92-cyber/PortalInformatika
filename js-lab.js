@@ -459,9 +459,12 @@
     }
 
     // ================= SISI GURU: ULASAN PENGUMPULAN =================
+    // Tampilan layar terbagi: daftar siswa (kiri) + detail & penilaian (kanan).
+    // Memilih siswa / menyimpan nilai hanya menggambar ulang panel ini, jadi posisi gulir halaman tidak melompat.
     const tugasKumOpen = new Set();
     const tugasKumCache = {};
-    let kumDilihat = null;
+    const kumPilih = {};          // id tugas -> { kelas, siswaId, lewati }
+    let kumDilihat = null;        // dipertahankan untuk kompatibilitas modal lama
 
     async function tugasKum(id) {
       id = String(id);
@@ -470,10 +473,12 @@
       await muatKumTugas(id);
     }
 
+    // Muat data pengumpulan. Saat memuat ulang, tampilan lama dibiarkan sampai data baru siap (tidak ada lompatan).
     async function muatKumTugas(id) {
       id = String(id);
-      delete tugasKumCache[id];
-      renderBank('tugas');
+      const adaLama = !!tugasKumCache[id];
+      if (!adaLama) renderBank('tugas');
+      else { const el = document.getElementById('kum-' + id); if (el) el.classList.add('kum-memuat'); }
       try {
         const pub = await db.from('tugas_published').select('kelas').eq('tugas_id', id);
         const kum = await guruBaca('pengumpulan', 'tugas_id', [id]);
@@ -488,10 +493,10 @@
         }
         tugasKumCache[id] = { kelas, siswa, kum: kum.data || [] };
       } catch (e) {
-        tugasKumOpen.delete(id);
+        if (!adaLama) tugasKumOpen.delete(id);
         alert('Gagal memuat pengumpulan: ' + (e.message || e));
       }
-      renderBank('tugas');
+      if (adaLama) renderKum(id); else renderBank('tugas');
     }
 
     function kumTerbaru(kum, tugasId, siswaId) {
@@ -504,34 +509,240 @@
       if (typeof h === 'string') { try { h = JSON.parse(h); } catch (_) { h = null; } }
       return h && typeof h.total === 'number' ? h : null;
     }
+    const kumAdaNilai = k => !!k && k.nilai_guru !== null && k.nilai_guru !== undefined && k.nilai_guru !== '';
+
+    function kumMurid(id, kelas) {
+      const c = tugasKumCache[id];
+      return c.siswa.filter(s => s.kelas === kelas).sort((a, b) => String(a.nama).localeCompare(String(b.nama)));
+    }
+    // Siswa yang bisa dinilai (sudah mengumpulkan) di satu kelas, urut nama; opsional lewati yang sudah dinilai
+    function kumAntrian(id, kelas, lewati) {
+      const c = tugasKumCache[id];
+      return kumMurid(id, kelas).filter(s => {
+        const k = kumTerbaru(c.kum, id, s.id);
+        return k && (!lewati || !kumAdaNilai(k));
+      });
+    }
+
+    function kumState(id) {
+      const c = tugasKumCache[id];
+      let st = kumPilih[id];
+      if (!st) st = kumPilih[id] = { kelas: c.kelas[0], siswaId: null, lewati: false };
+      if (!c.kelas.includes(st.kelas)) st.kelas = c.kelas[0];
+      return st;
+    }
 
     function tugasKumHTML(id) {
       const c = tugasKumCache[id];
       if (!c) return '<p class="mu">Memuat pengumpulan…</p>';
+      return `<div class="kum-wrap" id="kum-${id}">${kumIsiHTML(id)}</div>`;
+    }
+
+    function renderKum(id) {
+      const el = document.getElementById('kum-' + id);
+      if (!el) return renderBank('tugas');
+      el.classList.remove('kum-memuat');
+      el.innerHTML = kumIsiHTML(id);
+    }
+
+    function kumIsiHTML(id) {
+      const c = tugasKumCache[id];
       let out = `<div class="bank-actions">
         <button class="alt" onclick="muatKumTugas('${id}')">🔄 Muat ulang</button>
         <button class="alt" onclick="unduhKumTugas('${id}')">📥 Unduh Excel</button></div>`;
       if (!c.kelas.length) return out + '<p class="mu">Tugas ini belum dipublish ke kelas mana pun.</p>';
-      out += c.kelas.map(kls => {
-        const murid = c.siswa.filter(s => s.kelas === kls).sort((a, b) => String(a.nama).localeCompare(String(b.nama)));
-        const sudah = murid.filter(s => kumTerbaru(c.kum, id, s.id)).length;
-        const baris = murid.map(s => {
-          const k = kumTerbaru(c.kum, id, s.id);
-          if (!k) return `<tr><td>${escHtml(s.nama)}</td><td colspan="4"><span class="mu">Belum mengumpulkan</span></td><td></td></tr>`;
-          const u = kumUji(k);
-          const flag = String(k.status_indikasi || '').includes('Potensi');
-          return `<tr>
-            <td>${escHtml(s.nama)}</td>
-            <td>${u ? `<span class="badge ${u.lulus === u.total ? 'ok' : u.lulus > 0 ? 'warn' : 'bad'}">${u.lulus}/${u.total}</span>` : '<span class="mu">-</span>'}</td>
-            <td>${k.jumlah_jalankan ?? '-'}× / ${k.durasi_detik ?? '-'} dtk${(k.kirim_ke || 1) > 1 ? ` • kirim ke-${k.kirim_ke}` : ''}</td>
-            <td>${flag ? '<span class="badge bad">⚠️ cek</span>' : '<span class="badge ok">Aman</span>'}</td>
-            <td>${k.nilai_guru !== null && k.nilai_guru !== undefined ? `<b>${escHtml(k.nilai_guru)}</b>` : '<span class="mu">-</span>'}</td>
-            <td><button class="alt" onclick="kumLihat('${id}', '${escHtml(String(s.id))}')">Lihat</button></td></tr>`;
-        }).join('');
-        return `<div class="hs-kelas"><b>${escHtml(kls)}</b> <span class="mu">— ${sudah}/${murid.length} sudah mengumpulkan</span>
-          <div class="tbl-scroll"><table><thead><tr><th>Nama</th><th>Uji</th><th>Proses</th><th>Status</th><th>Nilai</th><th></th></tr></thead><tbody>${baris}</tbody></table></div></div>`;
-      }).join('');
+      const st = kumState(id);
+
+      // Pilihan kelas + jumlah yang sudah mengumpulkan / sudah dinilai
+      out += `<div class="kum-kelas">` + c.kelas.map(kls => {
+        const murid = kumMurid(id, kls);
+        const kirim = murid.filter(s => kumTerbaru(c.kum, id, s.id));
+        const dinilai = kirim.filter(s => kumAdaNilai(kumTerbaru(c.kum, id, s.id))).length;
+        return `<button class="kum-kls ${kls === st.kelas ? 'aktif' : ''}" onclick="kumGantiKelas('${id}', '${escHtml(kls)}')">
+          <b>${escHtml(kls)}</b><span>${kirim.length}/${murid.length} kirim · ${dinilai} dinilai</span></button>`;
+      }).join('') + `</div>`;
+
+      // Daftar siswa kelas terpilih
+      const murid = kumMurid(id, st.kelas);
+      const daftar = murid.map(s => {
+        const k = kumTerbaru(c.kum, id, s.id);
+        if (!k) return `<div class="kum-item kosong"><span class="kum-nama">${escHtml(s.nama)}</span><span class="mu">belum</span></div>`;
+        const u = kumUji(k);
+        const flag = String(k.status_indikasi || '').includes('Potensi');
+        const pilih = String(s.id) === String(st.siswaId);
+        return `<button class="kum-item ${pilih ? 'pilih' : ''}" onclick="kumPilihSiswa('${id}', '${escHtml(String(s.id))}')">
+          <span class="kum-ikon">${kumAdaNilai(k) ? '✅' : '•'}</span>
+          <span class="kum-nama">${escHtml(s.nama)}${flag ? ' <span title="Perlu dicek">⚠️</span>' : ''}</span>
+          ${u ? `<span class="badge ${u.lulus === u.total ? 'ok' : u.lulus > 0 ? 'warn' : 'bad'}">${u.lulus}/${u.total}</span>` : ''}
+          <span class="kum-nilai">${kumAdaNilai(k) ? escHtml(k.nilai_guru) : '–'}</span></button>`;
+      }).join('') || '<p class="mu">Belum ada siswa di kelas ini.</p>';
+
+      out += `<div class="kum-split">
+        <div class="kum-list">
+          <label class="kum-lewati"><input type="checkbox" ${st.lewati ? 'checked' : ''} onchange="kumLewati('${id}', this.checked)"><span>Lanjut hanya ke yang belum dinilai</span></label>
+          ${daftar}
+        </div>
+        <div class="kum-detail" id="kumDetail-${id}">${kumDetailHTML(id)}</div>
+      </div>`;
       return out;
+    }
+
+    function kumDetailHTML(id) {
+      const c = tugasKumCache[id], st = kumState(id);
+      const antri = kumAntrian(id, st.kelas, false);
+      if (!antri.length) return '<p class="mu">Belum ada siswa di kelas ini yang mengumpulkan.</p>';
+      if (!st.siswaId) {
+        const belum = kumAntrian(id, st.kelas, true).length;
+        return `<p>Pilih nama siswa di daftar untuk mulai menilai.</p>
+          <p class="mu">${antri.length} siswa mengumpulkan, ${belum} belum dinilai.</p>
+          ${antri.length ? `<button onclick="kumMulai('${id}')">▶ Mulai dari ${belum ? 'yang belum dinilai' : 'siswa pertama'}</button>` : ''}`;
+      }
+      const s = c.siswa.find(x => String(x.id) === String(st.siswaId));
+      const k = s && kumTerbaru(c.kum, id, s.id);
+      if (!s || !k) return '<p class="mu">Data siswa tidak ditemukan. Tekan 🔄 Muat ulang.</p>';
+      const u = kumUji(k);
+      const tugas = bankState.tugas.items.find(t => String(t.id) === String(id)) || {};
+      const pos = antri.findIndex(x => String(x.id) === String(s.id));
+      return `
+        <div class="kum-head">
+          <div><b>${escHtml(s.nama)}</b> <span class="mu">• ${escHtml(s.kelas)}</span></div>
+          <span class="mu">${pos + 1} dari ${antri.length} yang mengumpulkan</span>
+        </div>
+        <div class="ks-badges">
+          ${u ? `<span class="badge ${u.lulus === u.total ? 'ok' : 'warn'}">Lulus uji ${u.lulus}/${u.total}</span>` : ''}
+          <span class="badge">${k.durasi_detik ?? '-'} detik</span>
+          <span class="badge">${k.jumlah_jalankan ?? 0}× dijalankan</span>
+          <span class="badge">${k.petunjuk_dibuka ?? 0} petunjuk dibuka</span>
+          <span class="badge">${k.total_aksi ?? 0} aksi blok</span>
+          ${(k.kirim_ke || 1) > 1 ? `<span class="badge warn">dikirim ${k.kirim_ke}×</span>` : ''}
+          ${k.status_indikasi ? `<span class="badge ${String(k.status_indikasi).includes('Potensi') ? 'bad' : 'ok'}">${escHtml(k.status_indikasi)}</span>` : ''}
+        </div>
+        ${u && Array.isArray(u.detail) ? `<div class="mu">Kasus: ${u.detail.map(d => (d.lulus ? '✅' : '❌') + d.no).join(' ')}</div>` : ''}
+        <div class="code-preview kum-kode">${escHtml(k.jawaban_kode || '(kosong)')}</div>
+        <div class="kum-form">
+          <div class="kum-baris">
+            <label class="mu">Nilai (0–100)</label>
+            <input type="number" id="kumNilai-${id}" min="0" max="100" inputmode="numeric" value="${kumAdaNilai(k) ? escHtml(k.nilai_guru) : ''}"
+              data-awal="${kumAdaNilai(k) ? escHtml(k.nilai_guru) : ''}" onkeydown="if (event.key === 'Enter') { event.preventDefault(); kumSimpan('${id}', true); }">
+          </div>
+          <label class="mu">Komentar untuk siswa</label>
+          <textarea id="kumKomentar-${id}" rows="2" data-awal="${escHtml(k.komentar_guru || '')}">${escHtml(k.komentar_guru || '')}</textarea>
+          ${tugas.rubrik ? `<details><summary class="mu">Lihat rubrik</summary><div class="soal-teks">${escHtml(tugas.rubrik)}</div></details>` : ''}
+          <div class="kum-tombol">
+            <button class="alt" onclick="kumGeser('${id}', -1)" ${pos <= 0 ? 'disabled' : ''}>◀</button>
+            <button class="alt" onclick="kumSimpan('${id}', false)">💾 Simpan</button>
+            <button onclick="kumSimpan('${id}', true)">💾 Simpan &amp; lanjut ▶</button>
+            <button class="alt" onclick="kumGeser('${id}', 1)" ${pos >= antri.length - 1 ? 'disabled' : ''}>▶</button>
+          </div>
+          <div class="mu kum-pesan" id="kumPesan-${id}"></div>
+        </div>`;
+    }
+
+    // Ada isian yang belum disimpan?
+    function kumBelumDisimpan(id) {
+      const n = document.getElementById('kumNilai-' + id), t = document.getElementById('kumKomentar-' + id);
+      if (!n || !t) return false;
+      return n.value.trim() !== (n.dataset.awal || '') || t.value.trim() !== (t.dataset.awal || '').trim();
+    }
+    function kumBolehPindah(id) {
+      return !kumBelumDisimpan(id) || confirm('Nilai/komentar siswa ini belum disimpan. Tetap pindah?');
+    }
+
+    // Gambar ulang daftar + detail; pada layar sempit (bertumpuk) gulir ke detail
+    const kumSempit = () => (window.matchMedia ? window.matchMedia('(max-width: 820px)').matches : window.innerWidth <= 820);
+    function kumTampil(id, keDetail) {
+      renderKum(id);
+      if (keDetail) {
+        const d = document.getElementById('kumDetail-' + id);
+        if (d && kumSempit()) d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const daftar = document.querySelector(`#kum-${id} .kum-list`), aktif = document.querySelector(`#kum-${id} .kum-item.pilih`);
+        if (daftar && aktif) { const a = aktif.offsetTop - daftar.offsetTop; if (a < daftar.scrollTop || a > daftar.scrollTop + daftar.clientHeight - 40) daftar.scrollTop = a - 60; }
+        const n = document.getElementById('kumNilai-' + id);
+        if (n && !kumSempit()) n.focus({ preventScroll: true });
+      }
+    }
+
+    function kumGantiKelas(id, kelas) {
+      id = String(id);
+      if (!kumBolehPindah(id)) return;
+      const st = kumState(id); st.kelas = kelas; st.siswaId = null;
+      kumTampil(id, false);
+    }
+    function kumPilihSiswa(id, siswaId) {
+      id = String(id);
+      const st = kumState(id);
+      if (String(st.siswaId) === String(siswaId)) return;
+      if (!kumBolehPindah(id)) return;
+      st.siswaId = String(siswaId);
+      kumTampil(id, true);
+    }
+    function kumLewati(id, v) { kumState(String(id)).lewati = !!v; kumTampil(String(id), false); }
+    function kumMulai(id) {
+      id = String(id);
+      const st = kumState(id);
+      const a = kumAntrian(id, st.kelas, true);
+      const b = a.length ? a : kumAntrian(id, st.kelas, false);
+      if (b.length) { st.siswaId = String(b[0].id); kumTampil(id, true); }
+    }
+    // Pindah ke siswa sebelumnya/berikutnya yang mengumpulkan (mengikuti pilihan "hanya yang belum dinilai")
+    function kumGeser(id, arah, sudahSimpan) {
+      id = String(id);
+      if (!sudahSimpan && !kumBolehPindah(id)) return;
+      const st = kumState(id);
+      const semua = kumAntrian(id, st.kelas, false);
+      const pos = semua.findIndex(x => String(x.id) === String(st.siswaId));
+      const c = tugasKumCache[id];
+      for (let i = pos + arah; i >= 0 && i < semua.length; i += arah) {
+        const k = kumTerbaru(c.kum, id, semua[i].id);
+        if (!st.lewati || arah < 0 || !kumAdaNilai(k)) { st.siswaId = String(semua[i].id); return kumTampil(id, true); }
+      }
+      if (arah > 0) {
+        // Kelas ini selesai
+        const sisa = kumAntrian(id, st.kelas, true).length;
+        const iKelas = c.kelas.indexOf(st.kelas);
+        const berikut = c.kelas[iKelas + 1];
+        const p = document.getElementById('kumPesan-' + id);
+        if (p) p.innerHTML = `✅ Sudah sampai siswa terakhir di ${escHtml(st.kelas)}${sisa ? ` (${sisa} belum dinilai)` : ''}.` +
+          (berikut ? ` <button class="alt" onclick="kumGantiKelas('${id}', '${escHtml(berikut)}'); kumMulai('${id}')">Lanjut ke ${escHtml(berikut)} ▶</button>` : '');
+      }
+    }
+
+    async function kumSimpan(id, lanjut) {
+      id = String(id);
+      const st = kumState(id), c = tugasKumCache[id];
+      if (!st.siswaId) return;
+      const nEl = document.getElementById('kumNilai-' + id), tEl = document.getElementById('kumKomentar-' + id);
+      const v = nEl.value.trim();
+      const nilai = v === '' ? null : Number(v);
+      if (v !== '' && (!isFinite(nilai) || nilai < 0 || nilai > 100)) { alert('Nilai harus berupa angka 0–100.'); nEl.focus(); return; }
+      const komentar = tEl.value.trim() || null;
+      const p = document.getElementById('kumPesan-' + id);
+      if (p) p.textContent = 'Menyimpan…';
+      const { error } = await db.rpc('guru_nilai_tugas', {
+        p_user: activeUser.username, p_pass: sesiToken,
+        p_tugas_id: id, p_siswa_id: String(st.siswaId),
+        p_nilai: nilai, p_komentar: komentar
+      });
+      if (error) {
+        if (p) p.textContent = '';
+        if (galatSesi(error.message)) return sesiHabis();
+        return alert('Gagal menyimpan: ' + error.message);
+      }
+      // Perbarui data di memori saja (tanpa memuat ulang semua) supaya tampilan tidak melompat
+      const k = kumTerbaru(c.kum, id, st.siswaId);
+      if (k) { k.nilai_guru = nilai; k.komentar_guru = komentar; }
+      if (lanjut) {
+        const namaTadi = (c.siswa.find(x => String(x.id) === String(st.siswaId)) || {}).nama || 'siswa sebelumnya';
+        renderKum(id);
+        kumGeser(id, 1, true);
+        const p2 = document.getElementById('kumPesan-' + id);
+        if (p2 && !p2.innerHTML) p2.textContent = `✅ Nilai ${namaTadi} tersimpan.`;
+        else if (p2) p2.insertAdjacentHTML('afterbegin', `Nilai ${escHtml(namaTadi)} tersimpan. `);
+      } else {
+        renderKum(id);
+        const p2 = document.getElementById('kumPesan-' + id);
+        if (p2) p2.textContent = '✅ Tersimpan.';
+      }
     }
 
     function unduhKumTugas(id) {
@@ -540,60 +751,21 @@
       const baris = [['Kelas', 'Nama', 'Status', 'Lulus uji', 'Total kasus', 'Jalankan', 'Durasi (detik)', 'Petunjuk dibuka', 'Nilai guru', 'Komentar guru']];
       c.kelas.forEach(kls => c.siswa.filter(s => s.kelas === kls).forEach(s => {
         const k = kumTerbaru(c.kum, id, s.id); const u = k ? kumUji(k) : null;
-        baris.push([kls, s.nama, k ? 'Mengumpulkan' : 'Belum', u ? u.lulus : '', u ? u.total : '', k ? (k.jumlah_jalankan ?? '') : '', k ? (k.durasi_detik ?? '') : '', k ? (k.petunjuk_dibuka ?? '') : '', k && k.nilai_guru !== null && k.nilai_guru !== undefined ? k.nilai_guru : '', k ? (k.komentar_guru || '') : '']);
+        baris.push([kls, s.nama, k ? 'Mengumpulkan' : 'Belum', u ? u.lulus : '', u ? u.total : '', k ? (k.jumlah_jalankan ?? '') : '', k ? (k.durasi_detik ?? '') : '', k ? (k.petunjuk_dibuka ?? '') : '', kumAdaNilai(k) ? k.nilai_guru : '', k ? (k.komentar_guru || '') : '']);
       }));
       unduhCSV('tugas_' + id + '.csv', baris);
     }
 
+    // Kompatibilitas: pemanggilan lama membuka siswa di panel penilaian
     function kumLihat(tugasId, siswaId) {
-      const c = tugasKumCache[String(tugasId)];
+      const id = String(tugasId), c = tugasKumCache[id];
       if (!c) return;
       const s = c.siswa.find(x => String(x.id) === String(siswaId));
-      const k = kumTerbaru(c.kum, tugasId, siswaId);
-      if (!s || !k) return;
-      kumDilihat = { tugasId: String(tugasId), siswaId: String(siswaId) };
-      const u = kumUji(k);
-      const tugas = bankState.tugas.items.find(t => String(t.id) === String(tugasId)) || {};
-      $id('modalLabBody').innerHTML = `
-        <div class="card">
-          <b>${escHtml(s.nama)}</b> <span class="mu">• ${escHtml(s.kelas)} • ${escHtml(tugas.judul || '')}</span>
-          <div class="ks-badges">
-            ${u ? `<span class="badge ${u.lulus === u.total ? 'ok' : 'warn'}">Lulus uji ${u.lulus}/${u.total}</span>` : ''}
-            <span class="badge">${k.durasi_detik ?? '-'} detik</span>
-            <span class="badge">${k.jumlah_jalankan ?? 0}× dijalankan</span>
-            <span class="badge">${k.petunjuk_dibuka ?? 0} petunjuk dibuka</span>
-            <span class="badge">${k.total_aksi ?? 0} aksi blok</span>
-            ${(k.kirim_ke || 1) > 1 ? `<span class="badge warn">dikirim ${k.kirim_ke}×</span>` : ''}
-            ${k.status_indikasi ? `<span class="badge ${String(k.status_indikasi).includes('Potensi') ? 'bad' : 'ok'}">${escHtml(k.status_indikasi)}</span>` : ''}
-          </div>
-          ${u && Array.isArray(u.detail) ? `<div class="mu">Kasus: ${u.detail.map(d => (d.lulus ? '✅' : '❌') + d.no).join(' ')}</div>` : ''}
-        </div>
-        <div class="card"><b>Kode Python siswa</b><div class="code-preview" style="user-select:text; margin-top:8px; max-height:340px;">${escHtml(k.jawaban_kode || '(kosong)')}</div></div>
-        <div class="card">
-          <label class="mu">Nilai (0–100)</label><input type="number" id="kumNilai" min="0" max="100" value="${k.nilai_guru ?? ''}">
-          <label class="mu">Komentar untuk siswa</label><textarea id="kumKomentar" rows="3">${escHtml(k.komentar_guru || '')}</textarea>
-          ${tugas.rubrik ? `<details><summary class="mu">Lihat rubrik</summary><div class="soal-teks">${escHtml(tugas.rubrik)}</div></details>` : ''}
-          <button onclick="kumSimpanNilai()" style="margin-top:8px;">💾 Simpan penilaian</button>
-        </div>`;
-      $id('modalLab').classList.remove('hidden');
+      if (s) kumState(id).kelas = s.kelas;
+      kumPilihSiswa(id, siswaId);
     }
     function tutupModalLab() { $id('modalLab').classList.add('hidden'); kumDilihat = null; }
-
-    async function kumSimpanNilai() {
-      if (!kumDilihat) return;
-      const v = $id('kumNilai').value;
-      const nilai = v === '' ? null : Math.max(0, Math.min(100, Number(v)));
-      if (v !== '' && !isFinite(nilai)) return alert('Nilai harus berupa angka 0–100.');
-      const { error } = await db.rpc('guru_nilai_tugas', {
-        p_user: activeUser.username, p_pass: sesiToken,
-        p_tugas_id: String(kumDilihat.tugasId), p_siswa_id: String(kumDilihat.siswaId),
-        p_nilai: nilai, p_komentar: $id('kumKomentar').value.trim() || null
-      });
-      if (error) { if (galatSesi(error.message)) return sesiHabis(); return alert('Gagal menyimpan: ' + error.message); }
-      const id = kumDilihat.tugasId;
-      tutupModalLab();
-      await muatKumTugas(id);
-    }
+    async function kumSimpanNilai() { /* digantikan kumSimpan() di panel penilaian */ }
 
     // ================= SISI SISWA =================
     const labTugasCache = {};
