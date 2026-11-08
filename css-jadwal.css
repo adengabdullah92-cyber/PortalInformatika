@@ -64,3 +64,19 @@
     /* ---- T1: tautan bergaya tombol (buka bot Telegram) ---- */
     .btn-link { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border: 2px solid var(--ink, #1d2140); border-radius: 3px;
       background: var(--sky, #93d3ee); color: var(--ink, #1d2140); font-weight: 700; text-decoration: none; box-shadow: 3px 3px 0 var(--ink, #1d2140); }
+
+    /* ---- T4: pita pengumuman di dashboard siswa ---- */
+    #pengumumanStrip { display: grid; gap: 8px; margin: 0 0 18px; }
+    #pengumumanStrip.hidden { display: none; }
+    .pg-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px;
+      background: var(--note, #fbf3b8); border: 2px solid var(--ink, #1d2140); border-radius: 3px; box-shadow: 3px 3px 0 var(--ink, #1d2140);
+      transform: rotate(-0.3deg); }
+    .pg-item.pg-izin { background: var(--peach, #f8b98a); }
+    .pg-isi { display: flex; gap: 8px; align-items: flex-start; flex: 1 1 260px; min-width: 0; overflow-wrap: anywhere; line-height: 1.4; }
+    .pg-ikon { font-size: 1.2rem; line-height: 1.1; flex: none; }
+    .pg-aksi { display: flex; gap: 6px; align-items: center; flex: none; }
+    .pg-aksi button { padding: 6px 12px; }
+    .pg-aksi .pg-tutup { padding: 4px 9px; }
+    @media (max-width: 640px) {
+      .pg-aksi { width: 100%; justify-content: flex-end; }
+    }

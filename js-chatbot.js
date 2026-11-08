@@ -132,6 +132,9 @@
       const total = d.kuis.length + d.tugas.length + d.materi.length;
       let h = `<div class="chat-bubble chat-ai">Halo, <b>${escHtml(nama)}</b>! 👋 ${total
         ? 'Ini yang masih menunggumu:' : 'Semua kuis, tugas Lab, dan materi untuk kelasmu sudah beres. Mantap! 🎉'}</div>`;
+      h += daftar('📢 Pengumuman dari guru', Array.isArray(d.pengumuman) ? d.pengumuman : [], p => `
+        <div class="chat-item"><span>${escHtml(p.isi)}</span>${p.tautan && p.tautan.judul
+          ? `<button type="button" class="alt" onclick="chatKe('${p.tautan.bank === 'paket' ? 'kuis' : 'lab'}')">Buka</button>` : ''}</div>`);
       h += daftar('📝 Kuis yang perlu dikerjakan', d.kuis, k => `
         <div class="chat-item"><span>${escHtml(k.judul)}${k.jenis === 'ulangan' ? ' <span class="badge warn">Ulangan</span>' : ''}
           <small>${k.aktif ? 'Sedang dikerjakan' : (k.tutup_at ? 'Tutup ' + escHtml(tglPendek(k.tutup_at)) : 'Tanpa batas waktu')}</small></span>

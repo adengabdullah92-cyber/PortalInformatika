@@ -471,7 +471,55 @@
       $id('navJadwalTeks').textContent = 'Kehadiranku';
       $id('siswaHadirView').classList.remove('hidden');
       siswaHadirMuat();
+      pengumumanMuat();
     }
+
+    // ---------- Pengumuman untuk siswa (T4): pita kuning di atas semua tab ----------
+    let pgData = [];
+    let pgTerakhir = 0;
+    const PG_TUTUP = 'lms_pengumuman_tutup';
+    function pgTgl(iso) { const b = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']; const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number); return d && m ? `${d} ${b[m - 1]}` : String(iso); }
+    function pgDitutup() { try { return JSON.parse(sessionStorage.getItem(PG_TUTUP) || '[]'); } catch (_) { return []; } }
+
+    async function pengumumanMuat() {
+      if (!activeUser || activeUser.role !== 'siswa') return;
+      pgTerakhir = Date.now();
+      try {
+        const { data, error } = await db.rpc('siswa_pengumuman', { p_token: sesiToken });
+        if (error) { if (galatSesi(error.message)) return sesiHabis(); pgData = []; }   // SQL T4 belum dijalankan: diam saja
+        else pgData = Array.isArray(data) ? data : [];
+      } catch (_) { pgData = []; }
+      pengumumanRender();
+    }
+
+    function pengumumanRender() {
+      const el = $id('pengumumanStrip'); if (!el) return;
+      const tutup = pgDitutup();
+      const tampil = pgData.filter(p => !tutup.includes(String(p.id)));
+      if (!activeUser || activeUser.role !== 'siswa' || !tampil.length) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+      el.classList.remove('hidden');
+      el.innerHTML = tampil.map(p => {
+        const t = p.tautan && p.tautan.judul ? p.tautan : null;
+        const tab = t && t.bank === 'paket' ? 'kuis' : 'lab';
+        return `<div class="pg-item ${p.sumber === 'izin' ? 'pg-izin' : ''}">
+          <div class="pg-isi"><span class="pg-ikon">📢</span><span>${escHtml(p.isi)}${p.sampai && p.sampai !== p.mulai ? ` <small class="mu">(sampai ${escHtml(pgTgl(p.sampai))})</small>` : ''}</span></div>
+          <div class="pg-aksi">
+            ${t ? `<button type="button" onclick="switchTab('${tab}')">Kerjakan sekarang ▶</button>` : ''}
+            <button type="button" class="alt pg-tutup" title="Sembunyikan" aria-label="Sembunyikan pengumuman" onclick="pengumumanTutup('${escHtml(String(p.id))}')">✕</button>
+          </div></div>`;
+      }).join('');
+    }
+
+    function pengumumanTutup(id) {
+      try { const a = pgDitutup(); a.push(String(id)); sessionStorage.setItem(PG_TUTUP, JSON.stringify(a)); } catch (_) {}
+      pgData = pgData.filter(p => String(p.id) !== String(id));
+      pengumumanRender();
+    }
+
+    // Segarkan saat siswa kembali ke tab browser (paling sering tiap 5 menit)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && activeUser && activeUser.role === 'siswa' && Date.now() - pgTerakhir > 5 * 60e3) pengumumanMuat();
+    });
 
     function jadwalTabDibuka() {
       if (activeUser && activeUser.role === 'siswa') siswaHadirMuat();
