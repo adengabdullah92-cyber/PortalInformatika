@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="css-tambahan.css?v=20261105k">
   <link rel="stylesheet" href="css-jadwal.css?v=20261108p">
   <link rel="stylesheet" href="css-rpp.css?v=20261102r1">
-  <link rel="stylesheet" href="css-les.css?v=20261111l1">
+  <link rel="stylesheet" href="css-les.css?v=20261111l3">
 </head>
 <body>
 
@@ -616,10 +616,12 @@
               <h4 id="lesMuridFormJudul">＋ Murid baru</h4>
               <div class="les-form">
                 <div><label class="mu">Nama panggilan</label><input type="text" id="lesMNama" maxlength="60"></div>
-                <div><label class="mu">No. WhatsApp (murid/orang tua)</label><input type="tel" id="lesMWa" placeholder="0812-3456-7890"></div>
+                <div><label class="mu">No. WhatsApp orang tua</label><input type="tel" id="lesMWa" placeholder="0812-3456-7890"></div>
                 <div><label class="mu">Email (opsional)</label><input type="email" id="lesMEmail"></div>
                 <div><label class="mu">Jenis biasanya</label>
                   <select id="lesMJenis"><option value="sesi">1 sesi</option><option value="jam1">1 jam</option></select></div>
+                <div><label class="mu">Kurikulum (untuk laporan)</label><input type="text" id="lesMKurikulum" maxlength="80" placeholder="mis. Cambridge International AS/A Level"></div>
+                <div><label class="mu">Sapaan orang tua (pesan WA)</label><select id="lesMSapaan"><option value="Bu">Bu</option><option value="Pak">Pak</option></select></div>
                 <div class="les-form-lebar"><label class="mu">Catatan (opsional)</label><input type="text" id="lesMCatatan" maxlength="200" placeholder="mis. kelas 9, persiapan ujian"></div>
               </div>
               <label class="mu" style="display:block;margin-top:10px;">Jadwal rutin</label>
@@ -642,6 +644,10 @@
               <div><label class="mu">Tarif per sesi (Rp)</label><input type="number" id="lesTarifSesi" min="0" step="1000" inputmode="numeric"></div>
               <div class="les-form-lebar"><label class="mu">Pesan pengingat WA — {nama}, {hari}, {jam}, {tanggal} diganti otomatis</label>
                 <textarea id="lesPesanWa" rows="2"></textarea></div>
+              <div><label class="mu">Kota (laporan)</label><input type="text" id="lesKota" maxlength="40"></div>
+              <div><label class="mu">Nama guru les (laporan)</label><input type="text" id="lesNamaGuru" maxlength="80"></div>
+              <div class="les-form-lebar"><label class="mu">Pesan laporan WA — {nama}, {bulan}, {total}, {sapaan} (Bu/Pak), {sapaan_panjang} (ibu/bapak) diganti otomatis</label>
+                <textarea id="lesPesanLaporan" rows="4"></textarea></div>
             </div>
             <p class="mu">Tarif baru hanya berlaku untuk sesi yang dicatat sesudahnya.</p>
             <button onclick="lesSimpanSetelan()">💾 Simpan pengaturan</button>
@@ -844,6 +850,26 @@
   </div>
 
   <!-- MODAL ULASAN PENGUMPULAN LAB (GURU) -->
+  <div id="lesLapModal" class="modal hidden" onclick="if (event.target === this) lesTutupLaporan()">
+    <div class="modal-box les-lap-box">
+      <div class="modal-bar"><b id="lesLapJudul">📤 Laporan</b><div class="modal-actions"><button class="alt" onclick="lesTutupLaporan()">✖ Tutup</button></div></div>
+      <div class="modal-body">
+        <img id="lesLapGambar" class="les-lap-gambar" alt="Gambar laporan belajar siswa">
+        <div class="les-lap-langkah">
+          <p><b>1.</b> Kirim gambar laporan (menu Bagikan → WhatsApp, atau simpan ke Foto)</p>
+          <button onclick="lesBagikanGambar()">🖼 Bagikan / simpan gambar</button>
+          <p style="margin-top:14px;"><b>2.</b> Kirim pesan ke orang tua (bisa diubah dulu)</p>
+          <textarea id="lesLapPesan" rows="5"></textarea>
+          <div class="les-tombol">
+            <button id="lesLapWa" onclick="lesBukaWa()">📲 Buka WA dengan pesan</button>
+            <button class="alt" onclick="lesSalinPesan()">📋 Salin pesan</button>
+            <span class="mu" id="lesLapInfo"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="modalLab" class="modal hidden" onclick="if (event.target === this) tutupModalLab()">
     <div class="modal-box">
       <div class="modal-bar"><b>📥 Ulasan Pengumpulan</b><div class="modal-actions"><button class="alt" onclick="tutupModalLab()">✖ Tutup</button></div></div>
@@ -888,7 +914,7 @@
   <script src="js-chatbot.js?v=20261108p"></script>
   <script src="js-jadwal.js?v=20261108p"></script>
   <script src="js-rpp.js?v=20261102k1"></script>
-  <script src="js-les.js?v=20261111l2"></script>
+  <script src="js-les.js?v=20261111l3"></script>
   <script>
     // Pemeriksa: kalau ada file js-*.js yang belum terunggah / gagal dimuat, tampilkan peringatan jelas.
     (function () {

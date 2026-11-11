@@ -1,6 +1,6 @@
 // LMS Informatika SMA — js-les.js: buku catatan LES PRIVAT Matematika (khusus guru, terpisah dari data sekolah).
 // Murid & jadwal, catat sesi terlaksana (1 sesi / 1 jam; 1,5 jam hanya tampil untuk catatan lama), rekap bulanan per murid (pertemuan ke- & fee),
-// unduh Excel, kirim rekap lewat WhatsApp, tarif & teks pengingat. Server: les_l1.sql (RPC guru_les_*).
+// unduh Excel, LAPORAN BELAJAR SISWA (gambar + pesan WA orang tua), tarif & teks pengingat. Server: les_l1.sql (RPC guru_les_*).
 // Pengingat pagi 08.00 & pencatatan setelah les lewat bot Telegram (telegram.ts).
 
     const LES_JENIS = { jam1: '1 jam', jam15: '1,5 jam', sesi: '1 sesi' };
@@ -86,7 +86,6 @@
             <td class="les-ket">${escHtml(s.keterangan || '')}</td>
             <td class="les-aksi"><button class="alt" title="Ubah" onclick="lesUbahSesi(${Number(s.id)})">✏️</button><button class="alt" title="Hapus" onclick="lesHapusSesi(${Number(s.id)})">🗑</button></td>
           </tr>`).join('');
-        const wa = lesNomorWA(m.wa);
         return `<div class="card les-murid">
           <div class="les-murid-head">
             <h3>${escHtml(m.nama)}${m.aktif ? '' : ' <span class="badge">nonaktif</span>'}</h3>
@@ -97,8 +96,7 @@
             <tbody>${baris}</tbody></table></div>` : '<p class="mu">Belum ada sesi bulan ini.</p>'}
           <div class="les-murid-aksi">
             <button class="alt" onclick="lesCatatUntuk(${Number(m.murid_id)})">＋ Catat sesi</button>
-            ${m.sesi && m.sesi.length ? `${wa ? `<a class="btn-link" href="https://wa.me/${wa}?text=${encodeURIComponent(lesTeksRekap(m))}" target="_blank" rel="noopener">📲 Kirim rekap via WA</a>` : ''}
-              <button class="alt" onclick="lesSalinRekap(${Number(m.murid_id)})">📋 Salin rekap</button>` : ''}
+            ${m.sesi && m.sesi.length ? `<button onclick="lesLaporan(${Number(m.murid_id)})">📤 Laporan ${escHtml(LES_BULAN[Number(lesState.bulan.slice(5, 7)) - 1])}</button>` : ''}
           </div>
         </div>`;
       }).join('');
@@ -240,7 +238,7 @@
       $id('lesMuridDaftar').innerHTML = daftar.length ? daftar.map(m => `
         <div class="les-murid-baris ${m.aktif ? '' : 'nonaktif'}">
           <div><b>${escHtml(m.nama)}</b>${m.aktif ? '' : ' <span class="badge">nonaktif</span>'}
-            <div class="mu">${escHtml(lesRingkasJadwal(m.jadwal))} · biasanya ${escHtml(LES_JENIS[m.jenis_default] || m.jenis_default)}${m.wa ? ' · WA ' + escHtml(m.wa) : ' · <span class="hd-rendah">belum ada no. WA</span>'}</div></div>
+            <div class="mu">${m.kurikulum ? escHtml(m.kurikulum) + ' · ' : ''}${escHtml(lesRingkasJadwal(m.jadwal))} · biasanya ${escHtml(LES_JENIS[m.jenis_default] || m.jenis_default)}${m.wa ? ' · WA ' + escHtml(m.wa) : ' · <span class="hd-rendah">belum ada no. WA</span>'}</div></div>
           <div class="les-aksi"><button class="alt" onclick="lesUbahMurid(${Number(m.id)})">✏️ Ubah</button><button class="alt" onclick="lesHapusMurid(${Number(m.id)})">🗑</button></div>
         </div>`).join('') : '<p class="mu">Belum ada murid les.</p>';
     }
@@ -265,6 +263,8 @@
       $id('lesMEmail').value = m ? (m.email || '') : '';
       $id('lesMJenis').value = m && m.jenis_default === 'jam1' ? 'jam1' : 'sesi';
       $id('lesMCatatan').value = m ? (m.catatan || '') : '';
+      $id('lesMKurikulum').value = m ? (m.kurikulum || '') : '';
+      $id('lesMSapaan').value = m && m.sapaan === 'Pak' ? 'Pak' : 'Bu';
       $id('lesMAktif').checked = m ? !!m.aktif : true;
       $id('lesMAktifBaris').classList.toggle('hidden', !m);
       $id('lesMuridJadwal').innerHTML = (m && m.jadwal && m.jadwal.length ? m.jadwal : [{}]).map(lesBarisJadwalHTML).join('');
@@ -288,7 +288,7 @@
       }
       const r = await guruRPC('guru_les_murid_simpan', { p_id: lesState.editMurid, p_data: {
         nama, wa, email: $id('lesMEmail').value.trim(), jenis_default: $id('lesMJenis').value,
-        catatan: $id('lesMCatatan').value.trim(), aktif: lesState.editMurid ? $id('lesMAktif').checked : true, jadwal } });
+        catatan: $id('lesMCatatan').value.trim(), kurikulum: $id('lesMKurikulum').value.trim(), sapaan: $id('lesMSapaan').value, aktif: lesState.editMurid ? $id('lesMAktif').checked : true, jadwal } });
       if (r.error) return alert('Gagal menyimpan murid: ' + r.error.message);
       lesTutupFormMurid();
       lesState.siap = false;
@@ -311,6 +311,10 @@
       $id('lesTarifJam').value = s.tarif_jam ?? 120000;
       $id('lesTarifSesi').value = s.tarif_sesi ?? 180000;
       $id('lesPesanWa').value = s.pesan_wa || '';
+      $id('lesKota').value = s.kota || 'Jakarta';
+      $id('lesNamaGuru').value = s.nama_guru || '';
+      $id('lesNamaGuru').placeholder = (activeUser && activeUser.nama) || 'Nama guru les';
+      $id('lesPesanLaporan').value = s.pesan_laporan || LES_PESAN_LAPORAN;
       $id('lesSetelanInfo').textContent = `${lesRp(s.tarif_sesi ?? 180000)}/sesi · ${lesRp(s.tarif_jam ?? 120000)}/jam`;
     }
 
@@ -318,11 +322,135 @@
       const jam = Number($id('lesTarifJam').value), sesi = Number($id('lesTarifSesi').value);
       if (!(jam > 0) || !(sesi > 0)) return alert('Isi tarif dengan angka lebih dari 0.');
       const pesan = $id('lesPesanWa').value.trim();
-      const nilai = { tarif_jam: Math.round(jam), tarif_sesi: Math.round(sesi), pesan_wa: pesan || 'Halo {nama}, mengingatkan les Matematika hari ini ({hari}) pukul {jam}. Sampai ketemu!' };
+      const nilai = { tarif_jam: Math.round(jam), tarif_sesi: Math.round(sesi), pesan_wa: pesan || 'Halo {nama}, mengingatkan les Matematika hari ini ({hari}) pukul {jam}. Sampai ketemu!',
+        kota: $id('lesKota').value.trim() || 'Jakarta', nama_guru: $id('lesNamaGuru').value.trim(),
+        pesan_laporan: $id('lesPesanLaporan').value.trim() || LES_PESAN_LAPORAN };
       const r = await guruRPC('guru_pengaturan_simpan', { p_kunci: 'les', p_nilai: nilai });
       if (r.error) return alert('Gagal menyimpan: ' + r.error.message);
       lesState.data.setelan = nilai;
       lesRenderSetelan();
       lesSesiInfoFee();
       alert('✅ Tarif & pesan disimpan. Tarif baru berlaku untuk sesi yang dicatat setelah ini (catatan lama tidak berubah).');
+    }
+
+    // ---------- LAPORAN BELAJAR SISWA (gambar + pesan WA ke orang tua) ----------
+    const LES_PESAN_LAPORAN = "Assalamu'alaikum warahmatullahi wabarakatuh.\nBagaimana kabarnya {sapaan}? Semoga {sapaan_panjang} dan keluarga selalu sehat dan dalam lindungan Allah SWT. Aamiin. Berikut terlampir detail kegiatan belajar {nama} bulan {bulan}. Jadi total {total} ya {sapaan}. Terimakasih🙏";
+    const lesAngka = n => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    let lesLap = null;   // { file, url, pesan, wa, nama }
+
+    function lesTglSurat(iso) { const [y, m, d] = iso.split('-').map(Number); return `${String(d).padStart(2, '0')} ${LES_BULAN[m - 1]} ${y}`; }
+    function lesKetLaporan(jenis) { return jenis === 'sesi' ? '' : (LES_JENIS[jenis] || ''); }   // persis contoh: "1 jam", 1 sesi dikosongkan
+
+    // Gambar laporan di canvas (tata letak mengikuti "LAPORAN BELAJAR SISWA" milik guru)
+    function lesGambarLaporan(info) {
+      const SK = 2, W = 820, KIRI = 60;
+      const kol = [150, 270, 150, 90];                         // Pertemuan Ke- | Tanggal | Fee | Ket.
+      const x = [KIRI]; kol.forEach(w => x.push(x[x.length - 1] + w));
+      const TB = 30, yTabel = 196;
+      const yAkhirTabel = yTabel + TB * (info.baris.length + 2);
+      const H = yAkhirTabel + 190;
+      const cv = document.createElement('canvas');
+      cv.width = W * SK; cv.height = H * SK;
+      const g = cv.getContext('2d');
+      g.scale(SK, SK);
+      g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, H);
+      g.fillStyle = '#000000'; g.strokeStyle = '#000000'; g.textBaseline = 'middle';
+      const FONT = '"Times New Roman", Times, serif';
+      const huruf = (ukuran, tebal, miring) => { g.font = `${miring ? 'italic ' : ''}${tebal ? 'bold ' : ''}${ukuran}px ${FONT}`; };
+      const tulis = (t, px, py, rata = 'left') => { g.textAlign = rata; g.fillText(String(t), px, py); };
+
+      huruf(19, true); tulis('LAPORAN BELAJAR SISWA', (x[0] + x[4]) / 2, 54, 'center');
+      [['Nama', info.nama, false], ['Kurikulum', info.kurikulum || '-', true], ['Bulan', info.bulan, false]].forEach(([l, v, miring], i) => {
+        const py = 92 + i * 31;
+        huruf(17); tulis(l, KIRI + 6, py);
+        tulis(':', KIRI + 140, py);
+        huruf(17, false, miring); tulis(v, KIRI + 150, py);
+      });
+
+      // Tabel
+      g.lineWidth = 1;
+      const garis = (x1, y1, x2, y2, tebal = 1) => { g.lineWidth = tebal; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); };
+      const n = info.baris.length + 2;
+      for (let i = 0; i <= n; i++) garis(x[0], yTabel + i * TB, x[4], yTabel + i * TB, i === 0 || i === 1 || i === n ? 1.5 : 1);
+      x.forEach((px, i) => garis(px, yTabel, px, yAkhirTabel, i === 0 || i === 4 ? 1.5 : 1));
+      huruf(17, true);
+      ['Pertemuan Ke-', 'Tanggal', 'Fee', 'Ket.'].forEach((t, i) => tulis(t, (x[i] + x[i + 1]) / 2, yTabel + TB / 2, 'center'));
+      huruf(17);
+      info.baris.forEach((b, i) => {
+        const py = yTabel + TB * (i + 1) + TB / 2;
+        tulis(b.ke, (x[0] + x[1]) / 2, py, 'center');
+        tulis(b.tanggal, x[1] + 6, py);
+        tulis('Rp', x[2] + 8, py); tulis(lesAngka(b.fee), x[3] - 8, py, 'right');
+        tulis(b.ket, x[3] + 6, py);
+      });
+      const pyTotal = yTabel + TB * (info.baris.length + 1) + TB / 2;
+      huruf(17, true); tulis('Rp', x[2] + 8, pyTotal); tulis(lesAngka(info.total), x[3] - 8, pyTotal, 'right');
+
+      // Tanda tangan
+      huruf(17);
+      tulis(`${info.kota}, ${info.tanggal}`, x[2], yAkhirTabel + 42);
+      tulis('Guru Les,', x[2], yAkhirTabel + 74);
+      tulis(info.guru, x[2], yAkhirTabel + 140);
+      return cv;
+    }
+
+    function lesIsiPesan(tmpl, d) {
+      return String(tmpl || LES_PESAN_LAPORAN)
+        .replace(/\{sapaan_panjang\}/g, d.sapaan === 'Pak' ? 'bapak' : 'ibu')
+        .replace(/\{sapaan\}/g, d.sapaan === 'Pak' ? 'Pak' : 'Bu')
+        .replace(/\{nama\}/g, d.nama).replace(/\{bulan\}/g, d.bulan).replace(/\{total\}/g, d.total);
+    }
+
+    async function lesLaporan(muridId) {
+      const r = ((lesState.rekap || {}).murid || []).find(x => Number(x.murid_id) === Number(muridId));
+      if (!r || !(r.sesi || []).length) return alert('Belum ada sesi pada bulan ini.');
+      const m = ((lesState.data || {}).murid || []).find(x => Number(x.id) === Number(muridId)) || {};
+      const s = (lesState.data || {}).setelan || {};
+      const bulan = LES_BULAN[Number(lesState.bulan.slice(5, 7)) - 1];
+      const info = {
+        nama: r.nama, kurikulum: m.kurikulum || '', bulan,
+        baris: r.sesi.map(x => ({ ke: x.ke, tanggal: lesTgl(x.tanggal), fee: x.fee, ket: lesKetLaporan(x.jenis) })),
+        total: r.total, kota: s.kota || 'Jakarta', tanggal: lesTglSurat(lesHariIni()),
+        guru: (s.nama_guru || '').trim() || (activeUser && activeUser.nama) || ''
+      };
+      const cv = lesGambarLaporan(info);
+      const blob = await new Promise(ok => cv.toBlob(ok, 'image/png'));
+      const namaFile = `Laporan_${r.nama}_${bulan}_${lesState.bulan.slice(0, 4)}.png`.replace(/[^\w.\-]+/g, '_');
+      if (lesLap && lesLap.url) URL.revokeObjectURL(lesLap.url);
+      const pesan = lesIsiPesan(s.pesan_laporan, { sapaan: m.sapaan, nama: r.nama, bulan, total: 'Rp ' + lesAngka(r.total) });
+      lesLap = { file: blob ? new File([blob], namaFile, { type: 'image/png' }) : null, url: blob ? URL.createObjectURL(blob) : cv.toDataURL('image/png'),
+                 namaFile, pesan, wa: lesNomorWA(m.wa), nama: r.nama, sapaan: m.sapaan === 'Pak' ? 'Pak' : 'Bu' };
+      $id('lesLapJudul').textContent = `📤 Laporan ${r.nama} — ${bulan} ${lesState.bulan.slice(0, 4)}`;
+      $id('lesLapGambar').src = lesLap.url;
+      $id('lesLapPesan').value = pesan;
+      $id('lesLapWa').textContent = lesLap.wa ? `📲 Buka WA ${lesLap.sapaan === 'Pak' ? 'Pak' : 'Bu'} (${m.wa}) dengan pesan` : '📲 Buka WA dengan pesan (pilih kontak)';
+      $id('lesLapModal').classList.remove('hidden');
+    }
+
+    function lesTutupLaporan() { $id('lesLapModal').classList.add('hidden'); }
+
+    // Langkah 1: bagikan / simpan gambar (menu Bagikan iPad/HP → WhatsApp / Simpan ke Foto)
+    async function lesBagikanGambar() {
+      if (!lesLap) return;
+      const f = lesLap.file;
+      try {
+        if (f && navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: lesLap.namaFile }); return; }
+      } catch (e) { if (e && e.name === 'AbortError') return; }
+      const a = document.createElement('a');
+      a.href = lesLap.url; a.download = lesLap.namaFile;
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    // Langkah 2: buka WhatsApp dengan pesan yang sudah tersusun (pesan bisa diubah dulu di kotak)
+    function lesBukaWa() {
+      if (!lesLap) return;
+      const teks = $id('lesLapPesan').value;
+      const url = (lesLap.wa ? `https://wa.me/${lesLap.wa}` : 'https://wa.me/') + '?text=' + encodeURIComponent(teks);
+      window.open(url, '_blank', 'noopener');
+    }
+
+    async function lesSalinPesan() {
+      const teks = $id('lesLapPesan').value;
+      try { await navigator.clipboard.writeText(teks); $id('lesLapInfo').textContent = '✅ Pesan disalin.'; }
+      catch (_) { $id('lesLapPesan').select(); $id('lesLapInfo').textContent = 'Tekan lama pada kotak pesan lalu pilih Salin.'; }
     }

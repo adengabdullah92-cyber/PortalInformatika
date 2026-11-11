@@ -42,3 +42,10 @@
       .les-murid-baris { flex-direction: column; align-items: stretch; }
       .les-tabel { font-size: 0.82rem; }
     }
+
+    /* ---- Laporan belajar siswa ---- */
+    .les-lap-box { max-width: 760px; }
+    .les-lap-gambar { display: block; width: 100%; height: auto; background: #fff; border: 2px solid var(--ink, #1d2140); border-radius: 3px; }
+    .les-lap-langkah { margin-top: 12px; }
+    .les-lap-langkah p { margin: 0 0 6px; }
+    #lesLapPesan { width: 100%; font-size: 16px; font-family: inherit; }
