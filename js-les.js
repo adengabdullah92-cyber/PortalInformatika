@@ -1,5 +1,5 @@
 // LMS Informatika SMA — js-les.js: buku catatan LES PRIVAT Matematika (khusus guru, terpisah dari data sekolah).
-// Murid & jadwal, catat sesi terlaksana (1 jam / 1,5 jam / 1 sesi), rekap bulanan per murid (pertemuan ke- & fee),
+// Murid & jadwal, catat sesi terlaksana (1 sesi / 1 jam; 1,5 jam hanya tampil untuk catatan lama), rekap bulanan per murid (pertemuan ke- & fee),
 // unduh Excel, kirim rekap lewat WhatsApp, tarif & teks pengingat. Server: les_l1.sql (RPC guru_les_*).
 // Pengingat pagi 08.00 & pencatatan setelah les lewat bot Telegram (telegram.ts).
 
@@ -150,9 +150,14 @@
         $id('lesSesiTanggal').value = String(sesi.tanggal).slice(0, 10);
         $id('lesSesiMulai').value = sesi.jam_mulai || '';
         $id('lesSesiSelesai').value = sesi.jam_selesai || '';
-        $id('lesSesiJenis').value = sesi.jenis;
+        // Catatan lama berjenis 1,5 jam: tampilkan sementara supaya tidak berubah tanpa sengaja
+        const pilihJenis = $id('lesSesiJenis');
+        pilihJenis.querySelectorAll('option[data-lama]').forEach(o => o.remove());
+        if (![...pilihJenis.options].some(o => o.value === sesi.jenis)) pilihJenis.insertAdjacentHTML('beforeend', `<option value="${escHtml(sesi.jenis)}" data-lama="1">${escHtml(LES_JENIS[sesi.jenis] || sesi.jenis)} (catatan lama)</option>`);
+        pilihJenis.value = sesi.jenis;
         $id('lesSesiKet').value = sesi.keterangan || '';
       } else {
+        $id('lesSesiJenis').querySelectorAll('option[data-lama]').forEach(o => o.remove());
         $id('lesSesiTanggal').value = lesHariIni();
         $id('lesSesiKet').value = '';
         lesSesiOtomatis();
@@ -169,7 +174,7 @@
       const j = tgl ? (m.jadwal || []).find(x => Number(x.hari) === lesIsodow(tgl)) : null;
       $id('lesSesiMulai').value = j ? j.jam_mulai : '';
       $id('lesSesiSelesai').value = j ? j.jam_selesai : '';
-      $id('lesSesiJenis').value = m.jenis_default || 'sesi';
+      $id('lesSesiJenis').value = m.jenis_default === 'jam1' ? 'jam1' : 'sesi';
       lesSesiInfoFee();
     }
 
@@ -258,7 +263,7 @@
       $id('lesMNama').value = m ? m.nama : '';
       $id('lesMWa').value = m ? (m.wa || '') : '';
       $id('lesMEmail').value = m ? (m.email || '') : '';
-      $id('lesMJenis').value = m ? m.jenis_default : 'sesi';
+      $id('lesMJenis').value = m && m.jenis_default === 'jam1' ? 'jam1' : 'sesi';
       $id('lesMCatatan').value = m ? (m.catatan || '') : '';
       $id('lesMAktif').checked = m ? !!m.aktif : true;
       $id('lesMAktifBaris').classList.toggle('hidden', !m);
@@ -306,7 +311,7 @@
       $id('lesTarifJam').value = s.tarif_jam ?? 120000;
       $id('lesTarifSesi').value = s.tarif_sesi ?? 180000;
       $id('lesPesanWa').value = s.pesan_wa || '';
-      $id('lesSetelanInfo').textContent = `${lesRp(s.tarif_jam ?? 120000)}/jam · 1,5 jam ${lesRp(Math.round((s.tarif_jam ?? 120000) * 1.5))} · ${lesRp(s.tarif_sesi ?? 180000)}/sesi`;
+      $id('lesSetelanInfo').textContent = `${lesRp(s.tarif_sesi ?? 180000)}/sesi · ${lesRp(s.tarif_jam ?? 120000)}/jam`;
     }
 
     async function lesSimpanSetelan() {

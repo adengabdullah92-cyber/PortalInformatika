@@ -594,7 +594,7 @@
             <div><label class="mu">Jam mulai</label><input type="time" id="lesSesiMulai"></div>
             <div><label class="mu">Jam selesai</label><input type="time" id="lesSesiSelesai"></div>
             <div><label class="mu">Jenis</label>
-              <select id="lesSesiJenis" onchange="lesSesiInfoFee()"><option value="jam1">1 jam</option><option value="jam15">1,5 jam</option><option value="sesi">1 sesi</option></select>
+              <select id="lesSesiJenis" onchange="lesSesiInfoFee()"><option value="sesi">1 sesi</option><option value="jam1">1 jam</option></select>
               <small class="mu" id="lesSesiFee"></small></div>
             <div class="les-form-lebar"><label class="mu">Keterangan (materi, catatan)</label><input type="text" id="lesSesiKet" maxlength="300" placeholder="mis. Persamaan linear, latihan 15 soal"></div>
           </div>
@@ -619,7 +619,7 @@
                 <div><label class="mu">No. WhatsApp (murid/orang tua)</label><input type="tel" id="lesMWa" placeholder="0812-3456-7890"></div>
                 <div><label class="mu">Email (opsional)</label><input type="email" id="lesMEmail"></div>
                 <div><label class="mu">Jenis biasanya</label>
-                  <select id="lesMJenis"><option value="sesi">1 sesi</option><option value="jam1">1 jam</option><option value="jam15">1,5 jam</option></select></div>
+                  <select id="lesMJenis"><option value="sesi">1 sesi</option><option value="jam1">1 jam</option></select></div>
                 <div class="les-form-lebar"><label class="mu">Catatan (opsional)</label><input type="text" id="lesMCatatan" maxlength="200" placeholder="mis. kelas 9, persiapan ujian"></div>
               </div>
               <label class="mu" style="display:block;margin-top:10px;">Jadwal rutin</label>
@@ -643,7 +643,7 @@
               <div class="les-form-lebar"><label class="mu">Pesan pengingat WA — {nama}, {hari}, {jam}, {tanggal} diganti otomatis</label>
                 <textarea id="lesPesanWa" rows="2"></textarea></div>
             </div>
-            <p class="mu">1,5 jam = 1,5 × tarif per jam. Tarif baru hanya berlaku untuk sesi yang dicatat sesudahnya.</p>
+            <p class="mu">Tarif baru hanya berlaku untuk sesi yang dicatat sesudahnya.</p>
             <button onclick="lesSimpanSetelan()">💾 Simpan pengaturan</button>
           </details>
         </div>
@@ -888,7 +888,7 @@
   <script src="js-chatbot.js?v=20261108p"></script>
   <script src="js-jadwal.js?v=20261108p"></script>
   <script src="js-rpp.js?v=20261102k1"></script>
-  <script src="js-les.js?v=20261111l1"></script>
+  <script src="js-les.js?v=20261111l2"></script>
   <script>
     // Pemeriksa: kalau ada file js-*.js yang belum terunggah / gagal dimuat, tampilkan peringatan jelas.
     (function () {
