@@ -1,0 +1,44 @@
+/* LMS Informatika SMA — css-les.css: buku catatan les privat (khusus guru), mengikuti tema scrapbook. */
+    .nav-item:nth-child(7) { background: var(--lav, #c9b8f3); }
+    .nav-item:nth-child(7).active { background: var(--ink, #1d2140); }
+
+    .les-ringkas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+    .les-bulan { display: flex; align-items: center; gap: 8px; }
+    .les-bulan h3 { margin: 0; min-width: 9.5em; text-align: center; }
+    .les-bulan button { padding: 4px 10px; }
+    .les-total { font-size: 1.1rem; }
+
+    .les-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 8px; }
+    .les-form > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .les-form-lebar { grid-column: 1 / -1; }
+    #tabLes input, #tabLes select, #tabLes textarea { font-size: 16px; width: 100%; }
+    #tabLes .les-cek input, #tabLes .les-jadwal-baris input, #tabLes .les-jadwal-baris select { width: auto; }
+    .les-tombol { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+
+    .les-murid-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .les-murid-head h3 { margin: 0; }
+    .les-tabel { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    .les-tabel th, .les-tabel td { padding: 6px 8px; border-bottom: 1px dashed var(--bd, #d2c8b0); text-align: left; vertical-align: top; }
+    .les-tabel th { background: var(--note, #fbf3b8); border-bottom: 2px solid var(--ink, #1d2140); white-space: nowrap; }
+    .les-ke { text-align: center !important; font-weight: 700; }
+    .les-fee { white-space: nowrap; text-align: right !important; }
+    .les-ket { min-width: 140px; }
+    .les-aksi { white-space: nowrap; }
+    .les-aksi button { padding: 3px 7px; margin-left: 3px; }
+    .les-murid-aksi { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
+
+    .les-murid-baris { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px dashed var(--bd, #d2c8b0); }
+    .les-murid-baris:first-child { border-top: 0; }
+    .les-murid-baris.nonaktif { opacity: 0.6; }
+    .les-murid-form { margin-top: 12px; padding: 12px; border: 2px dashed var(--ink, #1d2140); border-radius: 3px; background: var(--paper-2, #fff); }
+    .les-murid-form h4 { margin: 0 0 6px; }
+    .les-jadwal-baris { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
+    .les-jadwal-baris button { padding: 3px 9px; }
+    .les-cek { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+
+    @media (max-width: 640px) {
+      .les-ringkas { flex-direction: column; align-items: stretch; text-align: center; }
+      .les-bulan { justify-content: center; }
+      .les-murid-baris { flex-direction: column; align-items: stretch; }
+      .les-tabel { font-size: 0.82rem; }
+    }

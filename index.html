@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="css-tambahan.css?v=20261105k">
   <link rel="stylesheet" href="css-jadwal.css?v=20261108p">
   <link rel="stylesheet" href="css-rpp.css?v=20261102r1">
+  <link rel="stylesheet" href="css-les.css?v=20261111l1">
 </head>
 <body>
 
@@ -72,6 +73,9 @@
       </div>
       <div id="navRpp" class="nav-item hidden" onclick="switchTab('rpp')">
         <span>📝</span> RPP
+      </div>
+      <div id="navLes" class="nav-item hidden" onclick="switchTab('les')">
+        <span>📒</span> Les
       </div>
     </div>
 
@@ -567,6 +571,84 @@
       </div>
 
       <!-- MODUL 4: KOREKSI & ANALISIS PER KELAS (KHUSUS GURU) -->
+      <!-- LES PRIVAT (guru) — logika di js-les.js, server les_l1.sql -->
+      <div id="tabLes" class="tab-content hidden">
+        <h2>📒 Les Privat</h2>
+        <p class="mu" style="margin-bottom: 20px;">Catatan les Matematika: murid, jadwal, sesi yang sudah terlaksana, dan rekap fee bulanan. Hanya Anda yang bisa melihat halaman ini. Pengingat pukul 08.00 &amp; pencatatan setelah les juga lewat bot Telegram (<code>/les</code>).</p>
+
+        <div class="card les-ringkas">
+          <div class="les-bulan">
+            <button class="alt" onclick="lesGeserBulan(-1)" aria-label="Bulan sebelumnya">◀</button>
+            <h3 id="lesBulanJudul">…</h3>
+            <button class="alt" onclick="lesGeserBulan(1)" aria-label="Bulan berikutnya">▶</button>
+          </div>
+          <div id="lesTotal" class="les-total">–</div>
+          <button class="alt" onclick="lesUnduhExcel()">📥 Unduh Excel</button>
+        </div>
+
+        <div class="card" id="lesSesiCard">
+          <h3 id="lesSesiJudul">✍️ Catat sesi les</h3>
+          <div class="les-form">
+            <div><label class="mu">Murid</label><select id="lesSesiMurid" onchange="lesSesiOtomatis()"></select></div>
+            <div><label class="mu">Tanggal</label><input type="date" id="lesSesiTanggal" onchange="lesSesiOtomatis()"></div>
+            <div><label class="mu">Jam mulai</label><input type="time" id="lesSesiMulai"></div>
+            <div><label class="mu">Jam selesai</label><input type="time" id="lesSesiSelesai"></div>
+            <div><label class="mu">Jenis</label>
+              <select id="lesSesiJenis" onchange="lesSesiInfoFee()"><option value="jam1">1 jam</option><option value="jam15">1,5 jam</option><option value="sesi">1 sesi</option></select>
+              <small class="mu" id="lesSesiFee"></small></div>
+            <div class="les-form-lebar"><label class="mu">Keterangan (materi, catatan)</label><input type="text" id="lesSesiKet" maxlength="300" placeholder="mis. Persamaan linear, latihan 15 soal"></div>
+          </div>
+          <div class="les-tombol">
+            <button id="lesSesiSimpan" onclick="lesSimpanSesi()">💾 Simpan</button>
+            <button id="lesSesiBatal" class="alt hidden" onclick="lesIsiFormSesi()">Batal ubah</button>
+            <span class="mu" id="lesSesiPesan"></span>
+          </div>
+        </div>
+
+        <div id="lesRekap"><p class="mu">Memuat…</p></div>
+
+        <div class="card">
+          <details id="lesMuridDetail">
+            <summary style="cursor:pointer;"><b>👥 Murid &amp; jadwal</b> <span class="mu" id="lesMuridJumlah"></span></summary>
+            <div id="lesMuridDaftar" style="margin-top:10px;"></div>
+            <button class="alt" style="margin-top:8px;" onclick="lesFormMurid()">＋ Tambah murid</button>
+            <div id="lesMuridForm" class="les-murid-form hidden">
+              <h4 id="lesMuridFormJudul">＋ Murid baru</h4>
+              <div class="les-form">
+                <div><label class="mu">Nama panggilan</label><input type="text" id="lesMNama" maxlength="60"></div>
+                <div><label class="mu">No. WhatsApp (murid/orang tua)</label><input type="tel" id="lesMWa" placeholder="0812-3456-7890"></div>
+                <div><label class="mu">Email (opsional)</label><input type="email" id="lesMEmail"></div>
+                <div><label class="mu">Jenis biasanya</label>
+                  <select id="lesMJenis"><option value="sesi">1 sesi</option><option value="jam1">1 jam</option><option value="jam15">1,5 jam</option></select></div>
+                <div class="les-form-lebar"><label class="mu">Catatan (opsional)</label><input type="text" id="lesMCatatan" maxlength="200" placeholder="mis. kelas 9, persiapan ujian"></div>
+              </div>
+              <label class="mu" style="display:block;margin-top:10px;">Jadwal rutin</label>
+              <div id="lesMuridJadwal"></div>
+              <button type="button" class="alt" onclick="lesTambahJadwal()">＋ Tambah jadwal</button>
+              <label id="lesMAktifBaris" class="les-cek"><input type="checkbox" id="lesMAktif"> Masih aktif les</label>
+              <div class="les-tombol">
+                <button onclick="lesSimpanMurid()">💾 Simpan murid</button>
+                <button class="alt" onclick="lesTutupFormMurid()">Batal</button>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <div class="card">
+          <details>
+            <summary style="cursor:pointer;"><b>⚙️ Tarif &amp; pesan pengingat</b> <span class="mu" id="lesSetelanInfo"></span></summary>
+            <div class="les-form" style="margin-top:10px;">
+              <div><label class="mu">Tarif per jam (Rp)</label><input type="number" id="lesTarifJam" min="0" step="1000" inputmode="numeric"></div>
+              <div><label class="mu">Tarif per sesi (Rp)</label><input type="number" id="lesTarifSesi" min="0" step="1000" inputmode="numeric"></div>
+              <div class="les-form-lebar"><label class="mu">Pesan pengingat WA — {nama}, {hari}, {jam}, {tanggal} diganti otomatis</label>
+                <textarea id="lesPesanWa" rows="2"></textarea></div>
+            </div>
+            <p class="mu">1,5 jam = 1,5 × tarif per jam. Tarif baru hanya berlaku untuk sesi yang dicatat sesudahnya.</p>
+            <button onclick="lesSimpanSetelan()">💾 Simpan pengaturan</button>
+          </details>
+        </div>
+      </div>
+
       <!-- RPP (guru) — logika di js-rpp.js, template rpp-template.docx -->
       <div id="tabRpp" class="tab-content hidden">
         <h2>📝 RPP</h2>
@@ -795,7 +877,7 @@
        SETIAP MEMPERBARUI satu file: unggah file itu + index.html, dan naikkan ?v=... pada baris file itu
        supaya Safari tidak memakai versi lama.
        ==================================================================== -->
-  <script src="js-inti.js?v=20261102r1"></script>
+  <script src="js-inti.js?v=20261111l1"></script>
   <script src="js-materi.js?v=20261102a"></script>
   <script src="js-kuis-guru.js?v=20261102d"></script>
   <script src="js-kuis-siswa.js?v=20261102a"></script>
@@ -806,10 +888,11 @@
   <script src="js-chatbot.js?v=20261108p"></script>
   <script src="js-jadwal.js?v=20261108p"></script>
   <script src="js-rpp.js?v=20261102k1"></script>
+  <script src="js-les.js?v=20261111l1"></script>
   <script>
     // Pemeriksa: kalau ada file js-*.js yang belum terunggah / gagal dimuat, tampilkan peringatan jelas.
     (function () {
-      const wajib = { 'js-inti.js': 'handleLogin', 'js-materi.js': 'simpanBankMateri', 'js-kuis-guru.js': 'generateSoalAI', 'js-kuis-siswa.js': 'kuisAPI', 'js-analisis.js': 'paketAnalisis', 'js-lab.js': 'submitTugas', 'js-koreksi.js': 'renderModul4PerKelas', 'js-robot.js': 'robotCatat', 'js-chatbot.js': 'chatBuka', 'js-jadwal.js': 'jadwalInit', 'js-rpp.js': 'rppInit', 'js-mulai.js': null };
+      const wajib = { 'js-inti.js': 'handleLogin', 'js-materi.js': 'simpanBankMateri', 'js-kuis-guru.js': 'generateSoalAI', 'js-kuis-siswa.js': 'kuisAPI', 'js-analisis.js': 'paketAnalisis', 'js-lab.js': 'submitTugas', 'js-koreksi.js': 'renderModul4PerKelas', 'js-robot.js': 'robotCatat', 'js-chatbot.js': 'chatBuka', 'js-jadwal.js': 'jadwalInit', 'js-rpp.js': 'rppInit', 'js-les.js': 'lesInit', 'js-mulai.js': null };
       const hilang = Object.keys(wajib).filter(f => wajib[f] && typeof window[wajib[f]] !== 'function');
       if (hilang.length) {
         document.addEventListener('DOMContentLoaded', function () {
@@ -818,7 +901,7 @@
       }
     })();
   </script>
-  <script src="js-mulai.js?v=20261102r1"></script>
+  <script src="js-mulai.js?v=20261111l1"></script>
   <div id="chatFab" class="hidden"><button type="button" onclick="chatBuka()" aria-label="Buka chat">💬 <span id="chatFabLabel">Tutor</span> <b id="chatBadge" class="hidden">0</b></button></div>
   <div id="chatPanel" class="hidden" role="dialog" aria-label="Chat">
     <div class="chat-head"><b id="chatJudul">💬 Tutor Informatika</b><button type="button" onclick="chatTutup()" aria-label="Tutup">✕</button></div>
