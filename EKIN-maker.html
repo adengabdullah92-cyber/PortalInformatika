@@ -206,6 +206,29 @@
     </ol>
     <p class="hint" style="margin:0">Tombol OK sengaja tidak ditekan otomatis. Anda yang memastikan tiap kegiatan benar sebelum tersimpan.</p>
   </section>
+  <section id="s-cetakform">
+    <h2><span class="no">8</span>Tanggal cetak penilaian</h2>
+    <p class="hint">Untuk form <b>Cetak Dokumen Evaluasi Kinerja Pegawai</b> di e-Kinerja. Tabel ini ditanam di dalam kode bookmark, jadi salin ulang kodenya setiap kali tabel berubah.</p>
+    <details class="pratinjau" id="d-ctab">
+      <summary><span>Tabel tanggal per bulan</span><span class="meta" id="m-ctab"></span></summary>
+      <div id="ctab"></div>
+      <button class="ghost" type="button" id="ctab-add">+ Tambah bulan</button>
+    </details>
+    <div class="sub">Memasang bookmark "Isi Cetak"</div>
+    <ol class="langkah">
+      <li>Ketuk <b>Salin kode bookmark cetak</b>.</li>
+      <li>Di Safari: bagikan halaman apa saja, <b>Tambah Bookmark</b>, beri nama "Isi Cetak". Lalu di sidebar Bookmark, tahan "Isi Cetak", <b>Edit Alamat</b>, tempel kode, Selesai.</li>
+      <li>Di e-Kinerja, buka form cetak, lalu ketuk bookmark <b>Isi Cetak</b>. Periksa tanggal dan lokasi, lalu ketuk OK sendiri.</li>
+    </ol>
+    <button id="salin-cetak" type="button">Salin kode bookmark cetak</button>
+    <div class="status" id="st-cetak" aria-live="polite"></div>
+    <textarea class="kode" id="kode-cetak" readonly aria-label="Kode bookmark cetak"></textarea>
+    <div class="sub">Impor dari file pengaturan</div>
+    <p class="hint" style="margin-top:0">File pengaturan dari ekstensi Chrome (berisi template dan tabel tanggal) bisa dipakai di sini juga.</p>
+    <label class="pilih">Pilih file pengaturan<input type="file" accept=".json,application/json" id="in-pengaturan"></label>
+    <div class="status" id="st-impor" aria-live="polite"></div>
+  </section>
+
   <section id="s-jurnal">
     <h2><span class="no">7</span>Jurnal harian</h2>
     <p class="hint">Satu halaman A4 per hari kerja. Isinya semua kegiatan hari itu dari template, dengan satu foto dokumentasi per kegiatan.</p>
@@ -470,6 +493,15 @@ document.addEventListener('change', onUbah);
 function onUbah(ev) {
   var el = ev.target;
   if (el.id === 'jtgl') { S.jtgl = el.value; store.set('jtgl', S.jtgl); renderJurnal(); return; }
+  if (el.id === 'in-pengaturan') { if (ev.type === 'change' && el.files && el.files[0]) { imporPengaturan(el.files[0]); el.value = ''; } return; }
+  if (el.getAttribute('data-c')) {
+    var cr = S.cetak[+el.closest('.baris').getAttribute('data-ci')];
+    if (!cr) return;
+    cr[el.getAttribute('data-c')] = el.getAttribute('data-c').charAt(0) === 'l' ? el.value.trim() : el.value;
+    store.set('cetak', S.cetak);
+    if (el.getAttribute('data-c') === 'bln' && ev.type === 'change') renderCtab(); else buatKodeCetak();
+    return;
+  }
   if (el.getAttribute('data-prof')) { S.prof[el.getAttribute('data-prof')] = el.value; store.set('prof', S.prof); jadwalkanJurnal(); return; }
   if (el.type === 'file') {
     if (ev.type !== 'change' || !el.files || !el.files[0]) return;
@@ -557,6 +589,14 @@ document.addEventListener('click', function (ev) {
   }
   if (tb.id === 'salin-antrean') { salin(jsonTerakhir, $('st-antrean'), $('json')); return; }
   if (tb.id === 'salin-kode') { salin(src, $('st-kode'), $('kode')); return; }
+  if (tb.id === 'salin-cetak') { buatKodeCetak(); salin(srcCetak, $('st-cetak'), $('kode-cetak')); return; }
+  if (tb.id === 'ctab-add') {
+    var last = S.cetak[S.cetak.length - 1], nb = S.bln;
+    if (last && last.bln) { var dd = new Date(+last.bln.slice(0, 4), +last.bln.slice(5, 7), 1); nb = dd.getFullYear() + '-' + pad(dd.getMonth() + 1); }
+    S.cetak.push({ bln: nb, tp: '', tj: '', lp: last ? last.lp : '', lj: last ? last.lj : '' });
+    store.set('cetak', S.cetak); renderCtab(); return;
+  }
+  if (act === 'cdel') { S.cetak.splice(+tb.closest('.baris').getAttribute('data-ci'), 1); store.set('cetak', S.cetak); renderCtab(); return; }
   if (act === 'libur') {
     var t = tb.getAttribute('data-t'), arr = S.libur[S.bln] || [], p = arr.indexOf(t);
     if (p >= 0) arr.splice(p, 1); else arr.push(t);
@@ -927,6 +967,241 @@ function runner() {
 
 var src = 'javascript:(' + encodeURIComponent(runner.toString().replace(/\n\s*/g, ' ')) + ')()';
 
+function cetakRunner() {
+  var DATA = __DATA__;
+  try {
+    var BLN = ['januari', 'februari', 'maret', 'april', 'mei', 'juni', 'juli', 'agustus', 'september', 'oktober', 'november', 'desember'];
+    var EN = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    var ID = ['jan', 'feb', 'mar', 'apr', 'mei', 'jun', 'jul', 'agu', 'sep', 'okt', 'nov', 'des'];
+    function p2(n) { return (n < 10 ? '0' : '') + n; }
+    function cap(x) { return x.charAt(0).toUpperCase() + x.slice(1); }
+    function norm(x) { return String(x || '').replace(/\s+/g, ' ').trim(); }
+    function teks(el) { return el.innerText != null ? el.innerText : el.textContent; }
+    function tampak(el) { var r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }
+    function tunggu(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+    function namaBln(b) { return cap(BLN[+b.slice(5, 7) - 1]) + ' ' + b.slice(0, 4); }
+    function isi(el, v) {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, v);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    function cariModal() {
+      var c = document.querySelectorAll('.modal.show, .modal.in, .modal[style*="display: block"], [role=dialog], .modal-dialog, .modal-content');
+      for (var i = 0; i < c.length; i++) {
+        if (tampak(c[i]) && /cetak dokumen evaluasi/i.test(teks(c[i]) || '') && c[i].querySelector('input')) return c[i];
+      }
+      return null;
+    }
+    function periode() {
+      var t = norm(teks(document.body));
+      var m = t.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\s*-\s*\d{1,2}\s+[A-Za-z]+\s+\d{4}/);
+      if (m && BLN.indexOf(m[2].toLowerCase()) >= 0) return m[3] + '-' + p2(BLN.indexOf(m[2].toLowerCase()) + 1);
+      m = t.match(/Periode Penilaian\s*:\s*([A-Za-z]+)/i);
+      if (m && BLN.indexOf(m[1].toLowerCase()) >= 0) {
+        var bi = BLN.indexOf(m[1].toLowerCase()) + 1;
+        var c = DATA.filter(function (d) { return +d.bln.slice(5, 7) === bi; });
+        if (c.length === 1) return c[0].bln;
+      }
+      return null;
+    }
+    function kolom(m, label) {
+      var semua = m.querySelectorAll('*'), L = null;
+      for (var i = 0; i < semua.length && !L; i++) {
+        var el = semua[i];
+        if (/^(INPUT|SELECT|TEXTAREA|OPTION|SCRIPT|STYLE)$/.test(el.tagName)) continue;
+        if (norm(teks(el)).toLowerCase() !== label) continue;
+        var anak = false;
+        for (var k = 0; k < el.children.length; k++) { if (norm(teks(el.children[k])).toLowerCase() === label) anak = true; }
+        if (!anak) L = el;
+      }
+      if (!L) return null;
+      var ins = m.querySelectorAll('input:not([type=hidden])');
+      for (var j = 0; j < ins.length; j++) { if (L.compareDocumentPosition(ins[j]) & 4) return ins[j]; }
+      return null;
+    }
+    function fmt(iso, f) {
+      var y = iso.slice(0, 4), mo = +iso.slice(5, 7), d = +iso.slice(8, 10);
+      if (f === 'en') return p2(d) + ' ' + cap(EN[mo - 1]) + ' ' + y;
+      if (f === 'id') return p2(d) + ' ' + cap(ID[mo - 1]) + ' ' + y;
+      if (f === 'dmy/') return p2(d) + '/' + p2(mo) + '/' + y;
+      if (f === 'dmy-') return p2(d) + '-' + p2(mo) + '-' + y;
+      if (f === 'panjang') return d + ' ' + cap(BLN[mo - 1]) + ' ' + y;
+      return iso;
+    }
+    function baca(v) {
+      v = norm(v).toLowerCase();
+      var m = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return m[1] + '-' + m[2] + '-' + m[3];
+      m = v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+      if (m) return m[3] + '-' + p2(+m[2]) + '-' + p2(+m[1]);
+      m = v.match(/^(\d{1,2})\s+([a-z]+)\.?\s+(\d{4})$/);
+      if (m) {
+        var w = m[2], i = EN.indexOf(w.slice(0, 3));
+        if (ID.indexOf(w.slice(0, 3)) >= 0) i = ID.indexOf(w.slice(0, 3));
+        if (BLN.indexOf(w) >= 0) i = BLN.indexOf(w);
+        if (i >= 0) return m[3] + '-' + p2(i + 1) + '-' + p2(+m[1]);
+      }
+      return null;
+    }
+    function urutan(v) {
+      v = norm(v);
+      var semua = ['en', 'id', 'iso', 'dmy/', 'dmy-', 'panjang'], dulu = [];
+      if (/^\d{4}-\d{2}-\d{2}/.test(v)) dulu = ['iso'];
+      else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) dulu = ['dmy/'];
+      else if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(v)) dulu = ['dmy-'];
+      else if (/^\d{1,2}\s+[A-Za-z]{3}\s+\d{4}$/.test(v)) dulu = /\s(Mei|Agu|Okt|Des)\s/.test(v) ? ['id', 'en'] : ['en', 'id'];
+      else if (/^\d{1,2}\s+[A-Za-z]{4,}\s+\d{4}$/.test(v)) dulu = ['panjang'];
+      return dulu.concat(semua.filter(function (f) { return dulu.indexOf(f) < 0; }));
+    }
+    async function isiTgl(el, iso) {
+      var fs = urutan(el.value), coba = [];
+      for (var i = 0; i < fs.length; i++) {
+        var v = fmt(iso, fs[i]);
+        el.dispatchEvent(new Event('focus'));
+        el.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+        isi(el, v);
+        ['keydown', 'keyup'].forEach(function (t) { el.dispatchEvent(new KeyboardEvent(t, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })); });
+        el.dispatchEvent(new Event('blur'));
+        el.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+        await tunggu(450);
+        coba.push(v);
+        if (baca(el.value) === iso) return '';
+      }
+      return 'tidak menerima isian (dicoba ' + coba.join(', ') + ')';
+    }
+
+    var lama = document.getElementById('ekin-cetak');
+    if (lama) lama.remove();
+    var bar = document.createElement('div');
+    bar.id = 'ekin-cetak';
+    bar.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:2147483647;background:#fff;color:#000;border:3px solid #0a7;border-radius:12px;padding:10px;font:14px/1.4 -apple-system,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.35);';
+    var info = document.createElement('div');
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;';
+    var area = document.createElement('textarea');
+    area.readOnly = true; area.rows = 5;
+    area.style.cssText = 'display:none;width:100%;box-sizing:border-box;margin-top:8px;font:11px monospace;color:#000;background:#fff;';
+    function btn(t, f) {
+      var b = document.createElement('button');
+      b.textContent = t; b.onclick = f;
+      b.style.cssText = 'padding:9px 12px;font-size:14px;border-radius:8px;border:1px solid #999;background:#eee;color:#000;';
+      row.appendChild(b); return b;
+    }
+    function tulis(h, merah) { info.innerHTML = '<b>Isi Cetak</b><br><span style="color:' + (merah ? '#b00020' : '#0a6b3a') + '">' + h + '</span>'; }
+    function tombolBulan() {
+      DATA.forEach(function (d) { btn(namaBln(d.bln), function () { jalankan(d.bln); }); });
+    }
+    function pindai() {
+      var m = cariModal();
+      if (!m) { tulis('Form cetak belum terbuka.', true); return; }
+      var out = ['PINDAI FORM CETAK'], ins = m.querySelectorAll('input, select, textarea');
+      for (var i = 0; i < ins.length; i++) {
+        var e = ins[i], w = e.parentElement;
+        out.push([e.tagName.toLowerCase(), e.type, 'class=' + e.className, 'induk=' + (w && typeof w.className === 'string' ? w.className.slice(0, 60) : ''), e.readOnly ? 'READONLY' : '', 'nilai="' + e.value + '"'].join(' | '));
+      }
+      area.value = out.join('\n'); area.style.display = 'block'; area.focus(); area.select();
+      tulis('Hasil pindai di bawah. Salin semua teksnya, lalu kirim ke pengembang.', false);
+    }
+    async function jalankan(bln) {
+      var d = DATA.filter(function (x) { return x.bln === bln; })[0];
+      if (!d) { tulis('Belum ada tanggal untuk ' + namaBln(bln) + ' di tabel. Tambahkan di EKIN Maker, salin ulang kode bookmark. Atau pilih bulan:', true); row.innerHTML = ''; tombolBulan(); btn('Tutup', function () { bar.remove(); }); return; }
+      var m = cariModal();
+      if (!m) { tulis('Form "Cetak Dokumen Evaluasi Kinerja Pegawai" belum terbuka. Buka dulu, lalu ketuk bookmark lagi.', true); return; }
+      tulis('Mengisi ' + namaBln(bln) + '...', false);
+      var galat = [], daftar = [['tanggal pegawai', d.tp, 1], ['lokasi pegawai', d.lp, 0], ['tanggal pejabat penilai kinerja', d.tj, 1], ['lokasi pejabat penilai kinerja', d.lj, 0]];
+      for (var i = 0; i < daftar.length; i++) {
+        var k = daftar[i];
+        if (!k[1]) continue;
+        var el = kolom(m, k[0]);
+        if (!el) { galat.push('kolom ' + k[0] + ' tidak ditemukan'); continue; }
+        if (k[2]) { var e = await isiTgl(el, k[1]); if (e) galat.push(k[0] + ' ' + e); }
+        else { isi(el, k[1]); await tunggu(150); if (el.value !== k[1]) galat.push(k[0] + ' tidak terisi'); }
+      }
+      row.innerHTML = '';
+      if (galat.length) { tulis(namaBln(bln) + ': ada yang gagal. ' + galat.join('; ') + '. Isi manual, lalu ketuk Pindai form dan kirim hasilnya.', true); btn('Pindai form', pindai); }
+      else tulis(namaBln(bln) + ' terisi. Periksa tanggal dan lokasi, lalu ketuk OK di form.', false);
+      btn('Bulan lain', function () { row.innerHTML = ''; tulis('Pilih bulan:', false); tombolBulan(); btn('Tutup', function () { bar.remove(); }); });
+      btn('Tutup', function () { bar.remove(); });
+    }
+    bar.appendChild(info); bar.appendChild(row); bar.appendChild(area);
+    document.body.appendChild(bar);
+    if (!DATA.length) { tulis('Tabel tanggal kosong. Isi di EKIN Maker, lalu salin ulang kode bookmark.', true); btn('Tutup', function () { bar.remove(); }); return; }
+    var p = periode();
+    if (p) jalankan(p);
+    else { tulis('Periode di halaman tidak terbaca. Pilih bulan penilaian:', true); tombolBulan(); btn('Pindai form', pindai); btn('Tutup', function () { bar.remove(); }); }
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+var CETAK_AWAL = [
+  ['2026-01', '2026-02-05', '2026-02-03'], ['2026-02', '2026-03-05', '2026-03-03'], ['2026-03', '2026-04-06', '2026-04-02'],
+  ['2026-04', '2026-05-06', '2026-05-04'], ['2026-05', '2026-06-05', '2026-06-02'], ['2026-06', '2026-07-06', '2026-07-02'],
+  ['2026-07', '2026-08-05', '2026-08-03'], ['2026-08', '2026-09-07', '2026-09-03'], ['2026-09', '2026-10-05', '2026-10-02'],
+  ['2026-10', '2026-11-04', '2026-11-02']
+].map(function (r) { return { bln: r[0], tp: r[1], tj: r[2], lp: 'Pandeglang', lj: 'Pandeglang' }; });
+S.cetak = store.get('cetak', null) || CETAK_AWAL;
+var srcCetak = '';
+function namaBlnC(b) { return b ? BULAN[+b.slice(5, 7) - 1] + ' ' + b.slice(0, 4) : '?'; }
+function buatKodeCetak() {
+  var data = S.cetak.filter(function (c) { return /^\d{4}-\d{2}$/.test(c.bln || ''); }).map(function (c) {
+    return { bln: c.bln, tp: c.tp || '', tj: c.tj || '', lp: c.lp || '', lj: c.lj || '' };
+  });
+  var kode = cetakRunner.toString().replace('__DATA__', JSON.stringify(data)).replace(/\n\s*/g, ' ');
+  srcCetak = 'javascript:(' + encodeURIComponent(kode) + ')()';
+  $('kode-cetak').value = srcCetak;
+}
+function renderCtab() {
+  S.cetak.sort(function (a, b) { return a.bln < b.bln ? -1 : a.bln > b.bln ? 1 : 0; });
+  $('m-ctab').textContent = S.cetak.length + ' bulan';
+  $('ctab').innerHTML = S.cetak.map(function (c, i) {
+    return '<div class="baris" data-ci="' + i + '" style="grid-template-columns:1fr 1fr">' +
+      '<label style="grid-column:1/-1">Bulan penilaian<input type="month" data-c="bln" value="' + esc(c.bln) + '"></label>' +
+      '<label>Tgl pegawai<input type="date" data-c="tp" value="' + esc(c.tp) + '"></label>' +
+      '<label>Tgl pejabat<input type="date" data-c="tj" value="' + esc(c.tj) + '"></label>' +
+      '<label>Lokasi pegawai<input data-c="lp" value="' + esc(c.lp) + '"></label>' +
+      '<label>Lokasi pejabat<input data-c="lj" value="' + esc(c.lj) + '"></label>' +
+      '<button class="del" type="button" data-act="cdel" style="grid-column:1/-1;justify-self:end">Hapus ' + esc(namaBlnC(c.bln)) + '</button></div>';
+  }).join('') || '<p class="hint">Belum ada.</p>';
+  buatKodeCetak();
+}
+function imporPengaturan(file) {
+  var r = new FileReader();
+  r.onload = function () {
+    var o = null;
+    try { o = JSON.parse(r.result); } catch (e) { o = null; }
+    if (!o || o.aplikasi !== 'EKIN Maker') { $('st-impor').textContent = 'File ini bukan file pengaturan EKIN Maker.'; return; }
+    var hasil = [];
+    if (Array.isArray(o.cetak) && o.cetak.length) {
+      o.cetak.forEach(function (c) {
+        if (!c || !/^\d{4}-\d{2}$/.test(c.bln || '')) return;
+        var b = { bln: c.bln, tp: String(c.tp || ''), tj: String(c.tj || ''), lp: String(c.lp || ''), lj: String(c.lj || '') };
+        var ada = S.cetak.filter(function (x) { return x.bln === c.bln; })[0];
+        if (ada) Object.assign(ada, b); else S.cetak.push(b);
+      });
+      store.set('cetak', S.cetak); renderCtab(); hasil.push('tabel tanggal cetak');
+    }
+    if (o.tpl && Array.isArray(o.ra)) {
+      var ra = o.ra.map(function (x) { return String(x).toLowerCase(); });
+      var baru = {};
+      for (var w = 1; w <= 5; w++) {
+        baru[w] = (o.tpl[w] || []).filter(function (e) { return e && e.k; }).map(function (e) {
+          var t = String(e.ra || '').toLowerCase().slice(0, 50), n = 1;
+          for (var i = 0; i < ra.length; i++) { if (t && (ra[i].indexOf(t) === 0 || t.indexOf(ra[i].slice(0, 50)) === 0)) { n = i + 1; break; } }
+          var lamaE = (S.tpl[w] || []).filter(function (x) { return x.k === e.k && x.m === e.m; })[0];
+          return { k: String(e.k), m: String(e.m || ''), s: String(e.s || ''), o: Math.min(6, n), r: Math.max(1, parseInt(e.r, 10) || 1), j: lamaE ? lamaE.j : '' };
+        });
+      }
+      S.tpl = baru; hasil.push('template minggu');
+    }
+    if (o.links) { Object.keys(o.links).forEach(function (k) { S.links[k] = o.links[k]; }); hasil.push('link bukti'); }
+    if (o.libur) { Object.keys(o.libur).forEach(function (k) { S.libur[k] = o.libur[k]; }); }
+    simpanSemua(); renderChips(); renderLinks(); renderTpl(); refreshAntrean();
+    $('st-impor').textContent = hasil.length ? 'Diimpor: ' + hasil.join(', ') + '. Salin ulang kode bookmark yang berubah.' : 'Tidak ada data yang bisa diimpor dari file ini.';
+  };
+  r.readAsText(file);
+}
+
 function mulai() {
   $('bln').value = S.bln; $('dari').value = S.dari; $('sampai').value = S.sampai;
   $('kode').value = src;
@@ -934,7 +1209,7 @@ function mulai() {
   tampilLogo();
   try { padMulai(); } catch (e) {}
   window.addEventListener('resize', skala);
-  renderChips(); renderLinks(); renderTpl(); renderKhusus(); refreshAntrean();
+  renderChips(); renderLinks(); renderTpl(); renderKhusus(); renderCtab(); refreshAntrean();
   simpanSemua();
 }
 mulai();
