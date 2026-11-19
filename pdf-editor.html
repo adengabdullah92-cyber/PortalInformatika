@@ -53,6 +53,36 @@ label.toggle{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--
 #toast.show{opacity:1}
 #fallback{display:none;max-width:560px;margin:0 auto 12px;padding:10px 14px;background:var(--accent-soft);border-radius:10px;font-size:14px}
 input[type=file]{display:none}
+/* placed clips */
+.clip{position:absolute;z-index:5;touch-action:none;cursor:move;outline:1px dashed rgba(31,95,191,.55)}
+.clip img{width:100%;height:100%;display:block;pointer-events:none;user-select:none;-webkit-user-select:none;-webkit-user-drag:none}
+.clip.white{background:#fff}
+.clip.sel{outline:2px solid var(--accent)}
+.clip .rh{position:absolute;right:-13px;bottom:-13px;width:26px;height:26px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);display:none}
+.clip.sel .rh{display:block}
+#clipBar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -6px 24px rgba(0,0,0,.12);padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:none}
+#clipBar.open{display:block}
+#clipBar .inner{max-width:760px;margin:0 auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.nudge{display:flex;gap:4px}
+.nudge button{min-width:38px;justify-content:center;padding:6px}
+/* source panel */
+#src{position:fixed;inset:0;z-index:50;background:var(--bg);display:none;flex-direction:column}
+#src.open{display:flex}
+.src-head{background:var(--panel);border-bottom:1px solid var(--line);padding:8px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.src-head h2{font-size:16px;margin:0 6px 0 0}
+#srcName{font-size:13px;color:var(--muted);padding:6px 14px 0}
+#srcBody{flex:1;overflow:auto;padding:10px 8px 20px;-webkit-overflow-scrolling:touch}
+.spage{position:relative;margin:0 auto 14px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.18);user-select:none;-webkit-user-select:none}
+.spage canvas{display:block}
+.spage.pick{touch-action:none;cursor:crosshair}
+.selrect{position:absolute;border:2px solid var(--accent);background:rgba(31,95,191,.13);cursor:move}
+.selrect i{position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid var(--accent)}
+.selrect i[data-h=tl]{left:-12px;top:-12px}.selrect i[data-h=tr]{right:-12px;top:-12px}
+.selrect i[data-h=bl]{left:-12px;bottom:-12px}.selrect i[data-h=br]{right:-12px;bottom:-12px}
+.src-foot{background:var(--panel);border-top:1px solid var(--line);padding:10px 14px calc(10px + env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.src-foot .hint{font-size:13px;color:var(--muted);flex:1;min-width:180px}
+#pasteBox{display:none;margin:10px auto;max-width:520px;border:2px dashed var(--accent);border-radius:10px;padding:18px;text-align:center;color:var(--accent);background:#fff;font-size:15px}
+.mode-on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
@@ -66,6 +96,7 @@ input[type=file]{display:none}
     <button id="zIn" aria-label="Perbesar" disabled>+</button>
   </div>
   <label class="toggle"><input id="boxes" type="checkbox"> Tampilkan kotak teks</label>
+  <button id="openSrc" disabled>✂︎ Tempel potongan</button>
   <div class="spacer"></div>
   <button id="resetAll" disabled>Reset semua</button>
   <button id="save" class="primary" disabled>Unduh PDF</button>
@@ -100,6 +131,43 @@ input[type=file]{display:none}
     </div>
   </div>
 </div>
+<div id="clipBar">
+  <div class="inner">
+    <label class="toggle"><input id="clWhite" type="checkbox"> Latar putih</label>
+    <div class="nudge">
+      <button data-d="l" aria-label="Geser kiri">←</button><button data-d="u" aria-label="Geser atas">↑</button>
+      <button data-d="d" aria-label="Geser bawah">↓</button><button data-d="r" aria-label="Geser kanan">→</button>
+    </div>
+    <button id="clOrig">Ukuran asli</button>
+    <button id="clDel">Hapus</button>
+    <div class="spacer"></div>
+    <button id="clDone" class="primary">Selesai</button>
+  </div>
+</div>
+
+<div id="src" role="dialog" aria-label="Ambil potongan">
+  <div class="src-head">
+    <h2>Ambil potongan</h2>
+    <button id="srcMain">Dokumen ini</button>
+    <label class="btn" for="srcFile">PDF lain / gambar</label>
+    <input id="srcFile" type="file" accept="application/pdf,.pdf,image/*">
+    <button id="srcClip">Tempel screenshot</button>
+    <div class="zoom">
+      <button id="sOut" aria-label="Perkecil">−</button>
+      <button id="sIn" aria-label="Perbesar">+</button>
+    </div>
+    <button id="srcMode" class="mode-on">⬚ Mode pilih</button>
+    <div class="spacer"></div>
+    <button id="srcClose" aria-label="Tutup">Tutup</button>
+  </div>
+  <div id="srcName"></div>
+  <div id="pasteBox" contenteditable="true" inputmode="none">Tahan jari di kotak ini, lalu pilih <b>Tempel</b>.</div>
+  <div id="srcBody"></div>
+  <div class="src-foot">
+    <div class="hint" id="srcHint">Tarik kotak di area yang ingin diambil.</div>
+    <button id="srcPaste" class="primary" disabled>Tempel</button>
+  </div>
+</div>
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -113,8 +181,10 @@ const $ = id => document.getElementById(id);
 const viewer = $("viewer");
 const st = {
   bytes: null, name: "dokumen.pdf", doc: null, zoom: 1, baseScale: 1,
-  pages: [], edits: new Map(), current: null
+  pages: [], edits: new Map(), current: null,
+  clips: [], selClip: null, sources: new Map()
 };
+let seq = 0;
 
 // downloads capability (inside the artifact viewer); falls back to a normal link elsewhere
 let downloads = null;
@@ -145,7 +215,7 @@ const empty = $("empty");
 document.addEventListener("drop", e => { const f = e.dataTransfer?.files?.[0]; if (f) openFile(f); });
 
 async function openFile(file) {
-  if (st.edits.size && !(await confirmInline("Buka file baru? Editan yang belum diunduh akan hilang."))) return;
+  if ((st.edits.size || st.clips.length) && !(await confirmInline("Buka file baru? Editan yang belum diunduh akan hilang."))) return;
   setStatus("Membuka " + file.name + " …");
   try {
     await document.fonts.load("16px Bonum");
@@ -153,8 +223,12 @@ async function openFile(file) {
     st.bytes = buf;
     st.name = file.name.replace(/\.pdf$/i, "") || "dokumen";
     st.edits.clear();
-    closeSheet();
+    st.clips = []; st.selClip = null;
+    closeSheet(); closeClipBar();
     st.doc = await pdfjsLib.getDocument({ data: buf.slice() }).promise;
+    st.sources.clear();
+    st.sources.set("main", { bytes: buf, name: file.name, doc: st.doc });
+    src.id = null;
     empty.style.display = "none";
     $("fallback").style.display = "none";
     const first = await st.doc.getPage(1);
@@ -165,7 +239,7 @@ async function openFile(file) {
     if (st.baseScale < 0.9) st.baseScale = Math.min(1, Math.max(st.baseScale, 0.9));
     st.zoom = 1;
     await renderAll();
-    ["zIn", "zOut"].forEach(id => $(id).disabled = false);
+    ["zIn", "zOut", "openSrc"].forEach(id => $(id).disabled = false);
     updateButtons();
     const found = st.pages.reduce((n, p) => n + p.items.length, 0);
     if (!found) setStatus("Tidak ada teks yang bisa diedit. Kemungkinan PDF hasil scan (gambar).");
@@ -223,6 +297,7 @@ async function renderAll() {
       wrap.appendChild(b);
       if (st.edits.has(item.key)) drawOverlay(pg, item);
     });
+    drawClipsForPage(pg);
   }
 }
 
@@ -303,6 +378,7 @@ function sampleBg(pg, item) {
 
 // ---- editor sheet ----
 function openSheet(pg, item, el) {
+  closeClipBar();
   document.querySelectorAll(".ti.active").forEach(e => e.classList.remove("active"));
   el.classList.add("active");
   st.current = { pg, item };
@@ -363,9 +439,9 @@ $("edText").addEventListener("keydown", e => {
 });
 
 function updateButtons() {
-  const n = st.edits.size;
+  const n = st.edits.size + st.clips.length;
   $("save").disabled = !st.doc || !n;
-  $("save").textContent = n ? `Unduh PDF (${n} editan)` : "Unduh PDF";
+  $("save").textContent = n ? `Unduh PDF (${n} perubahan)` : "Unduh PDF";
   $("resetAll").disabled = !n;
 }
 
@@ -386,8 +462,10 @@ function confirmInline(msg) {
 }
 
 $("resetAll").onclick = async () => {
-  if (!(await confirmInline(`Hapus semua ${st.edits.size} editan dan kembali ke PDF asli?`))) return;
+  if (!(await confirmInline(`Hapus semua ${st.edits.size + st.clips.length} perubahan dan kembali ke PDF asli?`))) return;
   st.edits.clear();
+  st.clips = []; closeClipBar();
+  st.pages.forEach(drawClipsForPage);
   st.pages.forEach(pg => pg.items.forEach(it => drawOverlay(pg, it)));
   updateButtons();
 };
@@ -425,6 +503,24 @@ async function buildPdf() {
       if (line) page.drawText(line, { x: item.x, y: item.y - j * size * 1.2, size, font, color: hexToRgb(ed.fg) });
     });
   }
+  // pasted clips, drawn on top in the order they were added
+  const srcCache = new Map();
+  for (const c of st.clips) {
+    const page = doc.getPage(c.page - 1);
+    if (c.white) page.drawRectangle({ x: c.x, y: c.y, width: c.w, height: c.h, color: PDFLib.rgb(1, 1, 1), borderWidth: 0 });
+    if (c.kind === "pdf") {
+      let sdoc = srcCache.get(c.srcId);
+      if (!sdoc) {
+        sdoc = await PDFLib.PDFDocument.load(st.sources.get(c.srcId).bytes.slice(), { ignoreEncryption: true });
+        srcCache.set(c.srcId, sdoc);
+      }
+      const ep = await doc.embedPage(sdoc.getPage(c.srcPage - 1), c.bbox);
+      page.drawPage(ep, { x: c.x, y: c.y, width: c.w, height: c.h });
+    } else {
+      const im = c.mime === "image/png" ? await doc.embedPng(c.bytes) : await doc.embedJpg(c.bytes);
+      page.drawImage(im, { x: c.x, y: c.y, width: c.w, height: c.h });
+    }
+  }
   return await doc.save();
 }
 
@@ -446,6 +542,322 @@ $("save").onclick = async () => {
     console.error(err); toast("Gagal membuat PDF: " + (err?.message || err), 5000);
   } finally { btn.textContent = label; updateButtons(); }
 };
+// ================= placed clips =================
+function clipPlace(el, pg, c) {
+  const s = pg.vp.scale;
+  const [x0, y0] = pg.vp.convertToViewportPoint(c.x, c.y + c.h);
+  el.style.left = x0 + "px"; el.style.top = y0 + "px";
+  el.style.width = c.w * s + "px"; el.style.height = c.h * s + "px";
+}
+function drawClipsForPage(pg) {
+  if (!pg) return;
+  pg.wrap.querySelectorAll(".clip").forEach(e => e.remove());
+  st.clips.filter(c => c.page === pg.n).forEach(c => {
+    const el = document.createElement("div");
+    el.className = "clip" + (c.white ? " white" : "") + (st.selClip === c ? " sel" : "");
+    el.dataset.id = c.id;
+    const img = document.createElement("img"); img.src = c.preview; img.alt = ""; img.draggable = false;
+    const rh = document.createElement("div"); rh.className = "rh";
+    el.append(img, rh);
+    clipPlace(el, pg, c);
+    el.addEventListener("pointerdown", e => {
+      e.preventDefault(); e.stopPropagation();
+      selectClip(c);
+      const resize = e.target === rh;
+      const s = pg.vp.scale, sx = e.clientX, sy = e.clientY;
+      const o = { x: c.x, y: c.y, w: c.w, h: c.h };
+      try { el.setPointerCapture(e.pointerId); } catch (_) {}
+      const move = ev => {
+        const dx = (ev.clientX - sx) / s, dy = (ev.clientY - sy) / s;
+        if (resize) {
+          const nw = Math.max(6, o.w + dx), k = nw / o.w;
+          c.w = nw; c.h = o.h * k; c.y = o.y + o.h - c.h; // keep top-left fixed
+        } else { c.x = o.x + dx; c.y = o.y - dy; }
+        clipPlace(el, pg, c);
+      };
+      const up = () => {
+        el.removeEventListener("pointermove", move);
+        el.removeEventListener("pointerup", up);
+        el.removeEventListener("pointercancel", up);
+      };
+      el.addEventListener("pointermove", move);
+      el.addEventListener("pointerup", up);
+      el.addEventListener("pointercancel", up);
+    });
+    pg.wrap.appendChild(el);
+  });
+}
+const pageOf = c => st.pages.find(p => p.n === c.page);
+function selectClip(c) {
+  closeSheet();
+  st.selClip = c;
+  document.querySelectorAll(".clip").forEach(e => e.classList.toggle("sel", e.dataset.id === c.id));
+  $("clWhite").checked = !!c.white;
+  $("clipBar").classList.add("open");
+}
+function closeClipBar() {
+  st.selClip = null;
+  $("clipBar").classList.remove("open");
+  document.querySelectorAll(".clip.sel").forEach(e => e.classList.remove("sel"));
+}
+viewer.addEventListener("pointerdown", e => { if (st.selClip && !e.target.closest(".clip")) closeClipBar(); });
+$("clDone").onclick = closeClipBar;
+$("clWhite").onchange = e => { const c = st.selClip; if (!c) return; c.white = e.target.checked; drawClipsForPage(pageOf(c)); };
+$("clOrig").onclick = () => { const c = st.selClip; if (!c) return; const top = c.y + c.h; c.w = c.w0; c.h = c.h0; c.y = top - c.h; drawClipsForPage(pageOf(c)); };
+$("clDel").onclick = () => {
+  const c = st.selClip; if (!c) return;
+  st.clips = st.clips.filter(x => x !== c); closeClipBar(); drawClipsForPage(pageOf(c)); updateButtons();
+};
+document.querySelectorAll(".nudge button").forEach(b => b.onclick = () => {
+  const c = st.selClip; if (!c) return;
+  const d = b.dataset.d, step = 1; // 1 pt
+  if (d === "l") c.x -= step; if (d === "r") c.x += step; if (d === "u") c.y += step; if (d === "d") c.y -= step;
+  drawClipsForPage(pageOf(c));
+});
+
+// page in the main viewer that occupies most of the screen
+function currentMainPage() {
+  let best = st.pages[0], bestH = -1;
+  for (const pg of st.pages) {
+    const r = pg.wrap.getBoundingClientRect();
+    const h = Math.min(r.bottom, window.innerHeight) - Math.max(r.top, 0);
+    if (h > bestH) { bestH = h; best = pg; }
+  }
+  return best;
+}
+
+// ================= source panel =================
+const src = { id: null, kind: null, doc: null, img: null, pages: [], sel: null, zoom: 1, pick: true, token: 0 };
+const srcBody = $("srcBody");
+
+$("openSrc").onclick = () => {
+  closeSheet(); closeClipBar();
+  $("src").classList.add("open");
+  updateSrcFoot();
+  if (!src.kind) loadSrcPdf("main");
+};
+$("srcClose").onclick = () => { $("src").classList.remove("open"); $("pasteBox").style.display = "none"; };
+$("srcMain").onclick = () => loadSrcPdf("main");
+$("srcFile").addEventListener("change", e => { const f = e.target.files[0]; if (f) openSrcFile(f); e.target.value = ""; });
+$("sIn").onclick = () => { src.zoom = Math.min(4, src.zoom * 1.25); renderSrc(); };
+$("sOut").onclick = () => { src.zoom = Math.max(0.5, src.zoom / 1.25); renderSrc(); };
+$("srcMode").onclick = () => {
+  src.pick = !src.pick;
+  $("srcMode").textContent = src.pick ? "⬚ Mode pilih" : "✋ Mode geser";
+  $("srcMode").classList.toggle("mode-on", src.pick);
+  srcBody.querySelectorAll(".spage").forEach(e => e.classList.toggle("pick", src.pick));
+};
+
+async function loadSrcPdf(id) {
+  const s = st.sources.get(id); if (!s) return;
+  src.id = id; src.kind = "pdf"; src.doc = s.doc; src.img = null;
+  $("srcName").textContent = (id === "main" ? "Dokumen ini: " : "Sumber: ") + s.name;
+  $("pasteBox").style.display = "none";
+  await renderSrc();
+}
+async function openSrcFile(file) {
+  try {
+    if (/pdf$/i.test(file.type) || /\.pdf$/i.test(file.name)) {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const doc = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+      const id = "s" + (++seq);
+      st.sources.set(id, { bytes, name: file.name, doc });
+      await loadSrcPdf(id);
+    } else if (/^image\//.test(file.type)) {
+      await loadSrcImage(file, file.name);
+    } else toast("Format tidak didukung. Pilih PDF atau gambar.");
+  } catch (err) { console.error(err); toast("Gagal membuka file: " + (err?.message || err), 4000); }
+}
+async function loadSrcImage(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const img = new Image(); img.src = url;
+  await img.decode();
+  src.id = null; src.kind = "img"; src.img = img; src.doc = null;
+  $("srcName").textContent = "Gambar: " + (name || "dari clipboard") + ` (${img.naturalWidth}×${img.naturalHeight})`;
+  $("pasteBox").style.display = "none";
+  await renderSrc();
+}
+
+async function renderSrc() {
+  const token = ++src.token;
+  srcBody.innerHTML = ""; src.pages = []; src.sel = null; updateSrcFoot();
+  const avail = Math.max(280, srcBody.clientWidth - 16);
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const make = (w, h) => {
+    const el = document.createElement("div");
+    el.className = "spage" + (src.pick ? " pick" : "");
+    el.style.width = w + "px"; el.style.height = h + "px";
+    const cv = document.createElement("canvas");
+    let r = dpr; while (w * h * r * r > 16e6 && r > 1) r -= 0.25;
+    cv.width = Math.floor(w * r); cv.height = Math.floor(h * r);
+    cv.style.width = w + "px"; cv.style.height = h + "px";
+    el.appendChild(cv); srcBody.appendChild(el);
+    return { el, cv, r };
+  };
+  if (src.kind === "img") {
+    const img = src.img, scale = avail / img.naturalWidth * src.zoom;
+    const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
+    const { el, cv } = make(w, h);
+    cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+    const sp = { kind: "img", el, scale, w, h };
+    src.pages.push(sp); bindSelect(sp);
+    return;
+  }
+  for (let n = 1; n <= src.doc.numPages; n++) {
+    const page = await src.doc.getPage(n);
+    if (token !== src.token) return;
+    const vp1 = page.getViewport({ scale: 1 });
+    const vp = page.getViewport({ scale: avail / vp1.width * src.zoom });
+    const { el, cv, r } = make(vp.width, vp.height);
+    const sp = { kind: "pdf", n, vp, el, w: vp.width, h: vp.height };
+    src.pages.push(sp); bindSelect(sp);
+    await page.render({ canvasContext: cv.getContext("2d"), viewport: vp, transform: r !== 1 ? [r, 0, 0, r, 0, 0] : null }).promise;
+    if (token !== src.token) return;
+  }
+}
+
+function bindSelect(sp) {
+  const el = sp.el;
+  el.addEventListener("pointerdown", e => {
+    if (!src.pick) return;
+    e.preventDefault();
+    const rect = el.getBoundingClientRect();
+    const clampX = v => Math.max(0, Math.min(sp.w, v)), clampY = v => Math.max(0, Math.min(sp.h, v));
+    const px = clampX(e.clientX - rect.left), py = clampY(e.clientY - rect.top);
+    const cur = src.sel && src.sel.sp === sp ? src.sel : null;
+    let action;
+    if (cur && e.target.dataset.h) action = e.target.dataset.h;
+    else if (cur && px >= cur.x && px <= cur.x + cur.w && py >= cur.y && py <= cur.y + cur.h) action = "move";
+    else { src.sel = { sp, x: px, y: py, w: 0, h: 0 }; action = "new"; drawSel(); }
+    const o = { ...src.sel };
+    try { el.setPointerCapture(e.pointerId); } catch (_) {}
+    const move = ev => {
+      const qx = clampX(ev.clientX - rect.left), qy = clampY(ev.clientY - rect.top);
+      const s = src.sel;
+      if (action === "new") { s.x = Math.min(px, qx); s.y = Math.min(py, qy); s.w = Math.abs(qx - px); s.h = Math.abs(qy - py); }
+      else if (action === "move") {
+        s.x = Math.max(0, Math.min(sp.w - o.w, o.x + qx - px));
+        s.y = Math.max(0, Math.min(sp.h - o.h, o.y + qy - py));
+      } else {
+        let x1 = o.x, y1 = o.y, x2 = o.x + o.w, y2 = o.y + o.h;
+        if (action.includes("l")) x1 = qx; if (action.includes("r")) x2 = qx;
+        if (action.includes("t")) y1 = qy; if (action.includes("b")) y2 = qy;
+        s.x = Math.min(x1, x2); s.y = Math.min(y1, y2); s.w = Math.abs(x2 - x1); s.h = Math.abs(y2 - y1);
+      }
+      drawSel();
+    };
+    const up = () => {
+      el.removeEventListener("pointermove", move); el.removeEventListener("pointerup", up); el.removeEventListener("pointercancel", up);
+      if (src.sel && (src.sel.w < 4 || src.sel.h < 4)) { src.sel = null; drawSel(); }
+      updateSrcFoot();
+    };
+    el.addEventListener("pointermove", move); el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+  });
+}
+function drawSel() {
+  srcBody.querySelectorAll(".selrect").forEach(e => e.remove());
+  const s = src.sel; if (!s) return;
+  const d = document.createElement("div"); d.className = "selrect";
+  d.style.left = s.x + "px"; d.style.top = s.y + "px"; d.style.width = s.w + "px"; d.style.height = s.h + "px";
+  ["tl", "tr", "bl", "br"].forEach(h => { const i = document.createElement("i"); i.dataset.h = h; d.appendChild(i); });
+  s.sp.el.appendChild(d);
+}
+function updateSrcFoot() {
+  const ok = src.sel && src.sel.w >= 4 && src.sel.h >= 4;
+  const target = st.pages.length ? currentMainPage() : null;
+  $("srcPaste").disabled = !ok || !target;
+  $("srcPaste").textContent = target ? `Tempel ke halaman ${target.n}` : "Tempel";
+  $("srcHint").textContent = ok
+    ? (src.kind === "pdf" ? "Potongan PDF ditempel sebagai vektor: tetap tajam dan teksnya bisa diseleksi." : "Potongan gambar ditempel sebagai gambar.")
+    : (src.pick ? "Tarik kotak di area yang ingin diambil. Pakai ✋ Mode geser untuk menggulir." : "Mode geser: gulir halaman, lalu kembali ke ⬚ Mode pilih.");
+}
+
+// screenshot / clipboard image
+$("srcClip").onclick = async () => {
+  try {
+    if (!navigator.clipboard || !navigator.clipboard.read) throw new Error("no-read");
+    const items = await navigator.clipboard.read();
+    for (const it of items) {
+      const type = it.types.find(t => t.startsWith("image/"));
+      if (type) { await loadSrcImage(await it.getType(type), "screenshot"); return; }
+    }
+    toast("Clipboard tidak berisi gambar. Salin screenshot dulu.");
+  } catch (err) {
+    const pb = $("pasteBox"); pb.style.display = "block";
+    toast("Tahan kotak biru, lalu pilih Tempel. Atau pilih gambar lewat tombol PDF lain / gambar.", 4500);
+  }
+};
+document.addEventListener("paste", e => {
+  if (!$("src").classList.contains("open")) return;
+  const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/"));
+  if (item) { e.preventDefault(); loadSrcImage(item.getAsFile(), "screenshot"); }
+  else if (e.target === $("pasteBox")) { e.preventDefault(); toast("Clipboard tidak berisi gambar."); }
+});
+
+// render a region of a PDF page to a transparent PNG for preview
+async function renderCropPreview(doc, n, bb) {
+  const page = await doc.getPage(n);
+  const bw = bb.right - bb.left, bh = bb.top - bb.bottom;
+  let scale = Math.min(4, 1800 / Math.max(bw, bh));
+  const vp = page.getViewport({ scale });
+  const [tx, ty] = vp.convertToViewportPoint(bb.left, bb.top);
+  const cv = document.createElement("canvas");
+  cv.width = Math.max(1, Math.round(bw * scale)); cv.height = Math.max(1, Math.round(bh * scale));
+  await page.render({ canvasContext: cv.getContext("2d"), viewport: vp, transform: [1, 0, 0, 1, -tx, -ty], background: "rgba(0,0,0,0)" }).promise;
+  return cv.toDataURL("image/png");
+}
+
+$("srcPaste").onclick = async () => {
+  const sel = src.sel; if (!sel) return;
+  const pg = currentMainPage(); if (!pg) return;
+  const btn = $("srcPaste"); btn.disabled = true;
+  try {
+    let c;
+    if (src.kind === "pdf") {
+      const sp = sel.sp;
+      const [ax, ay] = sp.vp.convertToPdfPoint(sel.x, sel.y);
+      const [bx, by] = sp.vp.convertToPdfPoint(sel.x + sel.w, sel.y + sel.h);
+      const bbox = { left: Math.min(ax, bx), right: Math.max(ax, bx), bottom: Math.min(ay, by), top: Math.max(ay, by) };
+      c = { kind: "pdf", srcId: src.id, srcPage: sp.n, bbox, w0: bbox.right - bbox.left, h0: bbox.top - bbox.bottom,
+            preview: await renderCropPreview(src.doc, sp.n, bbox) };
+    } else {
+      const k = 1 / sel.sp.scale, img = src.img;
+      const sx = Math.round(sel.x * k), sy = Math.round(sel.y * k);
+      const sw = Math.max(1, Math.round(sel.w * k)), sh = Math.max(1, Math.round(sel.h * k));
+      const down = Math.min(1, 2400 / Math.max(sw, sh));
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(sw * down); cv.height = Math.round(sh * down);
+      const ctx = cv.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+      // keep PNG only when the crop has transparency
+      const d = ctx.getImageData(0, 0, cv.width, cv.height).data;
+      let alpha = false; for (let i = 3; i < d.length; i += 16) if (d[i] < 250) { alpha = true; break; }
+      const mime = alpha ? "image/png" : "image/jpeg";
+      const blob = await new Promise(r => cv.toBlob(r, mime, 0.9));
+      // screenshots are usually 2–3× retina: half the pixel size in points is a sensible start
+      c = { kind: "img", mime, bytes: new Uint8Array(await blob.arrayBuffer()), w0: sw * 0.5, h0: sh * 0.5, preview: cv.toDataURL(mime, 0.9) };
+    }
+    // fit into 90% of the target page
+    const pw = pg.vp.width / pg.vp.scale, ph = pg.vp.height / pg.vp.scale;
+    const fit = Math.min(1, pw * 0.9 / c.w0, ph * 0.9 / c.h0);
+    c.w = c.w0 * fit; c.h = c.h0 * fit;
+    if (c.kind === "img") { c.w0 = c.w; c.h0 = c.h; }
+    // centre on the part of the page currently on screen
+    const r = pg.wrap.getBoundingClientRect();
+    const midY = Math.max(0, Math.min(r.height, window.innerHeight / 2 - r.top));
+    const [, cy] = pg.vp.convertToPdfPoint(0, midY);
+    c.x = (pw - c.w) / 2;
+    c.y = Math.max(0, Math.min(ph - c.h, cy - c.h / 2));
+    c.page = pg.n; c.id = "c" + (++seq); c.white = false;
+    st.clips.push(c);
+    $("src").classList.remove("open");
+    drawClipsForPage(pg); selectClip(c); updateButtons();
+    src.sel = null; drawSel();
+    toast("Geser potongan dengan jari. Tarik titik biru untuk mengubah ukuran.", 3500);
+  } catch (err) { console.error(err); toast("Gagal menempel: " + (err?.message || err), 4000); }
+  finally { updateSrcFoot(); }
+};
+
 function fallbackLink(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a"); a.href = url; a.download = filename;
