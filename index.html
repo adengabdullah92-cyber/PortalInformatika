@@ -49,6 +49,7 @@
       
       <p id="loginErr" style="color: var(--bad); font-size: 0.85rem; margin-bottom: 12px;"></p>
       <button onclick="handleLogin()" style="width: 100%;">Masuk Portal</button>
+      <button id="ppBtnLogin" type="button" class="alt hidden" onclick="ppLogin()" style="width: 100%; margin-top: 10px;">🔑 Masuk dengan passkey</button>
     </div>
   </div>
 
@@ -80,6 +81,9 @@
       </div>
       <div id="navWajah" class="nav-item hidden" onclick="switchTab('wajah')">
         <span>📷</span> <span id="navWajahTeks">Wajah</span>
+      </div>
+      <div id="navPasskey" class="nav-item hidden" onclick="switchTab('passkey')">
+        <span>🔑</span> Login Cepat
       </div>
     </div>
 
@@ -799,6 +803,9 @@
         </div>
         </div>
       </div>
+      <div id="tabPasskey" class="tab-content hidden">
+        <div id="ppView"></div>
+      </div>
       <div id="tabWajah" class="tab-content hidden">
         <div id="siswaWajahView" class="hidden"></div>
         <div id="guruWajahView" class="hidden"></div>
@@ -924,10 +931,11 @@
   <script src="js-rpp.js?v=20261102k1"></script>
   <script src="js-les.js?v=20261111l3"></script>
   <script src="js-wajah.js?v=20261125a"></script>
+  <script src="js-passkey.js?v=20261126a"></script>
   <script>
     // Pemeriksa: kalau ada file js-*.js yang belum terunggah / gagal dimuat, tampilkan peringatan jelas.
     (function () {
-      const wajib = { 'js-inti.js': 'handleLogin', 'js-materi.js': 'simpanBankMateri', 'js-kuis-guru.js': 'generateSoalAI', 'js-kuis-siswa.js': 'kuisAPI', 'js-analisis.js': 'paketAnalisis', 'js-lab.js': 'submitTugas', 'js-koreksi.js': 'renderModul4PerKelas', 'js-robot.js': 'robotCatat', 'js-chatbot.js': 'chatBuka', 'js-jadwal.js': 'jadwalInit', 'js-rpp.js': 'rppInit', 'js-les.js': 'lesInit', 'js-wajah.js': 'wjInit', 'js-mulai.js': null };
+      const wajib = { 'js-inti.js': 'handleLogin', 'js-materi.js': 'simpanBankMateri', 'js-kuis-guru.js': 'generateSoalAI', 'js-kuis-siswa.js': 'kuisAPI', 'js-analisis.js': 'paketAnalisis', 'js-lab.js': 'submitTugas', 'js-koreksi.js': 'renderModul4PerKelas', 'js-robot.js': 'robotCatat', 'js-chatbot.js': 'chatBuka', 'js-jadwal.js': 'jadwalInit', 'js-rpp.js': 'rppInit', 'js-les.js': 'lesInit', 'js-wajah.js': 'wjInit', 'js-passkey.js': 'ppLogin', 'js-mulai.js': null };
       const hilang = Object.keys(wajib).filter(f => wajib[f] && typeof window[wajib[f]] !== 'function');
       if (hilang.length) {
         document.addEventListener('DOMContentLoaded', function () {
