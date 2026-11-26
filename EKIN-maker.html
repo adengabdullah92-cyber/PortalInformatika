@@ -847,6 +847,74 @@ function runner() {
       if (norm(s.innerText).slice(0, 50) !== teks) return 'Rencana Aksi terpilih bukan opsi ke-' + n;
       return '';
     }
+    var HRI_T = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    function p2t(n) { return (n < 10 ? '0' : '') + n; }
+    function bacaTgl(v) {
+      v = String(v || '').trim().replace(/^[A-Za-z]+,\s*/, '');
+      var m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (m) return m[1] + '-' + p2t(+m[2]) + '-' + p2t(+m[3]);
+      m = v.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
+      if (m) return m[3] + '-' + p2t(+m[2]) + '-' + p2t(+m[1]);
+      return null;
+    }
+    function fmtTgl(iso, f) {
+      var d = new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
+      var dmy = iso.slice(8, 10) + '-' + iso.slice(5, 7) + '-' + iso.slice(0, 4);
+      if (f === 'hari') return HRI_T[d.getDay()] + ', ' + dmy;
+      if (f === 'dmy') return dmy;
+      if (f === 'dmy/') return dmy.replace(/-/g, '/');
+      return iso;
+    }
+    function urutTgl(el) {
+      var v = String(el.value || el.placeholder || '').trim();
+      if (/^[A-Za-z]+,/.test(v)) return ['hari', 'dmy', 'iso', 'dmy/'];
+      if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(v)) return ['dmy', 'hari', 'iso', 'dmy/'];
+      if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) return ['dmy/', 'dmy', 'hari', 'iso'];
+      return ['iso', 'hari', 'dmy', 'dmy/'];
+    }
+    async function ketikTgl(el, v) {
+      try { el.focus(); } catch (e) {}
+      isi(el, v);
+      ['keydown', 'keyup'].forEach(function (t) { el.dispatchEvent(new KeyboardEvent(t, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })); });
+      el.dispatchEvent(new Event('blur'));
+      el.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+      try { el.blur(); } catch (e) {}
+      await tunggu(500);
+    }
+    function popupTgl() {
+      var c = document.querySelectorAll('.mx-datepicker-main, .mx-datepicker-popup');
+      for (var i = c.length - 1; i >= 0; i--) { if (tampak(c[i])) return c[i]; }
+      return null;
+    }
+    async function pilihKalender(el, iso) {
+      try { el.focus(); } catch (e) {}
+      klik(el);
+      await tunggu(350);
+      var pp = popupTgl();
+      if (!pp) return false;
+      for (var n = 0; n < 36; n++) {
+        var cell = pp.querySelector('td[title="' + iso + '"]');
+        if (cell && !/not-current-month|disabled/.test(cell.className)) { klik(cell); await tunggu(450); return true; }
+        var ref = null, cs = pp.querySelectorAll('td[title]');
+        for (var k = 0; k < cs.length; k++) { if (!/not-current-month/.test(cs[k].className)) { ref = cs[k].getAttribute('title'); break; } }
+        if (!ref || !/^\d{4}-\d{2}/.test(ref) || ref.slice(0, 7) === iso.slice(0, 7)) return false;
+        var b = pp.querySelector(iso.slice(0, 7) > ref.slice(0, 7) ? '.mx-btn-icon-right' : '.mx-btn-icon-left');
+        if (!b) return false;
+        klik(b);
+        await tunggu(200);
+      }
+      return false;
+    }
+    async function isiTanggal(el, iso) {
+      var fs = urutTgl(el);
+      for (var i = 0; i < fs.length; i++) {
+        await ketikTgl(el, fmtTgl(iso, fs[i]));
+        if (bacaTgl(el.value) === iso) return '';
+      }
+      if (await pilihKalender(el, iso) && bacaTgl(el.value) === iso) return '';
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
+      return 'tanggal tidak bisa diisi otomatis (tertulis "' + el.value + '"), isi manual';
+    }
     async function isiEntri(it) {
       var m = await bukaModal();
       if (!m) return { gagalBuka: true, galat: ['pop-up tidak bisa dibuka (buka halaman Progress Harian dulu)'] };
@@ -856,7 +924,9 @@ function runner() {
       var mx = m.querySelectorAll('input.mx-input');
       var nilai = [it.t, it.m, it.s];
       var nama = ['tanggal', 'jam mulai', 'jam selesai'];
-      for (var i = 0; i < 3; i++) {
+      if (mx[0]) { var eT = await isiTanggal(mx[0], it.t); if (eT) galat.push(eT); }
+      else galat.push('kolom tanggal tidak ada');
+      for (var i = 1; i < 3; i++) {
         if (mx[i]) isi(mx[i], nilai[i]);
         else galat.push('kolom ' + nama[i] + ' tidak ada');
       }
@@ -867,7 +937,8 @@ function runner() {
       if (rl) isi(rl, String(it.r)); else galat.push('kolom realisasi tidak ada');
       if (bk) isi(bk, it.b || ''); else galat.push('kolom bukti dukung tidak ada');
       await tunggu(800);
-      for (var j = 0; j < 3; j++) {
+      if (mx[0] && bacaTgl(mx[0].value) !== it.t && !galat.some(function (g) { return /^tanggal/.test(g); })) galat.push('tanggal berubah menjadi "' + mx[0].value + '"');
+      for (var j = 1; j < 3; j++) {
         if (mx[j] && mx[j].value !== nilai[j]) galat.push(nama[j] + ' tidak terisi');
       }
       if (kg && kg.value !== it.k) galat.push('kegiatan tidak terisi');
