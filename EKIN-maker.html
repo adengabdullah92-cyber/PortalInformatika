@@ -857,63 +857,70 @@ function runner() {
       if (m) return m[3] + '-' + p2t(+m[2]) + '-' + p2t(+m[1]);
       return null;
     }
-    function fmtTgl(iso, f) {
-      var d = new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
-      var dmy = iso.slice(8, 10) + '-' + iso.slice(5, 7) + '-' + iso.slice(0, 4);
-      if (f === 'hari') return HRI_T[d.getDay()] + ', ' + dmy;
-      if (f === 'dmy') return dmy;
-      if (f === 'dmy/') return dmy.replace(/-/g, '/');
-      return iso;
-    }
-    function urutTgl(el) {
-      var v = String(el.value || el.placeholder || '').trim();
-      if (/^[A-Za-z]+,/.test(v)) return ['hari', 'dmy', 'iso', 'dmy/'];
-      if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(v)) return ['dmy', 'hari', 'iso', 'dmy/'];
-      if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) return ['dmy/', 'dmy', 'hari', 'iso'];
-      return ['iso', 'hari', 'dmy', 'dmy/'];
-    }
-    async function ketikTgl(el, v) {
-      try { el.focus(); } catch (e) {}
-      isi(el, v);
-      ['keydown', 'keyup'].forEach(function (t) { el.dispatchEvent(new KeyboardEvent(t, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true })); });
-      el.dispatchEvent(new Event('blur'));
-      el.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
-      try { el.blur(); } catch (e) {}
-      await tunggu(500);
-    }
+    function teksT(el) { return el.innerText != null ? el.innerText : el.textContent; }
+    function normT(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
     function popupTgl() {
       var c = document.querySelectorAll('.mx-datepicker-main, .mx-datepicker-popup');
       for (var i = c.length - 1; i >= 0; i--) { if (tampak(c[i])) return c[i]; }
       return null;
     }
+    var BLN_T = ['jan', 'feb', 'mar', 'apr', 'mei', 'jun', 'jul', 'agu', 'sep', 'okt', 'nov', 'des'];
+    var BLN_E = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    function bulanPanel(pp) {
+      var cs = pp.querySelectorAll('td[title]');
+      for (var k = 0; k < cs.length; k++) {
+        if (/not-current-month/.test(cs[k].className)) continue;
+        var t = bacaTgl(cs[k].getAttribute('title'));
+        if (t) return t.slice(0, 7);
+      }
+      var bm = pp.querySelector('.mx-btn-current-month'), by = pp.querySelector('.mx-btn-current-year');
+      if (bm && by) {
+        var w = normT(teksT(bm)).toLowerCase().slice(0, 3), i = BLN_T.indexOf(w);
+        if (i < 0) i = BLN_E.indexOf(w);
+        var y = (normT(teksT(by)).match(/\d{4}/) || [])[0];
+        if (i >= 0 && y) return y + '-' + p2t(i + 1);
+      }
+      return null;
+    }
+    function selTgl(pp, iso) {
+      var cs = pp.querySelectorAll('td'), hari = String(+iso.slice(8, 10)), bp = null;
+      for (var k = 0; k < cs.length; k++) {
+        var c = cs[k];
+        if (/not-current-month|disabled/.test(c.className)) continue;
+        var t = c.getAttribute('title');
+        if (t) { if (bacaTgl(t) === iso) return c; continue; }
+        if (bp === null) bp = bulanPanel(pp) || '';
+        if (bp === iso.slice(0, 7) && normT(teksT(c)) === hari) return c;
+      }
+      return null;
+    }
     async function pilihKalender(el, iso) {
-      try { el.focus(); } catch (e) {}
-      klik(el);
-      await tunggu(350);
       var pp = popupTgl();
-      if (!pp) return false;
+      if (!pp) {
+        try { el.focus(); } catch (e) {}
+        klik(el);
+        await tunggu(350);
+        pp = popupTgl();
+      }
+      if (!pp) return 'kalender tanggal tidak terbuka';
       for (var n = 0; n < 36; n++) {
-        var cell = pp.querySelector('td[title="' + iso + '"]');
-        if (cell && !/not-current-month|disabled/.test(cell.className)) { klik(cell); await tunggu(450); return true; }
-        var ref = null, cs = pp.querySelectorAll('td[title]');
-        for (var k = 0; k < cs.length; k++) { if (!/not-current-month/.test(cs[k].className)) { ref = cs[k].getAttribute('title'); break; } }
-        if (!ref || !/^\d{4}-\d{2}/.test(ref) || ref.slice(0, 7) === iso.slice(0, 7)) return false;
-        var b = pp.querySelector(iso.slice(0, 7) > ref.slice(0, 7) ? '.mx-btn-icon-right' : '.mx-btn-icon-left');
-        if (!b) return false;
+        var cell = selTgl(pp, iso);
+        if (cell) { klik(cell); await tunggu(450); return ''; }
+        var ref = bulanPanel(pp);
+        if (!ref || ref === iso.slice(0, 7)) return 'tanggal ' + iso + ' tidak ada di kalender';
+        var b = pp.querySelector(iso.slice(0, 7) > ref ? '.mx-btn-icon-right' : '.mx-btn-icon-left');
+        if (!b) return 'tombol ganti bulan di kalender tidak ditemukan';
         klik(b);
         await tunggu(200);
       }
-      return false;
+      return 'bulan di kalender tidak bisa dipindah';
     }
     async function isiTanggal(el, iso) {
-      var fs = urutTgl(el);
-      for (var i = 0; i < fs.length; i++) {
-        await ketikTgl(el, fmtTgl(iso, fs[i]));
-        if (bacaTgl(el.value) === iso) return '';
-      }
-      if (await pilihKalender(el, iso) && bacaTgl(el.value) === iso) return '';
+      var e = await pilihKalender(el, iso);
+      if (!e && bacaTgl(el.value) === iso) return '';
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }));
-      return 'tanggal tidak bisa diisi otomatis (tertulis "' + el.value + '"), isi manual';
+      try { el.blur(); } catch (x) {}
+      return 'tanggal belum terpilih (' + (e || 'tertulis "' + el.value + '"') + '), pilih tanggal manual di kalender';
     }
     async function isiEntri(it) {
       var m = await bukaModal();
